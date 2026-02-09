@@ -149,7 +149,8 @@ def GET_LOJAS_USER(login):
 	return dataframe_query(f'''
 		SELECT 
             te.ID AS 'ID Loja',
-			te.NOME_FANTASIA AS 'Loja'
+			te.NOME_FANTASIA AS 'Loja',
+            te.ID_ZIGPAY AS 'ID Zigpay'
 		FROM
 			ADMIN_USERS au 
 			LEFT JOIN T_USUARIOS_EMPRESAS tue ON au.ID = tue.FK_USUARIO 
@@ -232,10 +233,10 @@ def config_sidebar():
         
         # Renderizar cada secao
         for secao in ordem_secoes:
-            if secao in abas_por_secao:
+            if secao in abas_por_secao.keys():
                 st.sidebar.markdown(f"## {secao}")
-            for aba in abas_por_secao[secao]:
-                st.sidebar.page_link(f'{aba["page_link"]}', label=f'{aba["Aba"]}')
+                for aba in abas_por_secao[secao]:
+                    st.sidebar.page_link(f'{aba["page_link"]}', label=f'{aba["Aba"]}')
         
     else:
         st.sidebar.write("Por favor, faça login para acessar o menu.")
