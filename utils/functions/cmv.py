@@ -48,7 +48,7 @@ def criar_seletores_cmv(data_inicio_default, data_fim_default):
 
   # Adiciona seletores
   with col1:
-    lista_retirar_casas = ['Bar Léo - Vila Madalena', 'Edificio Rolim', 'Priceless', 'Escritório Fabrica de Bares']
+    lista_retirar_casas = ['Bar Léo - Vila Madalena', 'Edificio Rolim', 'Priceless', 'Escritório Fabrica de Bares', 'Todas as Casas']
     id_casa, casa, id_zigpay = input_selecao_casas(lista_retirar_casas, key='calendario')
   with col2:
     data_inicio = st.date_input('Data de Início', value=data_inicio_default, key='data_inicio_input', format="DD/MM/YYYY")
