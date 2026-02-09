@@ -209,6 +209,18 @@ def config_sidebar():
     if st.session_state["loggedIn"]:
         abas_permitidas = st.session_state["abas_permitidas"]
 
+        # Definir a ordem desejada das seções
+        ordem_secoes = [
+            "KPI's de Faturamento",
+            "KPI's de Faturamento - Eventos",
+            "KPI's de Resultado Operacional",
+            "KPI's de Resultado Operacional - Suprimentos",
+            'Conciliação',
+            'Fluxo de Caixa',
+            'Controladoria',
+            'Auditoria',
+        ]
+
         # Organizar abas por secao
         abas_por_secao = {}
         for aba in abas_permitidas:
@@ -219,8 +231,9 @@ def config_sidebar():
                 abas_por_secao[secao].append(aba)
         
         # Renderizar cada secao
-        for secao in abas_por_secao:
-            st.sidebar.markdown(f"## {secao}")
+        for secao in ordem_secoes:
+            if secao in abas_por_secao:
+                st.sidebar.markdown(f"## {secao}")
             for aba in abas_por_secao[secao]:
                 st.sidebar.page_link(f'{aba["page_link"]}', label=f'{aba["Aba"]}')
         
