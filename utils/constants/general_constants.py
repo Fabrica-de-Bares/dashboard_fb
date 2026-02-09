@@ -58,6 +58,7 @@ casas_validas = [
     'Sanduiche comunicação LTDA ', 
     'Tempus Fugit  Ltda ', 
     'The Cavern',
+    'The Cavern - Almoço',
     'Ultra Evil Premium Ltda '
 ]
 
@@ -82,8 +83,9 @@ cores_casas = [
     "#FF6600", # Sanduiche
     "#9933CC", # Tempus
     "#03420D", # The Cavern
+    "#D6B98C", # The Cavern - Almoço
     "#3D5771", # Ultra Evil
-    ]
+]
 
 
 # Mapeamentos manuais: fornecedor da despesa:descrição do extrato
