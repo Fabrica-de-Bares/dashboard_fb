@@ -11,26 +11,18 @@ from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 from utils.queries_cmv import *
 
 def input_selecao_casas(lista_casas_retirar, key):
-    # Dataframe com IDs e nomes das casas
-    df_casas = get_casas_validas()
-    # Remove casas da lista_casas_retirar
-    df_casas = df_casas[~df_casas["Casa"].isin(lista_casas_retirar)].sort_values(by="Casa").reset_index(drop=True)
-    # Adiciona a opção "Todas as Casas"
-    if 'Todas as Casas' in lista_casas_retirar:
-        lista_casas_validas = df_casas['Casa'].to_list()
-    else:
-        lista_casas_validas = ["Todas as Casas"] + df_casas["Casa"].to_list()
 
-    # Se o usuário não tem acesso a todas as casas, mostra apenas as casas que ele tem acesso
-    user_login = st.session_state['user_login']
-    df_permissao_casas = pd.DataFrame(st.session_state['casas_permitidas'], columns=["ID Loja"])
-    lista_ids_casas_acesso = df_permissao_casas["ID Loja"].to_list()
+    # Mostra apenas as casas que o usuário tem acesso
+    df_permissao_casas = pd.DataFrame(st.session_state['casas_permitidas'], columns=["ID Loja", "Loja", 'ID Zigpay'])
     
-    if -1 not in lista_ids_casas_acesso:
-        df_casas = df_casas[df_casas["ID_Casa"].isin(lista_ids_casas_acesso)].sort_values(by="Casa").reset_index(drop=True)
-        lista_casas_validas = df_casas["Casa"].to_list()
+    # Remove casas da lista_casas_retirar
+    df_permissao_casas = df_permissao_casas[~df_permissao_casas["Loja"].isin(lista_casas_retirar)].sort_values(by="Loja").reset_index(drop=True)
+    lista_casas_validas = df_permissao_casas["Loja"].to_list()
 
-    df_validas = pd.DataFrame(lista_casas_validas, columns=["Casa"])
+    # Adiciona opção Todas as casas
+    if 'Todas as Casas' not in lista_casas_retirar:
+        lista_casas_validas.insert(0, "Todas as Casas")
+
     casa = st.selectbox("Casa", lista_casas_validas, key=key)
 
     if casa == "Todas as Casas":
@@ -38,16 +30,10 @@ def input_selecao_casas(lista_casas_retirar, key):
         casa = "Todas as Casas"
         id_zigpay = -1
     else:
-        df = df_casas.merge(df_validas, on="Casa", how="inner")
-        # Definindo um dicionário para mapear nomes de casas a IDs de casas
-        mapeamento_ids = dict(zip(df["Casa"], df["ID_Casa"]))
-        # Definindo um dicionário para mapear IDs de casas a IDs da Zigpay
-        mapeamento_zigpay = dict(zip(df["Casa"], df["ID_Zigpay"]))
-
         # Obtendo o ID da casa selecionada
-        id_casa = mapeamento_ids[casa]
+        id_casa = df_permissao_casas[df_permissao_casas["Loja"] == casa]["ID Loja"].values[0]
         # Obtendo o ID da Zigpay correspondente ao ID da casa
-        id_zigpay = mapeamento_zigpay[casa]
+        id_zigpay = df_permissao_casas[df_permissao_casas["Loja"] == casa]["ID Zigpay"].values[0]
 
     return id_casa, casa, id_zigpay
 

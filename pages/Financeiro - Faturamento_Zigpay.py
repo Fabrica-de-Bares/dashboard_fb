@@ -30,7 +30,7 @@ def main():
   col1, col2, col3 = st.columns([2, 1, 1])
   with col1:
      # Filtro de casa:
-    lista_retirar_casas = ['Bar Léo - Vila Madalena', 'Edificio Rolim', 'Priceless']
+    lista_retirar_casas = ['Bar Léo - Vila Madalena', 'Edificio Rolim', 'Priceless', 'Todas as Casas', 'Escritório Fabrica de Bares']
     id_casa, casa, id_zigpay = input_selecao_casas(lista_retirar_casas, key='calendario')
     lojas_selecionadas = [casa]
   with col2:
