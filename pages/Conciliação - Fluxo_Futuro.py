@@ -4,7 +4,7 @@ from st_aggrid import ColumnsAutoSizeMode
 from utils.functions.general_functions_conciliacao import *
 from utils.functions.fluxo_futuro import *
 from utils.functions.general_functions import config_sidebar
-from utils.components import dataframe_aggrid
+from utils.components import dataframe_aggrid, input_multiselecao_casas
 from utils.queries_conciliacao import *
 
 
@@ -58,7 +58,9 @@ col_casas, col_botao = st.columns([4, 2])
 with col_casas:
     # Usando session_state se disponível, senão usa o valor padrão
     default_casas = st.session_state.get('casas_selecionadas', [casas[1]] if casas else [])
-    casas_selecionadas = st.multiselect("Casas", casas, default=default_casas, placeholder='Selecione casas', key="casas_multiselect")
+    lista_casas_retirar = []
+    df_casas_selecionadas = input_multiselecao_casas(lista_casas_retirar, key="casas_artistico")
+    casas_selecionadas = df_casas_selecionadas['Casa'].tolist()
 
 with col_botao:
     st.markdown("<br>", unsafe_allow_html=True)  # para alinhar o botão com os widgets
