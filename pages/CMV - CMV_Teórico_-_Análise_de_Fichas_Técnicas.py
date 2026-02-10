@@ -66,6 +66,9 @@ def main():
 
     ### FICHAS TÉCNICAS - INSUMOS DE ESTOQUE
     df_precos_insumos = GET_PRECOS_INSUMOS_N5_COM_PROPORCAO_ESTOQUE()
+    if df_precos_insumos.empty:
+        st.warning('Preços de insumos não encontrados.')
+        st.stop()
 
     df_precos_insumos_de_estoque = df_precos_insumos.groupby(['ID Casa', 'ID Insumo Estoque', 'Mês Compra', 'Ano Compra']).agg({
         'Valor N5': 'sum',
@@ -134,7 +137,7 @@ def main():
     df_precos_insumos_producao = df_precos_insumos_producao.drop(columns={'Produção?'})
 
     # Tabela de faturamento
-    df_itens_vendidos_dia = GET_FATURAMENTO_ITENS_VENDIDOS_DIA()
+    df_itens_vendidos_dia = GET_FATURAMENTO_ITENS_VENDIDOS_COMPLETO(data_inicio, data_fim, id_casa)
     
     # Formatação de dados
     df_itens_vendidos_dia['Data Venda'] = pd.to_datetime(df_itens_vendidos_dia['Data Venda'], errors='coerce')
@@ -211,8 +214,11 @@ def main():
     percentual_itens_cmv_critico = round(qtde_itens_cmv_critico / qtde_total_itens * 100, 2)
 
     df_cmv_orcado_AB = GET_CMV_ORCADO_AB()
-    cmv_orcado_AB = df_cmv_orcado_AB[(df_cmv_orcado_AB['Ano'] == ano_data_inicio) & (df_cmv_orcado_AB['Mês'] == mes_data_inicio) & (df_cmv_orcado_AB['ID Casa'] == id_casa)]['% CMV Orçado'].values[0]
-    cmv_orcado_AB = format_brazilian(cmv_orcado_AB)
+    if not df_cmv_orcado_AB.empty and not df_cmv_orcado_AB[(df_cmv_orcado_AB['Ano'] == ano_data_inicio) & (df_cmv_orcado_AB['Mês'] == mes_data_inicio) & (df_cmv_orcado_AB['ID Casa'] == id_casa)].empty:
+        cmv_orcado_AB = df_cmv_orcado_AB[(df_cmv_orcado_AB['Ano'] == ano_data_inicio) & (df_cmv_orcado_AB['Mês'] == mes_data_inicio) & (df_cmv_orcado_AB['ID Casa'] == id_casa)]['% CMV Orçado'].values[0]
+        cmv_orcado_AB = format_brazilian(cmv_orcado_AB)
+    else:
+        cmv_orcado_AB = 'N/A'
 
     col1, col2, col3, col4 = st.columns([1, 1, 1, 1], vertical_alignment='center')
     with col1:

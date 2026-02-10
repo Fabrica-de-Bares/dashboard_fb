@@ -199,6 +199,235 @@ def GET_FATURAMENTO_ITENS_VENDIDOS_DIA():
         GROUP BY `ID Casa`, tvivpc.ID_ZIG_ITEM_VENDIDO, DATE(tivd.EVENT_DATE)
   ''')
 
+def GET_FATURAMENTO_ITENS_VENDIDOS_COMPLETO(data_inicio, data_fim, id_casa):
+  """
+    Busca faturamento de itens vendidos otimizando consultas entre tabelas.
+   
+    Lógica:
+    - Se período está totalmente validado: usa apenas T_ITENS_VENDIDOS_DIA (rápido)
+    - Se período está totalmente não validado: usa apenas T_ITENS_VENDIDOS (necessário)
+    - Se período é misto: usa ambas tabelas com UNION
+   
+    Args:
+        data_inicio: string no formato 'YYYY-MM-DD', date, ou Timestamp
+        data_fim: string no formato 'YYYY-MM-DD', date, ou Timestamp
+        id_casa: int
+   
+    Returns:
+        DataFrame com dados de faturamento
+    """
+ 
+  # Converte as datas de entrada para objetos date
+  # Converte as datas de entrada para datetime
+  data_inicio_date = pd.to_datetime(data_inicio)
+  data_fim_date = pd.to_datetime(data_fim)
+  
+  # Converte para string no formato SQL
+  data_inicio_str = data_inicio_date.strftime('%Y-%m-%d')
+  data_fim_str = data_fim_date.strftime('%Y-%m-%d')
+  
+  # Primeiro, verifica qual a última data validada no período solicitado
+  query_validacao = f'''
+      SELECT MAX(DATA_VALIDACAO) as ultima_validada
+      FROM T_VALIDACAO_FATURAMENTO
+      WHERE DATA_VALIDACAO BETWEEN '{data_inicio_str}' AND '{data_fim_str}'
+  '''
+  
+  resultado_validacao = dataframe_query(query_validacao)
+  ultima_validada = resultado_validacao['ultima_validada'].iloc[0] if not resultado_validacao.empty else None
+  
+  # Converte ultima_validada para date object para comparação
+  ultima_validada_date = pd.to_datetime(ultima_validada)
+  ultima_validada_str = ultima_validada_date.strftime('%Y-%m-%d') if ultima_validada_date else None
+  
+  # Caso 1: Não há validação no período OU data_inicio > ultima_validada
+  # Usa apenas T_ITENS_VENDIDOS (dados não validados)
+  if ultima_validada_date is None or data_inicio_date > ultima_validada_date:
+      print(f"📊 Consultando apenas T_ITENS_VENDIDOS (período não validado)")
+      print(f"   Data início: {data_inicio_date}, Última validada: {ultima_validada_date}")
+      return dataframe_query(f'''
+          SELECT
+              CASE
+                  WHEN te.ID = 118 THEN 114
+                  WHEN te.ID = 103 THEN 116
+                  WHEN te.ID = 169 THEN 148
+                  WHEN te.ID = 139 THEN 105
+                  WHEN te.ID = 112 THEN 104
+                  ELSE te.ID
+              END AS `ID Casa`,
+              CASE
+                  WHEN te.ID = 118 THEN 'Bar Brahma - Centro'
+                  WHEN te.ID = 103 THEN 'Bar Léo - Centro'
+                  WHEN te.ID = 169 THEN 'Bar Brahma - Granja'
+                  WHEN te.ID = 139 THEN 'Jacaré'
+                  WHEN te.ID = 112 THEN 'Orfeu'
+                  ELSE te.NOME_FANTASIA
+              END AS 'Casa',
+              tvivpc.ID_ITEM_VENDIDO AS 'ID Item Zig',
+              tvivpc.ID_ZIG_ITEM_VENDIDO AS 'Product ID',
+              tiv.PRODUCT_NAME AS 'Item Vendido Zig',
+              tivc2.DESCRICAO AS 'Categoria',
+              tivt.DESCRICAO AS 'Tipo',
+              DATE(tiv.EVENT_DATE) AS 'Data Venda',
+              SUM(tiv.COUNT * tiv.UNIT_VALUE) / SUM(tiv.COUNT) AS 'Valor Unitário',
+              SUM(tiv.COUNT) AS 'Quantidade',
+              SUM(tiv.DISCOUNT_VALUE) AS 'Desconto',
+              SUM(COALESCE((tiv.UNIT_VALUE * tiv.COUNT), 0)) AS 'Faturamento Bruto',
+              SUM(COALESCE(((tiv.UNIT_VALUE * tiv.COUNT) - tiv.DISCOUNT_VALUE), 0)) AS 'Faturamento Líquido'
+          FROM T_ITENS_VENDIDOS tiv
+              LEFT JOIN T_EMPRESAS te ON te.ID_ZIGPAY = tiv.LOJA_ID
+              LEFT JOIN T_VISUALIZACAO_ITENS_VENDIDOS_POR_CASA tvivpc
+                  ON tvivpc.ID_ZIG_ITEM_VENDIDO = tiv.PRODUCT_ID
+                  AND tvivpc.ID_CASA = te.ID
+              LEFT JOIN T_ITENS_VENDIDOS_CADASTROS tivc ON tivc.ID_ZIGPAY = tiv.PRODUCT_ID
+              LEFT JOIN T_ITENS_VENDIDOS_CATEGORIAS tivc2 ON tivc2.ID = tivc.FK_CATEGORIA
+              LEFT JOIN T_ITENS_VENDIDOS_TIPOS tivt ON tivt.ID = tivc.FK_TIPO
+          WHERE DATE(tiv.EVENT_DATE) BETWEEN '{data_inicio_str}' AND '{data_fim_str}' AND te.ID = '{id_casa}'
+          GROUP BY `ID Casa`, tiv.PRODUCT_ID, DATE(tiv.EVENT_DATE)
+          ORDER BY `Data Venda`, `ID Casa`, `Product ID`
+      ''')
+  
+  # Caso 2: data_fim <= ultima_validada
+  # Usa apenas T_ITENS_VENDIDOS_DIA (rápido, dados validados)
+  elif data_fim_date <= ultima_validada_date:
+      print(f"⚡ Consultando apenas T_ITENS_VENDIDOS_DIA (período validado - otimizado)")
+      print(f"   Data fim: {data_fim_date}, Última validada: {ultima_validada_date}")
+      return dataframe_query(f'''
+          SELECT
+              CASE
+                  WHEN tivd.FK_CASA = 118 THEN 114
+                  WHEN tivd.FK_CASA = 103 THEN 116
+                  WHEN tivd.FK_CASA = 169 THEN 148
+                  WHEN tivd.FK_CASA = 139 THEN 105
+                  WHEN tivd.FK_CASA = 112 THEN 104
+                  ELSE tivd.FK_CASA
+              END AS `ID Casa`,
+              CASE
+                  WHEN tivd.FK_CASA = 118 THEN 'Bar Brahma - Centro'
+                  WHEN tivd.FK_CASA = 103 THEN 'Bar Léo - Centro'
+                  WHEN tivd.FK_CASA = 169 THEN 'Bar Brahma - Granja'
+                  WHEN tivd.FK_CASA = 139 THEN 'Jacaré'
+                  WHEN tivd.FK_CASA = 112 THEN 'Orfeu'
+                  ELSE te.NOME_FANTASIA
+              END AS 'Casa',
+              tvivpc.ID_ITEM_VENDIDO AS 'ID Item Zig',
+              tvivpc.ID_ZIG_ITEM_VENDIDO AS 'Product ID',
+              tivd.PRODUCT_NAME AS 'Item Vendido Zig',
+              tivc2.DESCRICAO AS 'Categoria',
+              tivt.DESCRICAO AS 'Tipo',
+              DATE(tivd.EVENT_DATE) AS 'Data Venda',
+              SUM(QUANTIDADE * VALOR_UNITARIO) / SUM(QUANTIDADE) AS 'Valor Unitário',
+              SUM(tivd.QUANTIDADE) AS 'Quantidade',
+              SUM(tivd.DESCONTO) AS 'Desconto',
+              SUM(COALESCE((tivd.VALOR_UNITARIO * tivd.QUANTIDADE), 0)) AS 'Faturamento Bruto',
+              SUM(COALESCE(((tivd.VALOR_UNITARIO * tivd.QUANTIDADE) - tivd.DESCONTO), 0)) AS 'Faturamento Líquido'
+          FROM T_ITENS_VENDIDOS_DIA tivd
+              LEFT JOIN T_EMPRESAS te ON te.ID = tivd.FK_CASA
+              LEFT JOIN T_VISUALIZACAO_ITENS_VENDIDOS_POR_CASA tvivpc
+                  ON tvivpc.ID_ZIG_ITEM_VENDIDO = tivd.PRODUCT_ID
+                  AND tvivpc.ID_CASA = tivd.FK_CASA
+              LEFT JOIN T_ITENS_VENDIDOS_CADASTROS tivc ON tivc.ID_ZIGPAY = tivd.PRODUCT_ID
+              LEFT JOIN T_ITENS_VENDIDOS_CATEGORIAS tivc2 ON tivc2.ID = tivc.FK_CATEGORIA
+              LEFT JOIN T_ITENS_VENDIDOS_TIPOS tivt ON tivt.ID = tivc.FK_TIPO
+          WHERE DATE(tivd.EVENT_DATE) BETWEEN '{data_inicio}' AND '{data_fim}' AND tivd.FK_CASA = '{id_casa}'
+          GROUP BY `ID Casa`, tvivpc.ID_ZIG_ITEM_VENDIDO, DATE(tivd.EVENT_DATE)
+          ORDER BY `Data Venda`, `ID Casa`, `Product ID`
+      ''')
+  
+  # Caso 3: Período misto (data_inicio <= ultima_validada < data_fim)
+  # Usa ambas tabelas com UNION
+  else:
+      print(f"🔄 Consultando ambas tabelas (período misto: validado até {ultima_validada_date})")
+      print(f"   Período: {data_inicio_date} a {data_fim_date}")
+      return dataframe_query(f'''
+          WITH dados_historicos AS (
+              SELECT
+                  CASE
+                      WHEN tivd.FK_CASA = 118 THEN 114
+                      WHEN tivd.FK_CASA = 103 THEN 116
+                      WHEN tivd.FK_CASA = 169 THEN 148
+                      WHEN tivd.FK_CASA = 139 THEN 105
+                      WHEN tivd.FK_CASA = 112 THEN 104
+                      ELSE tivd.FK_CASA
+                  END AS `ID Casa`,
+                  CASE
+                      WHEN tivd.FK_CASA = 118 THEN 'Bar Brahma - Centro'
+                      WHEN tivd.FK_CASA = 103 THEN 'Bar Léo - Centro'
+                      WHEN tivd.FK_CASA = 169 THEN 'Bar Brahma - Granja'
+                      WHEN tivd.FK_CASA = 139 THEN 'Jacaré'
+                      WHEN tivd.FK_CASA = 112 THEN 'Orfeu'
+                      ELSE te.NOME_FANTASIA
+                  END AS 'Casa',
+                  tvivpc.ID_ITEM_VENDIDO AS 'ID Item Zig',
+                  tvivpc.ID_ZIG_ITEM_VENDIDO AS 'Product ID',
+                  tivd.PRODUCT_NAME AS 'Item Vendido Zig',
+                  tivc2.DESCRICAO AS 'Categoria',
+                  tivt.DESCRICAO AS 'Tipo',
+                  DATE(tivd.EVENT_DATE) AS 'Data Venda',
+                  SUM(QUANTIDADE * VALOR_UNITARIO) / SUM(QUANTIDADE) AS 'Valor Unitário',
+                  SUM(tivd.QUANTIDADE) AS 'Quantidade',
+                  SUM(tivd.DESCONTO) AS 'Desconto',
+                  SUM(COALESCE((tivd.VALOR_UNITARIO * tivd.QUANTIDADE), 0)) AS 'Faturamento Bruto',
+                  SUM(COALESCE(((tivd.VALOR_UNITARIO * tivd.QUANTIDADE) - tivd.DESCONTO), 0)) AS 'Faturamento Líquido'
+              FROM T_ITENS_VENDIDOS_DIA tivd
+                  LEFT JOIN T_EMPRESAS te ON te.ID = tivd.FK_CASA
+                  LEFT JOIN T_VISUALIZACAO_ITENS_VENDIDOS_POR_CASA tvivpc
+                      ON tvivpc.ID_ZIG_ITEM_VENDIDO = tivd.PRODUCT_ID
+                      AND tvivpc.ID_CASA = tivd.FK_CASA
+                  LEFT JOIN T_ITENS_VENDIDOS_CADASTROS tivc ON tivc.ID_ZIGPAY = tivd.PRODUCT_ID
+                  LEFT JOIN T_ITENS_VENDIDOS_CATEGORIAS tivc2 ON tivc2.ID = tivc.FK_CATEGORIA
+                  LEFT JOIN T_ITENS_VENDIDOS_TIPOS tivt ON tivt.ID = tivc.FK_TIPO
+              WHERE DATE(tivd.EVENT_DATE) BETWEEN '{data_inicio_str}' AND '{ultima_validada_str}' AND te.ID = '{id_casa}'
+              GROUP BY `ID Casa`, tvivpc.ID_ZIG_ITEM_VENDIDO, DATE(tivd.EVENT_DATE)
+          ),
+          dados_recentes AS (
+              SELECT
+                  CASE
+                      WHEN te.ID = 118 THEN 114
+                      WHEN te.ID = 103 THEN 116
+                      WHEN te.ID = 169 THEN 148
+                      WHEN te.ID = 139 THEN 105
+                      WHEN te.ID = 112 THEN 104
+                      ELSE te.ID
+                  END AS `ID Casa`,
+                  CASE
+                      WHEN te.ID = 118 THEN 'Bar Brahma - Centro'
+                      WHEN te.ID = 103 THEN 'Bar Léo - Centro'
+                      WHEN te.ID = 169 THEN 'Bar Brahma - Granja'
+                      WHEN te.ID = 139 THEN 'Jacaré'
+                      WHEN te.ID = 112 THEN 'Orfeu'
+                      ELSE te.NOME_FANTASIA
+                  END AS 'Casa',
+                  tvivpc.ID_ITEM_VENDIDO AS 'ID Item Zig',
+                  tvivpc.ID_ZIG_ITEM_VENDIDO AS 'Product ID',
+                  tiv.PRODUCT_NAME AS 'Item Vendido Zig',
+                  tivc2.DESCRICAO AS 'Categoria',
+                  tivt.DESCRICAO AS 'Tipo',
+                  DATE(tiv.EVENT_DATE) AS 'Data Venda',
+                  SUM(tiv.COUNT * tiv.UNIT_VALUE) / SUM(tiv.COUNT) AS 'Valor Unitário',
+                  SUM(tiv.COUNT) AS 'Quantidade',
+                  SUM(tiv.DISCOUNT_VALUE) AS 'Desconto',
+                  SUM(COALESCE((tiv.UNIT_VALUE * tiv.COUNT), 0)) AS 'Faturamento Bruto',
+                  SUM(COALESCE(((tiv.UNIT_VALUE * tiv.COUNT) - tiv.DISCOUNT_VALUE), 0)) AS 'Faturamento Líquido'
+              FROM T_ITENS_VENDIDOS tiv
+                  LEFT JOIN T_EMPRESAS te ON te.ID_ZIGPAY = tiv.LOJA_ID
+                  LEFT JOIN T_VISUALIZACAO_ITENS_VENDIDOS_POR_CASA tvivpc
+                      ON tvivpc.ID_ZIG_ITEM_VENDIDO = tiv.PRODUCT_ID
+                      AND tvivpc.ID_CASA = te.ID
+                  LEFT JOIN T_ITENS_VENDIDOS_CADASTROS tivc ON tivc.ID_ZIGPAY = tiv.PRODUCT_ID
+                  LEFT JOIN T_ITENS_VENDIDOS_CATEGORIAS tivc2 ON tivc2.ID = tivc.FK_CATEGORIA
+                  LEFT JOIN T_ITENS_VENDIDOS_TIPOS tivt ON tivt.ID = tivc.FK_TIPO
+              WHERE DATE(tiv.EVENT_DATE) > '{ultima_validada_str}'
+                AND DATE(tiv.EVENT_DATE) <= '{data_fim_str}'
+                AND te.ID = '{id_casa}'
+              GROUP BY `ID Casa`, tiv.PRODUCT_ID, DATE(tiv.EVENT_DATE)
+          )
+          SELECT * FROM dados_historicos
+          UNION ALL
+          SELECT * FROM dados_recentes
+          ORDER BY `Data Venda`, `ID Casa`, `Product ID`
+      ''')
+
 @st.cache_data
 def GET_CMV_ORCADO_AB():
   return dataframe_query(f'''
@@ -334,14 +563,8 @@ def GET_EVENTOS_CMV(data_inicio, data_fim):
 def GET_INSUMOS_AGRUPADOS_BLUE_ME_POR_CATEG_SEM_PEDIDO():
   return dataframe_query(f'''
     SELECT
-      CASE 
-        WHEN te.ID = 131 THEN 110
-        ELSE te.ID  
-      END AS ID_Loja,
-      CASE
-        WHEN te.ID = 131 THEN 'Blue Note - São Paulo'
-        ELSE te.NOME_FANTASIA    
-      END AS Loja,
+      te.ID AS ID_Loja,
+      te.NOME_FANTASIA AS Loja,
       DATE_FORMAT(tdr.COMPETENCIA, '%Y-%m-01') AS Primeiro_Dia_Mes,
       SUM(tdr.VALOR_PAGAMENTO) AS BlueMe_Sem_Pedido_Valor,
       SUM(CASE
@@ -482,9 +705,11 @@ def GET_INSUMOS_AGRUPADOS_BLUE_ME_POR_CATEG_COM_PEDIDO_PERIODO_LOJA(data_inicio,
           WHEN q.Loja = 'Girondino - CCBB' THEN 'Girondino - Agregado'
           WHEN q.Loja = 'Blue Note - São Paulo' THEN 'Blue Note - Agregado'
           WHEN q.Loja = 'Blue Note SP (Novo)' THEN 'Blue Note - Agregado'
+          WHEN q.Loja = 'The Cavern' THEN 'The Cavern - Agregado'
+          WHEN q.Loja = 'The Cavern - Almoço' THEN 'The Cavern - Agregado'
           ELSE q.Loja
         END
-		) =  '{loja}'
+		) = '{loja}'
     GROUP BY
       q.ID_Loja,
       q.Loja,
@@ -492,7 +717,6 @@ def GET_INSUMOS_AGRUPADOS_BLUE_ME_POR_CATEG_COM_PEDIDO_PERIODO_LOJA(data_inicio,
     ORDER BY
       q.ID_Loja,
       q.Primeiro_Dia_Mes;
-
 ''')
 
 
@@ -683,6 +907,8 @@ def GET_INSUMOS_BLUE_ME_COM_PEDIDO(data_inicio, data_fim, loja):
       	WHEN te.NOME_FANTASIA = 'Girondino - CCBB' THEN 'Girondino - Agregado'
       	WHEN te.NOME_FANTASIA = 'Blue Note - São Paulo' THEN 'Blue Note - Agregado'
       	WHEN te.NOME_FANTASIA = 'Blue Note SP (Novo)' THEN 'Blue Note - Agregado'
+        WHEN te.NOME_FANTASIA = 'The Cavern' THEN 'The Cavern - Agregado'
+        WHEN te.NOME_FANTASIA = 'The Cavern - Almoço' THEN 'The Cavern - Agregado'
       	ELSE te.NOME_FANTASIA
       END AS `Loja`,
       tf.CORPORATE_NAME AS Fornecedor,
@@ -768,6 +994,8 @@ def GET_INSUMOS_BLUE_ME_COM_PEDIDO(data_inicio, data_fim, loja):
           WHEN te.NOME_FANTASIA = 'Girondino - CCBB' THEN 'Girondino - Agregado'
           WHEN te.NOME_FANTASIA = 'Blue Note - São Paulo' THEN 'Blue Note - Agregado'
           WHEN te.NOME_FANTASIA = 'Blue Note SP (Novo)' THEN 'Blue Note - Agregado'
+          WHEN te.NOME_FANTASIA = 'The Cavern' THEN 'The Cavern - Agregado'
+          WHEN te.NOME_FANTASIA = 'The Cavern - Almoço' THEN 'The Cavern - Agregado'
           ELSE te.NOME_FANTASIA
         END
 		  ) = '{loja}'

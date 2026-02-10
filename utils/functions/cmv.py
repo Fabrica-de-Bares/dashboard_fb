@@ -19,7 +19,8 @@ def substituicao_ids(df, colNome, colID):
     161: 149,
     162: 149,
     110: 131,
-    160: 156
+    160: 156,
+    177: 176
   }
 
   substituicoesNomes = {
@@ -35,7 +36,9 @@ def substituicao_ids(df, colNome, colID):
     'Blue Note - São Paulo': 'Blue Note - Agregado',
     'Blue Note SP (Novo)': 'Blue Note - Agregado',
     'Girondino - CCBB': 'Girondino - Agregado',
-    'Girondino ': 'Girondino - Agregado'
+    'Girondino ': 'Girondino - Agregado',
+    'The Cavern': 'The Cavern - Agregado',
+    'The Cavern - Almoço': 'The Cavern - Agregado'
   }
 
   df.loc[:, colNome] = df[colNome].replace(substituicoesNomes)
@@ -49,7 +52,7 @@ def criar_seletores_cmv(data_inicio_default, data_fim_default):
   # Adiciona seletores
   with col1:
     lista_retirar_casas = ['Bar Léo - Vila Madalena', 'Edificio Rolim', 'Priceless', 'Escritório Fabrica de Bares', 'Todas as Casas']
-    id_casa, casa, id_zigpay = input_selecao_casas(lista_retirar_casas, key='calendario')
+    id_casa, casa, id_zigpay = input_selecao_casas_agregadas(lista_retirar_casas, key='calendario')
   with col2:
     data_inicio = st.date_input('Data de Início', value=data_inicio_default, key='data_inicio_input', format="DD/MM/YYYY")
   with col3:
@@ -314,10 +317,10 @@ def config_valoracao_estoque(data_inicio, data_fim, loja):
 
   if loja == 'Blue Note - Agregado':
     loja = 'Blue Note - São Paulo'
-    loja2 = 'Blue Note SP (Novo)'
   elif loja == 'Girondino - Agregado':
     loja = 'Girondino '
-    loja2 = 'Girondino - CCBB'
+  elif loja == 'The Cavern - Agregado':
+    loja = 'The Cavern'
 
   df_valoracao_estoque = GET_VALORACAO_ESTOQUE(loja, data_inicio_nova)
 

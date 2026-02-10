@@ -37,6 +37,61 @@ def input_selecao_casas(lista_casas_retirar, key):
 
     return id_casa, casa, id_zigpay
 
+def input_selecao_casas_agregadas(lista_casas_retirar, key):
+
+    # Mostra apenas as casas que o usuário tem acesso
+    df_permissao_casas = pd.DataFrame(st.session_state['casas_permitidas'], columns=["ID Loja", "Loja", 'ID Zigpay'])
+    
+    # Remove casas da lista_casas_retirar
+    df_permissao_casas = df_permissao_casas[~df_permissao_casas["Loja"].isin(lista_casas_retirar)].sort_values(by="Loja").reset_index(drop=True)
+    lista_casas_validas = df_permissao_casas["Loja"].to_list()
+    lista_ids_casas_validas = df_permissao_casas["ID Loja"].to_list()
+
+    blue_note_ids = [110, 131]
+    the_cavern_ids = [176, 177]
+
+    # Se algum Blue Note está na permissão, adiciona Blue Note - Agregado
+    if any(num in blue_note_ids for num in lista_ids_casas_validas):
+        if 'Blue Note - Agregado' not in lista_casas_retirar:
+            lista_casas_validas.insert(0, "Blue Note - Agregado")
+            lista_casas_validas.remove("Blue Note - São Paulo")
+            lista_casas_validas.remove("Blue Note SP (Novo)")
+
+    # Se algum The Cavern está na permissão, adiciona The Cavern - Agregado
+    if any(num in the_cavern_ids for num in lista_ids_casas_validas):
+        if 'The Cavern - Agregado' not in lista_casas_retirar:
+            lista_casas_validas.insert(0, "The Cavern - Agregado")
+            lista_casas_validas.remove("The Cavern")
+            lista_casas_validas.remove("The Cavern - Almoço")
+
+    lista_casas_validas.sort()
+
+    # Adiciona opção Todas as casas
+    if 'Todas as Casas' not in lista_casas_retirar:
+        lista_casas_validas.insert(0, "Todas as Casas")
+
+    casa = st.selectbox("Casa", lista_casas_validas, key=key)
+
+    if casa == "Todas as Casas":
+        id_casa = -1  # Valor padrão para "Todas as Casas"
+        casa = "Todas as Casas"
+        id_zigpay = -1
+    else:
+        # Obtendo o ID da casa agregada
+        if casa == "Blue Note - Agregado":
+            id_casa = df_permissao_casas[df_permissao_casas["Loja"] == 'Blue Note - São Paulo']["ID Loja"].values[0]
+            id_zigpay = df_permissao_casas[df_permissao_casas["Loja"] == 'Blue Note SP (Novo)']["ID Zigpay"].values[0]
+        elif casa == "The Cavern - Agregado":
+            id_casa = df_permissao_casas[df_permissao_casas["Loja"] == 'The Cavern']["ID Loja"].values[0]
+            id_zigpay = df_permissao_casas[df_permissao_casas["Loja"] == 'The Cavern - Almoço']["ID Zigpay"].values[0]
+        # Obtendo o ID de casa não agregada
+        else:
+            id_casa = df_permissao_casas[df_permissao_casas["Loja"] == casa]["ID Loja"].values[0]
+            # Obtendo o ID da Zigpay correspondente ao ID da casa
+            id_zigpay = df_permissao_casas[df_permissao_casas["Loja"] == casa]["ID Zigpay"].values[0]
+
+    return id_casa, casa, id_zigpay
+
 def input_multiselecao_casas(lista_casas_retirar, key):
     # Dataframe com IDs e nomes das casas
     df_casas = get_casas_validas()
