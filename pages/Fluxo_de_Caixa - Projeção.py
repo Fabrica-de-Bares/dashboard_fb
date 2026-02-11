@@ -148,15 +148,17 @@ st.divider()
 # Projeção casa a casa (selecionadas)
 with st.container(border=True):
     st.subheader(f"Projeção casa a casa - {seletor_status_despesa}")
-    col1, col2, col3 = st.columns([3, 1, 1])
+    col1, col2, col3, col4 = st.columns([3, 1, 1, 1], vertical_alignment='bottom')
 
     # Adiciona seletores
     with col1:
         bares_selecionados = st.multiselect("Selecione casas", lojasComDados, default=lojasComDados[0])
     with col2:
+        checkbox_agrupa = st.checkbox(label="Agrupar casas selecionadas", key="checkbox_agrupa_lojas_selecionadas")
+    with col3:
         # Data de fim padrão dos seletores: uma semana à frente do dia atual
         data_fim = seletor_data_fim_padrao(key='date_input')
-    with col3:
+    with col4:
         multiplicador = st.number_input(
             "Selecione um multiplicador", value=1.0, key="multiplicador_input"
         )
@@ -179,9 +181,28 @@ with st.container(border=True):
     else: 
         df_projecao_bar = filtrar_por_classe_selecionada(df_projecao_bares, "Empresa", bares_selecionados)
 
-    # Formata exibição
-    df_projecao_bar_com_soma = somar_total(df_projecao_bar)
+    if checkbox_agrupa: # Agrupa casas selecionadas se checkbox ativo
+        df_projecao_bar_agrupados = df_projecao_bar.groupby(['Data'], as_index=False).agg({
+            'Saldo_Inicio_Dia': 'sum',
+            'Valor_Liquido_Recebido': 'sum',
+            'Valor_Projetado_Zig': 'sum',
+            'Receita_Projetada_Extraord': 'sum',
+            'Receita_Projetada_Eventos': 'sum',
+            'Despesas_Aprovadas_Pendentes': 'sum',
+            'Despesas_Pagas': 'sum',
+            'Saldo_Final': 'sum'
+        })
+
+        nome_agrupado = "Agrupamento"
+        df_projecao_bar_agrupados['Empresa'] = nome_agrupado
+        df_projecao_exibida = df_projecao_bar_agrupados
     
+    else: # Se não, exibe cada uma individualmente
+        df_projecao_exibida = df_projecao_bar
+
+    # Cria linha de Total
+    df_projecao_bar_com_soma = somar_total(df_projecao_exibida)
+   
     # Organiza colunas
     df_projecao_bar_com_soma = df_projecao_bar_com_soma[["Empresa", "Data", "Saldo_Inicio_Dia", "Valor_Liquido_Recebido", "Valor_Projetado_Zig", "Receita_Projetada_Extraord", "Receita_Projetada_Eventos", "Despesas_Aprovadas_Pendentes", "Despesas_Pagas", "Saldo_Final"]]
     
@@ -303,7 +324,7 @@ with st.container(border=True):
 
 with st.container(border=True):
     st.subheader("Receitas Extraordinárias do Dia")
-    col1, col2, col3 = st.columns([5, 2, 3], vertical_alignment='center')
+    col1, col2, col3 = st.columns([5, 2, 3], vertical_alignment='bottom')
 
     # Adiciona seletores
     with col1:
@@ -362,7 +383,7 @@ with st.container(border=True):
 
 with st.container(border=True):
     st.subheader("Receitas de Eventos do Dia")
-    col1, col2, col3 = st.columns([5, 2, 3], vertical_alignment='center')
+    col1, col2, col3 = st.columns([5, 2, 3], vertical_alignment='bottom')
 
     # Adiciona seletores
     with col1:
