@@ -58,6 +58,7 @@ def supplier_expense_n5(day,day2):
         N2.DESCRICAO AS 'INSUMO N2',
         N5.ID AS 'ID Nivel 5',
         N5.DESCRICAO AS 'INSUMO N5',
+        tudm.UNIDADE_MEDIDA_NAME AS 'Unidade Medida',                   
         SUM(DRI.QUANTIDADE) AS 'Quantidade Insumo',
         SUM(DRI.VALOR) AS 'Valor Insumo',
         SUM(DRI.VALOR) / SUM(DRI.QUANTIDADE) AS 'Valor Med Por Insumo'                                
@@ -69,6 +70,7 @@ def supplier_expense_n5(day,day2):
         INNER JOIN T_DESPESA_RAPIDA DR ON (DRI.FK_DESPESA_RAPIDA = DR.ID)
         INNER JOIN T_FORNECEDOR F ON (DR.FK_FORNECEDOR = F.ID)
         INNER JOIN T_EMPRESAS E ON (DR.FK_LOJA = E.ID)
+        LEFT JOIN T_UNIDADES_DE_MEDIDAS tudm ON (N5.FK_UNIDADE_MEDIDA = tudm.ID)
     WHERE DR.COMPETENCIA >= '{day}'
         AND DR.COMPETENCIA <= '{day2}'
         AND DR.BIT_CANCELADA = 0

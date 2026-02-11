@@ -3,7 +3,6 @@ import pandas as pd
 from utils.queries_fluxo_de_caixa import *
 from utils.functions.general_functions import *
 from utils.functions.fluxo_de_caixa_projecao import *
-# from utils.constants.general_constants import lojasAgrupadas
 from datetime import datetime
 from utils.components import button_download
 
@@ -36,13 +35,32 @@ seletor_status_despesa = st.segmented_control(
 )
 st.divider()
 
+# Bares exibidos nos seletores baseado no cargo do usuário
+cargo_usuario = st.session_state['cargo_usuario']
+nome_usuario = st.session_state['nome_usuario']
 
-# Bares exibidos nos seletores
-df_bares_agrupados = GET_BARES_AGRUPADOS()
+# Grupo de bares agrupados
+if (cargo_usuario != 'Sócio') or (cargo_usuario == 'Sócio' and (nome_usuario == 'Caire' or nome_usuario == 'Alvaro Aoas')):
+    df_bares_agrupados = GET_BARES_AGRUPADOS() # Vê todos os bares agrupados (como antes)
+elif cargo_usuario == 'Sócio' and nome_usuario != 'Caire' and nome_usuario != 'Alvaro Aoas': # Sócios de casas específicas
+    df_bares_agrupados = pd.DataFrame(st.session_state['casas_permitidas'], columns=["Loja"])
+    df_bares_agrupados = df_bares_agrupados.rename(columns={'Loja': 'Empresa'})
+
 lojasAgrupadas = df_bares_agrupados['Empresa'].tolist()
 
-lojasComDados = preparar_dados_lojas_user_projecao_fluxo() 
-lojasComDados = ['Todas as casas'] + lojasComDados
+# Lojas com dados
+if (cargo_usuario != 'Sócio') or (cargo_usuario == 'Sócio' and (nome_usuario == 'Caire' or nome_usuario == 'Alvaro Aoas')):
+    lojasComDados = preparar_dados_lojas_user_projecao_fluxo() # Vê todos as casas (como antes)
+elif cargo_usuario == 'Sócio' and nome_usuario != 'Caire' and nome_usuario != 'Alvaro Aoas': # Sócios de casas específicas
+    df_lojas = pd.DataFrame(st.session_state['casas_permitidas'], columns=["Loja"])
+    df_lojas = df_lojas.rename(columns={'Loja': 'Empresa'})
+    lojasComDados = df_lojas['Empresa'].tolist()
+
+lojasComDados = sorted(lojasComDados)
+if 'Arcos' in lojasComDados: # Para não ficar 'All bar' como default nos seletors
+    lojasComDados.remove('Arcos')
+    lojasComDados.insert(0, 'Arcos')
+# lojasComDados = ['Todas as casas'] + lojasComDados
 
 # Recuperando dados
 df_saldos_bancarios = GET_SALDOS_BANCARIOS()                    # saldo inicio do dia atual de cada casa
@@ -79,14 +97,9 @@ with st.container(border=True):
     with col3:
         multiplicador2 = st.number_input("Selecione um multiplicador", value=1.0, key="multiplicador_input2")
     
-    st.markdown(
-    """*All bar, Bar Brahma - Centro, Bar Brahma - Granja, Bar Brahma Aeroclube, Bar Brahma Paulista, Bar Brasília - Aeroporto, 
-    Bar Léo - Centro, Bar Léo - Vila Madalena, Bardassê, Brahma - Ribeirão, Brahma Aricanduva,
-    Delivery Bar Léo Centro, Delivery Fábrica de Bares, Delivery Orfeu, Edifício Rolim, Escritório Fábrica de Bares, 
-    FDB DIGITAL PARTICIPACOES LTDA, FDB HOLDING INFERIOR LTDA, FDB HOLDING SUPERIOR LTDA, Girondino, Girondino - CCBB, 
-    Hotel Marabá, Ilha das Flores, Jacaré, Lojinha - Brahma, Navarro, Notiê - Priceless, Orfeu, Patizal, Priceless, 
-    Riviera Bar, Tempus, Terraço Notiê, Tundra*
-    """)
+    lista_bares_agrupados = sorted(lojasAgrupadas)
+    texto = ", ".join(lista_bares_agrupados)
+    st.markdown(f"{texto}")
 
     df_projecao_bares = df_projecao_bares_geral
 

@@ -90,6 +90,8 @@ def main():
     else:
         cargo, Nomeuser, login = config_permissoes_user()
         cargo = cargo[0]
+        st.session_state["cargo_usuario"] = cargo
+        st.session_state["nome_usuario"] = Nomeuser
 
         st.write("Você está logado!")
         st.markdown("Redirecionando...")
@@ -119,6 +121,7 @@ def main():
             redirect_page = "Login.py" # Gazit
             st.switch_page(redirect_page)
         else:
+            abas_permitidas = sorted(abas_permitidas, key=lambda x: x["ID Aba"])
             id_aba = abas_permitidas[0]["ID Aba"]
             redirect_page = ABAS[id_aba]["page_link"]
             st.switch_page(redirect_page)
