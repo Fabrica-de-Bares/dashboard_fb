@@ -154,7 +154,7 @@ with st.container(border=True):
     with col1:
         bares_selecionados = st.multiselect("Selecione casas", lojasComDados, default=lojasComDados[0])
     with col2:
-        checkbox_agrupa = st.checkbox(label="Agrupar lojas selecionadas", key="checkbox_agrupa_lojas_selecionadas")
+        checkbox_agrupa = st.checkbox(label="Agrupar casas selecionadas", key="checkbox_agrupa_lojas_selecionadas")
     with col3:
         # Data de fim padrão dos seletores: uma semana à frente do dia atual
         data_fim = seletor_data_fim_padrao(key='date_input')
