@@ -22,7 +22,7 @@ def get_parcelas_por_tipo_data(df_parcelas, df_eventos, filtro_data, ano):
         return df
 
 
-def montar_tabs_geral(df_parcelas, casa, id_casa, tipo_data, df_orcamentos):
+def montar_tabs_geral(df_parcelas, casa, lista_ids_casas, tipo_data, df_orcamentos):
 
     if tipo_data == 'Competência':
         tipo_data = 'Data Evento'
@@ -36,7 +36,7 @@ def montar_tabs_geral(df_parcelas, casa, id_casa, tipo_data, df_orcamentos):
     tabs = st.tabs(tab_names)
     with tabs[0]:
         st.markdown(f"#### Faturamento Total de Eventos - {casa}")
-        grafico_barras_total_eventos(df_parcelas, tipo_data, df_orcamentos, id_casa)
+        grafico_barras_total_eventos(df_parcelas, tipo_data, df_orcamentos, lista_ids_casas)
     # with tabs[1]:
     #     st.markdown("#### Alimentos e Bebidas")
     #     grafico_barras_faturamento_categoria_evento(df_parcelas, tipo_data, 'A&B', df_orcamentos, id_casa)
@@ -95,7 +95,7 @@ def valores_labels_formatados(lista_valores):
 
 
 # Total de Eventos
-def grafico_barras_total_eventos(df_parcelas, tipo_data, df_orcamentos, id_casa):
+def grafico_barras_total_eventos(df_parcelas, tipo_data, df_orcamentos, lista_ids_casa):
     df_parcelas = df_parcelas.copy()
 
     # Extrai mês e ano da coluna 'Data Vencimento'
@@ -110,12 +110,12 @@ def grafico_barras_total_eventos(df_parcelas, tipo_data, df_orcamentos, id_casa)
     df_parcelas_agrupado = df_meses.merge(df_parcelas_agrupado, how='left', on='Mes')
     df_parcelas_agrupado.fillna(0, inplace=True)
 
+    # Filtra as casas selecionadas
+    df_orcamentos = df_orcamentos[df_orcamentos['ID Casa'].isin(lista_ids_casa)]
+
     # Cria lista de valores
     total_eventos = df_parcelas_agrupado['Valor Parcela'].tolist()
-    if id_casa == -1:
-        valores_orcamentos = df_orcamentos.copy().groupby(['Mês'])['Valor'].sum().reset_index()
-    else:
-        valores_orcamentos = df_orcamentos[df_orcamentos['ID Casa'] == id_casa].copy().groupby(['Mês'])['Valor'].sum().reset_index()
+    valores_orcamentos = df_orcamentos.copy().groupby(['Mês'])['Valor'].sum().reset_index()
 
     # Labels formatados
     labels = [format_brazilian(v) for v in total_eventos]
@@ -557,6 +557,10 @@ def grafico_linhas_faturamento_classificacoes_evento(df_eventos, id_casa, coluna
     # Filtro por casa, se aplicável
     if id_casa != -1:
         df_eventos = df_eventos[df_eventos['ID Casa'] == id_casa].copy()
+    else:
+        df_acessos_casas = pd.DataFrame(st.session_state['casas_permitidas'], columns=["ID Loja", "Loja", 'ID Zigpay'])
+        lista_ids_casa = df_acessos_casas['ID Loja'].tolist()
+        df_eventos = df_eventos[df_eventos['ID Casa'].isin(lista_ids_casa)].copy()
 
     if df_eventos.empty:
         st.error("Não há dados de eventos disponíveis para o gráfico.")

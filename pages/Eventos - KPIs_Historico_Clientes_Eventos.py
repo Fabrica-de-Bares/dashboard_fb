@@ -37,6 +37,10 @@ def main():
     id_casa, casa, id_zigpay = input_selecao_casas(lista_retirar_casas, key='historico_clientes_eventos')
     if id_casa != -1:
         df_clientes_eventos = df_clientes_eventos[df_clientes_eventos['ID Casa'] == id_casa]
+    else:
+        df_acessos_casas = pd.DataFrame(st.session_state['casas_permitidas'], columns=['ID Loja', 'Loja', 'ID Zigpay'])
+        lista_ids_casas = df_acessos_casas['ID Loja'].tolist()
+        df_clientes_eventos = df_clientes_eventos[df_clientes_eventos['ID Casa'].isin(lista_ids_casas)]
 
     tab1, tab2 = st.tabs(["**Histórico de Clientes**", "**Recorrência de Clientes**"])
 

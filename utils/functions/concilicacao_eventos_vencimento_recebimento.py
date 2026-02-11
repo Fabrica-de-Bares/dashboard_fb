@@ -49,6 +49,10 @@ def grafico_barras_vencimento_x_recebimento(df_parcelas_recebimento, df_parcelas
     if id_casa != -1:
         df_parcelas_vencimento = df_parcelas_vencimento[df_parcelas_vencimento['ID Casa'] == id_casa].copy()
         df_parcelas_recebimento = df_parcelas_recebimento[df_parcelas_recebimento['ID Casa'] == id_casa].copy()
+    else:
+        df_acessos_casa = pd.DataFrame(st.session_state['casas_permitidas'], columns=["ID Loja", "Loja", 'ID Zigpay'])
+        lista_ids_casa = df_acessos_casa['ID Loja'].tolist()
+        df_parcelas_vencimento = df_parcelas_vencimento[df_parcelas_vencimento['ID Casa'].isin(lista_ids_casa)].copy()
     if df_parcelas_recebimento.empty or df_parcelas_vencimento.empty:
         st.error("Não há dados de eventos disponíveis para o gráfico.")
         return

@@ -67,7 +67,7 @@ def main():
     # Adiciona selecao de mes e ano
     col0, col1, col2, col3, col4= st.columns([0.5, 0.25, 0.25, 0.4, 1])
     with col0:
-        lista_retirar_casas = ['Bar Léo - Vila Madalena', 'Blue Note SP (Novo)', 'Edificio Rolim', 'The Cavern']
+        lista_retirar_casas = ['Bar Léo - Vila Madalena', 'Blue Note SP (Novo)']
         id_casa, casa, id_zigpay = input_selecao_casas(lista_retirar_casas, key='calendario')
     with col1:
         ano = seletor_ano(2025, 2026, key="seletor_ano_kpi_conversao_eventos_priceless")
@@ -90,6 +90,10 @@ def main():
     # Filtra por casa
     if id_casa != -1:
         df_eventos = df_eventos[df_eventos['ID Casa'] == id_casa]
+    else:
+        df_acessos_casas = pd.DataFrame(st.session_state['casas_permitidas'], columns=["ID Loja", "Loja", 'ID Zigpay'])
+        lista_ids_casas = df_acessos_casas['ID Loja'].tolist()
+        df_eventos = df_eventos[df_eventos['ID Casa'].isin(lista_ids_casas)]
 
     # Filtra por data
     if filtro_data_categoria:

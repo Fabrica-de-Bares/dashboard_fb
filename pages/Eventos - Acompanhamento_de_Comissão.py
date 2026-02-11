@@ -124,6 +124,10 @@ def main():
         df_orcamentos_faturamento = filtrar_por_classe_selecionada(df_orcamentos_faturamento, 'Ano', [ano])
         if casa_faturamento != "Todas as Casas":
             df_orcamentos_faturamento = filtrar_por_classe_selecionada(df_orcamentos_faturamento, 'ID Casa', [id_casa_faturamento])
+        else:
+            df_acessos_casas = pd.DataFrame(st.session_state['casas_permitidas'], columns=["ID Loja", "Loja", 'ID Zigpay'])
+            lista_acessos_casas = df_acessos_casas['ID Loja'].tolist()
+            df_orcamentos_faturamento = filtrar_por_classe_selecionada(df_orcamentos_faturamento, 'ID Casa', lista_acessos_casas)
         col1, col2, col3 = st.columns([0.1, 2.6, 0.1], gap="large", vertical_alignment="center")
         with col2:
             if filtro_data_categoria is None:
@@ -166,6 +170,13 @@ def main():
                     df_recebimentos = df_recebimentos[df_recebimentos['ID Casa'] == id_casa]
                     df_orcamentos = df_orcamentos[df_orcamentos['ID Casa'] == id_casa]
                     lista_vendedores_logado = df_acessos_comissoes[df_acessos_comissoes['ID Casa'] == id_casa]['ID - Responsavel'].tolist()
+                else:
+                    df_acesso_casas = pd.DataFrame(st.session_state['casas_permitidas'], columns=["ID Loja", "Loja", 'ID Zigpay'])
+                    lista_ids_casas_acesso = df_acesso_casas["ID Loja"].to_list()
+                    df_recebimentos = df_recebimentos[df_recebimentos['ID Casa'].isin(lista_ids_casas_acesso)]
+                    df_orcamentos = df_orcamentos[df_orcamentos['ID Casa'].isin(lista_ids_casas_acesso)]
+                    lista_vendedores_logado = df_acessos_comissoes[df_acessos_comissoes['ID Casa'].isin(lista_ids_casas_acesso)]['ID - Responsavel'].tolist()
+
             with col1:
                 ano = seletor_ano(2025, 2026, key="seletor_ano_kpi_comissao")
             with col2:

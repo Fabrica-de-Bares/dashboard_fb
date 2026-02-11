@@ -93,6 +93,8 @@ def main():
 	with col1:
 		lista_retirar_casas = ['Bar Léo - Vila Madalena', 'Blue Note SP (Novo)', 'Edificio Rolim', 'The Cavern']
 		id_casa, casa, id_zigpay = input_selecao_casas(lista_retirar_casas, key='faturamento_bruto')
+		df_acessos_casas = pd.DataFrame(st.session_state['casas_permitidas'], columns=["ID Loja", "Loja", 'ID Zigpay'])
+		lista_ids_casa = df_acessos_casas['ID Loja'].tolist()
 	with col2:
 		ano = seletor_ano(2024, 2026, key='ano_faturamento')
 	st.divider()
@@ -120,6 +122,10 @@ def main():
 		df_orcamentos = filtrar_por_classe_selecionada(df_orcamentos, 'Ano', [ano])
 		if casa != "Todas as Casas":
 			df_orcamentos = filtrar_por_classe_selecionada(df_orcamentos, 'ID Casa', [id_casa])
+		else:
+			df_acessos_casa = pd.DataFrame(st.session_state['casas_permitidas'], columns=["ID Loja", "Loja", 'ID Zigpay'])
+			lista_ids_casa = df_acessos_casa['ID Loja'].tolist()
+			df_orcamentos = filtrar_por_classe_selecionada(df_orcamentos, 'ID Casa', lista_ids_casa)
 
 		# Visualização do faturamento
 		col1, col2, col3 = st.columns([0.1, 2.6, 0.1], gap="large", vertical_alignment="center")
@@ -127,13 +133,14 @@ def main():
 			if filtro_data_categoria is None:
 				st.warning("Por favor, selecione um filtro de data.")
 			if casa == "Todas as Casas":
-				montar_tabs_geral(df_parcelas_filtradas_por_data, casa, id_casa, filtro_data_categoria, df_orcamentos)
+				df_parcelas_casa = df_parcelas_filtradas_por_data[df_parcelas_filtradas_por_data['ID Casa'].isin(lista_ids_casa)]
+				montar_tabs_geral(df_parcelas_casa, casa, lista_ids_casa, filtro_data_categoria, df_orcamentos)
 			else:
-				df_parcelas_casa = df_filtrar_casa(df_parcelas_filtradas_por_data, casa)
+				df_parcelas_casa = df_parcelas_filtradas_por_data[df_parcelas_filtradas_por_data['ID Casa'] == id_casa]
 				if casa == "Priceless":
 					montar_tabs_priceless(df_parcelas_casa, id_casa, df_eventos, filtro_data_categoria, df_orcamentos)
 				else:
-					montar_tabs_geral(df_parcelas_casa, casa, id_casa, filtro_data_categoria, df_orcamentos)
+					montar_tabs_geral(df_parcelas_casa, casa, [id_casa], filtro_data_categoria, df_orcamentos)
 	st.write("")
 
 	df_eventos_filtrados_por_status = filtrar_por_classe_selecionada(df_eventos, 'Status Evento', ['Confirmado'])

@@ -89,7 +89,7 @@ def main():
 	# Seletores de eventos
 	col1, col2 = st.columns([1, 3])
 	with col1:
-		lista_retirar_casas = ['Bar Léo - Vila Madalena', 'Blue Note SP (Novo)', 'Edificio Rolim', 'The Cavern']
+		lista_retirar_casas = ['Bar Léo - Vila Madalena', 'Blue Note SP (Novo)', 'Edificio Rolim']
 		id_casa, casa, id_zigpay = input_selecao_casas(lista_retirar_casas, key='casas_informacoes_eventos')
 
 	# Filtro por Casa
@@ -97,6 +97,12 @@ def main():
 		df_eventos = df_eventos[df_eventos['ID Casa'] == id_casa]
 		df_aditivos = df_aditivos[df_aditivos['ID Casa'] == id_casa]
 		df_parcelas = df_parcelas[df_parcelas['ID Casa'] == id_casa]
+	else:
+		df_acesso_casas = pd.DataFrame(st.session_state['casas_permitidas'], columns=["ID Loja", "Loja", 'ID Zigpay'])
+		lista_ids_casas = df_acesso_casas['ID Loja'].tolist()
+		df_eventos = df_eventos[df_eventos['ID Casa'].isin(lista_ids_casas)]
+		df_aditivos = df_aditivos[df_aditivos['ID Casa'].isin(lista_ids_casas)]
+		df_parcelas = df_parcelas[df_parcelas['ID Casa'].isin(lista_ids_casas)]
 	
 	# Lista de eventos para o filtro
 	eventos_unicos = df_eventos['ID_Nome_Evento'].unique().tolist()

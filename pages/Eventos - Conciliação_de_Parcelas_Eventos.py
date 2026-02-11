@@ -72,14 +72,19 @@ def main():
 	# Seletores
 	col1, col2= st.columns([1, 1], gap="large")
 	with col1:
-		lista_retirar_casas = ['Bar Léo - Vila Madalena', 'Blue Note SP (Novo)', 'Edificio Rolim', 'The Cavern']
+		lista_retirar_casas = ['Bar Léo - Vila Madalena', 'Blue Note SP (Novo)', 'Edificio Rolim']
 		id_casa, casa, id_zigpay = input_selecao_casas(lista_retirar_casas, key='faturamento_bruto')
 	with col2:
 		ano = seletor_ano(2024, 2026, key='ano_faturamento')
 	st.divider()
 
 	# Filtros parcelas
-	df_parcelas_casa = filtrar_por_classe_selecionada(df_parcelas, 'ID Casa', [id_casa]) if id_casa != -1 else df_parcelas
+	if id_casa != -1:
+		df_parcelas_casa = filtrar_por_classe_selecionada(df_parcelas, 'ID Casa', [id_casa])
+	else:
+		df_acessos_casas = pd.DataFrame(st.session_state['casas_permitidas'], columns=["ID Loja", "Loja", 'ID Zigpay'])
+		lista_id_casas = df_acessos_casas['ID Loja'].tolist()
+		df_parcelas_casa = filtrar_por_classe_selecionada(df_parcelas, 'ID Casa', lista_id_casas)
 	df_parcelas_filtradas_por_status = filtrar_por_classe_selecionada(df_parcelas_casa, 'Status Evento', ['Confirmado'])
 
 	# Vencimento x Recebimento
