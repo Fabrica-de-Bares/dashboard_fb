@@ -133,13 +133,13 @@ def main():
             if filtro_data_categoria is None:
                 st.warning("Por favor, selecione um filtro de data.")
             if casa_faturamento == "Todas as Casas":
-                montar_tabs_geral(df_parcelas_filtradas_por_data, casa_faturamento, id_casa_faturamento, filtro_data_categoria, df_orcamentos_faturamento)
+                montar_tabs_geral(df_parcelas_filtradas_por_data, casa_faturamento, lista_acessos_casas, filtro_data_categoria, df_orcamentos_faturamento)
             else:
                 df_parcelas_casa = df_filtrar_casa(df_parcelas_filtradas_por_data, casa_faturamento)
                 if casa_faturamento == "Priceless":
                     montar_tabs_priceless(df_parcelas_casa, id_casa_faturamento, df_eventos_faturamento, filtro_data_categoria, df_orcamentos_faturamento)
                 else:
-                    montar_tabs_geral(df_parcelas_casa, casa_faturamento, id_casa_faturamento, filtro_data_categoria, df_orcamentos_faturamento)
+                    montar_tabs_geral(df_parcelas_casa, casa_faturamento, [id_casa_faturamento], filtro_data_categoria, df_orcamentos_faturamento)
     st.write("")
 
     st.markdown('<div style="page-break-before: always;"></div>', unsafe_allow_html=True)
