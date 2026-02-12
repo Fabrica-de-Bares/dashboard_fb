@@ -66,7 +66,7 @@ def montar_tabs_priceless(df_parcelas_casa, id_casa, df_eventos, tipo_data, df_o
 
     with tabs[0]:
         st.markdown("### Total de Eventos - Priceless")
-        grafico_barras_total_eventos(df_parcelas, tipo_data, df_orcamentos, 149)
+        grafico_barras_total_eventos(df_parcelas, tipo_data, df_orcamentos, [149])
     with tabs[1]:
         st.markdown("### Locação Aroo")
         grafico_barras_locacao_priceless(df_parcelas, df_eventos, tipo_data, "Aroo", f"Aroo-{tipo_data}")
