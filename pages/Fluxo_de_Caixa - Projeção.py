@@ -140,7 +140,8 @@ with st.container(border=True):
 
     # Ordena por data
     df_projecao_grouped_com_soma = ordena_por_data(df_projecao_grouped_com_soma)
-    st.dataframe(df_projecao_grouped_com_soma, width='stretch', hide_index=True)
+    df_projecao_grouped_styled = df_projecao_grouped_com_soma.style.apply(highlight_total_row, axis=1)
+    st.dataframe(df_projecao_grouped_styled, width='stretch', hide_index=True)
     button_download(df_projecao_grouped_com_soma, f"Projeção de bares agrupados", f"Projeção de bares agrupados")
 
 st.divider()
@@ -233,7 +234,8 @@ with st.container(border=True):
     })
 
     df_projecao_bar_com_soma = ordena_por_data(df_projecao_bar_com_soma)
-    st.dataframe(df_projecao_bar_com_soma, width='stretch', hide_index=True)
+    df_projecao_bar_styled = df_projecao_bar_com_soma.style.apply(highlight_total_row, axis=1)
+    st.dataframe(df_projecao_bar_styled, width='stretch', hide_index=True)
     button_download(df_projecao_bar_com_soma, f"Projeção casa a casa", f"Projeção casa a casa")
 
 st.divider()
