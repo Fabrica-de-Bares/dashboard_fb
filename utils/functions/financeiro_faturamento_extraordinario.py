@@ -24,7 +24,7 @@ def config_receit_extraord(lojas_selecionadas, data_inicio, data_fim):
                             'Valor_Total': 'Valor Total', 'Data_Evento': 'Data Evento'})
   
   Classificacoes = ['Eventos', 'Coleta de Óleo', 'Bilheteria', 'Patrocínio']
-  if 'Blue Note - São Paulo' in lojas_selecionadas or 'Blue Note SP (Novo)' in lojas_selecionadas:
+  if 'Blue Note - São Paulo' in lojas_selecionadas or 'Blue Note SP (Novo)' in lojas_selecionadas or 'Blue Note SP (Sala 2)' in lojas_selecionadas:
     Classificacoes.append('Premium Corp')
   df = df[df['Classificação'].isin(Classificacoes)]
 

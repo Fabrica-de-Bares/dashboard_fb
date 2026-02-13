@@ -33,14 +33,10 @@ def main():
     st.divider()
 
     # Filtro por Casa
-    lista_retirar_casas = ['Bar Léo - Vila Madalena', 'Blue Note SP (Novo)', 'Edificio Rolim', 'The Cavern']
-    id_casa, casa, id_zigpay = input_selecao_casas(lista_retirar_casas, key='historico_clientes_eventos')
-    if id_casa != -1:
-        df_clientes_eventos = df_clientes_eventos[df_clientes_eventos['ID Casa'] == id_casa]
-    else:
-        df_acessos_casas = pd.DataFrame(st.session_state['casas_permitidas'], columns=['ID Loja', 'Loja', 'ID Zigpay'])
-        lista_ids_casas = df_acessos_casas['ID Loja'].tolist()
-        df_clientes_eventos = df_clientes_eventos[df_clientes_eventos['ID Casa'].isin(lista_ids_casas)]
+    lista_retirar_casas = ['Bar Léo - Vila Madalena', 'Blue Note SP (Novo)', 'Edificio Rolim']
+    df_casas_selecionadas = input_multiselecao_casas(lista_retirar_casas, key='historico_clientes_eventos')
+    lista_ids_casas = df_casas_selecionadas['ID_Casa'].tolist()
+    df_clientes_eventos = df_clientes_eventos[df_clientes_eventos['ID Casa'].isin(lista_ids_casas)]
 
     tab1, tab2 = st.tabs(["**Histórico de Clientes**", "**Recorrência de Clientes**"])
 
@@ -146,14 +142,14 @@ def main():
                 col1, col2, col3 = st.columns([0.1, 3, 0.1], gap="large", vertical_alignment="top")
                 with col2:
                     st.markdown("### Top 10 Clientes em Nº de Eventos")
-                    grafico_ranking_clientes_por_num_eventos(df_numero_clientes_periodo, key=f'ranking_clientes_num_{casa}')
+                    grafico_ranking_clientes_por_num_eventos(df_numero_clientes_periodo, key=f'ranking_clientes_num')
 
             with st.container(border=True):
                 col1, col2, col3 = st.columns([0.1, 3, 0.1], gap="large", vertical_alignment="top")
                 with col2:
                     st.markdown("### Top 10 Clientes em Valor de Eventos")
                     df_numero_clientes_periodo = df_numero_clientes_periodo.sort_values(by='Valor Total Eventos', ascending=True).reset_index(drop=True)
-                    grafico_ranking_clientes_por_valor_eventos(df_numero_clientes_periodo, key=f'ranking_clientes_valor_{casa}')
+                    grafico_ranking_clientes_por_valor_eventos(df_numero_clientes_periodo, key=f'ranking_clientes_valor')
 
         elif not periodo or len(periodo) != 2:
             st.warning("Por favor, selecione um período válido.")

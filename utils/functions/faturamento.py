@@ -553,14 +553,9 @@ def grafico_barras_faturamento_categoria_evento(df_parcelas, tipo_data, categori
 
 
 # Gráfico de Faturamento por Classificação do Evento (Tipo de Evento, Modelo de Evento, Segmento)
-def grafico_linhas_faturamento_classificacoes_evento(df_eventos, id_casa, coluna_categoria):
+def grafico_linhas_faturamento_classificacoes_evento(df_eventos, lista_ids_casa, coluna_categoria):
     # Filtro por casa, se aplicável
-    if id_casa != -1:
-        df_eventos = df_eventos[df_eventos['ID Casa'] == id_casa].copy()
-    else:
-        df_acessos_casas = pd.DataFrame(st.session_state['casas_permitidas'], columns=["ID Loja", "Loja", 'ID Zigpay'])
-        lista_ids_casa = df_acessos_casas['ID Loja'].tolist()
-        df_eventos = df_eventos[df_eventos['ID Casa'].isin(lista_ids_casa)].copy()
+    df_eventos = df_eventos[df_eventos['ID Casa'].isin(lista_ids_casa)].copy()
 
     if df_eventos.empty:
         st.error("Não há dados de eventos disponíveis para o gráfico.")

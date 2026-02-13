@@ -46,6 +46,10 @@ data_fim_default = datetime.today() - timedelta(days=2)
 lojasSelecionadas, multiplicador, data_inicio, data_fim = criar_seletores_previsao(data_inicio_default, data_fim_default)
 st.divider()
 
+if lojasSelecionadas == []:
+  st.warning('Nenhuma casa selecionada')
+  st.stop()
+
 sorted_df.rename(columns = {'Empresa': 'Loja', 'Data_Parcial': 'Data', 'Valor_Parcial': 'Valor Projetado'}, inplace=True)
 faturamentoReal = GET_FATURAMENTO_REAL()
 
