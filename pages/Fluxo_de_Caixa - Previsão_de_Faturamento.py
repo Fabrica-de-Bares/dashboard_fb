@@ -53,7 +53,7 @@ faturamentoReal = GET_FATURAMENTO_REAL()
 faturamentoReal['Data'] = pd.to_datetime(faturamentoReal['Data'])
 sorted_df['Data'] = pd.to_datetime(sorted_df['Data'])
 
-dfComparacao = sorted_df.merge(faturamentoReal, on=['Data', 'Loja'], how='left')
+dfComparacao = sorted_df.merge(faturamentoReal, on=['Data', 'Loja'], how='outer')
 dfComparacao = filtrar_por_datas(dfComparacao, data_inicio, data_fim, 'Data')
 dfComparacao = dfComparacao[dfComparacao['Loja'] != 'Piratininga']
 
