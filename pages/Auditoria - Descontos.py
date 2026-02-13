@@ -289,6 +289,10 @@ else:
             condicao = df_categorizado["justificativa_minusculo"].str.contains(padrao, na=False)    
         
         df_categorizado.loc[condicao, "Categoria"] = categoria
+    
+    # Caso: campo de justificativa vazio
+    cond_sem_justificativa = df_categorizado['justificativa_minusculo'] == 'nan'
+    df_categorizado.loc[cond_sem_justificativa, "Categoria"] = 'SEM JUSTIFICATIVA'
         
     # Remove a coluna auxiliar
     df_categorizado.drop(columns=["justificativa_minusculo", "cliente_minusculo"], inplace=True)

@@ -9,6 +9,7 @@ from workalendar.america import Brazil
 from streamlit_echarts import st_echarts
 from datetime import datetime
 
+
 st.set_page_config(
     page_title="Previsão de Faturamento",
     page_icon="🪙",
@@ -56,10 +57,15 @@ faturamentoReal = GET_FATURAMENTO_REAL()
 faturamentoReal['Data'] = pd.to_datetime(faturamentoReal['Data'])
 sorted_df['Data'] = pd.to_datetime(sorted_df['Data'])
 
-dfComparacao = sorted_df.merge(faturamentoReal, on=['Data', 'Loja'], how='left')
+dfComparacao = sorted_df.merge(faturamentoReal, on=['Data', 'Loja'], how='outer')
 dfComparacao = filtrar_por_datas(dfComparacao, data_inicio, data_fim, 'Data')
 dfComparacao = dfComparacao[dfComparacao['Loja'] != 'Piratininga']
-dfComparacao = filtrar_por_classe_selecionada(dfComparacao, 'Loja', lojasSelecionadas)
+
+if lojasSelecionadas[0] == 'Todas as Casas':
+  dfComparacao = dfComparacao.copy()
+else:
+  dfComparacao = filtrar_por_classe_selecionada(dfComparacao, 'Loja', lojasSelecionadas)
+ 
 dfComparacao.rename(columns = {'Valor_Faturado': 'Valor Faturado'}, inplace=True)
 dfComparacao['Valor Projetado'] = dfComparacao['Valor Projetado'].fillna(0)
 dfComparacao['Valor Faturado'] = dfComparacao['Valor Faturado'].fillna(0)

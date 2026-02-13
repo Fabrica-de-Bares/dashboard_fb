@@ -8,6 +8,13 @@ import openpyxl
 import os
 
 
+def highlight_total_row(row):
+    if row['Data'] == 'Total':
+        return ['background-color: #f0f2f6; color: black;'] * len(row)
+    else:
+        return [''] * len(row)
+
+
 def seletor_data_fim_padrao(key):
   return st.date_input(
     "Data de Fim",
