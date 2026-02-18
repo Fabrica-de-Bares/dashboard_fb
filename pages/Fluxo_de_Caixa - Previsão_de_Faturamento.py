@@ -44,7 +44,7 @@ data_inicio_default = datetime.today() - timedelta(days=8)
 data_fim_default = datetime.today() - timedelta(days=2)
 
 # Seletores
-lojasSelecionadas, multiplicador, data_inicio, data_fim = criar_seletores_previsao(data_inicio_default, data_fim_default)
+lojasSelecionadas, checkbox_agrupa, multiplicador, data_inicio, data_fim = criar_seletores_previsao(data_inicio_default, data_fim_default)
 st.divider()
 
 if lojasSelecionadas == []:
@@ -61,10 +61,12 @@ dfComparacao = sorted_df.merge(faturamentoReal, on=['Data', 'Loja'], how='outer'
 dfComparacao = filtrar_por_datas(dfComparacao, data_inicio, data_fim, 'Data')
 dfComparacao = dfComparacao[dfComparacao['Loja'] != 'Piratininga']
 
-if lojasSelecionadas[0] == 'Todas as Casas':
-  dfComparacao = dfComparacao.copy()
+dfComparacao = filtrar_por_classe_selecionada(dfComparacao, 'Loja', lojasSelecionadas)
+if checkbox_agrupa:
+  dfComparacao = dfComparacao.groupby('Data', as_index=False)[['Valor Projetado', 'Valor_Faturado']].sum()
+  dfComparacao['Loja'] = 'Agrupamento'
 else:
-  dfComparacao = filtrar_por_classe_selecionada(dfComparacao, 'Loja', lojasSelecionadas)
+  dfComparacao = dfComparacao.copy()
  
 dfComparacao.rename(columns = {'Valor_Faturado': 'Valor Faturado'}, inplace=True)
 dfComparacao['Valor Projetado'] = dfComparacao['Valor Projetado'].fillna(0)
@@ -92,6 +94,7 @@ dfComparacaoAgg['Diferença'] = dfComparacaoAgg['Valor Faturado'] - dfComparacao
 
 dfComparacao = df_format_date_brazilian(dfComparacao, 'Data')
 dfComparacao = format_columns_brazilian(dfComparacao, ['Valor Projetado', 'Valor Faturado', 'Diferença'])
+dfComparacao = dfComparacao[['Data', 'Loja', 'Valor Projetado', 'Valor Faturado', 'Diferença', 'Atingimento do Projetado']]
 dfComparacaoStyled = dfComparacao.style.map(highlight_values, subset=['Diferença'])
 dfComparacaoAgg = format_columns_brazilian(dfComparacaoAgg, ['Valor Projetado', 'Valor Faturado', 'Diferença'])
 altura_dfComparacaoAgg = len(dfComparacaoAgg)

@@ -28,13 +28,14 @@ with col2:
 st.divider()
 lojasComDados = preparar_dados_lojas_user_financeiro()
 data_inicio_default, data_fim_default = get_first_and_last_day_of_month()
+
 # Seletores
 col1, col2, col3 = st.columns([2, 1, 1])
 with col1:
     # Filtro de casa:
-  lista_retirar_casas = ['Bar Léo - Vila Madalena', 'Edificio Rolim', 'Priceless', 'Todas as Casas']
-  id_casa, casa, id_zigpay = input_selecao_casas(lista_retirar_casas, key='calendario')
-  lojas_selecionadas = [casa]
+  lista_retirar_casas = ['Bar Léo - Vila Madalena', 'Edificio Rolim', 'Todas as Casas']
+  df_casas_selecionadas = input_multiselecao_casas(lista_retirar_casas, key='calendario')
+  lojas_selecionadas = df_casas_selecionadas['Casa'].tolist()
 with col2:
   data_inicio = st.date_input(
       'Data de Início',
@@ -54,6 +55,10 @@ with col3:
   data_inicio = pd.to_datetime(data_inicio)
   data_fim = pd.to_datetime(data_fim)
 st.divider()
+
+if lojas_selecionadas == []:
+  st.warning('Nenhuma casa selecionada.')
+  st.stop()
 
 despesasDetalhadas = GET_DESPESAS()
 despesasDetalhadas = filtrar_por_datas(despesasDetalhadas, data_inicio, data_fim, 'Data_Emissao')

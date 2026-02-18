@@ -14,14 +14,17 @@ def destaca_mes_atual_seguintes(row):
     return [''] * (len(row))
 
 
-def prepara_dados_faturamento_casa(df_faturamento_diario, casa):
+def prepara_dados_faturamento_casa(df_faturamento_diario, casas_selecionadas):
     # Filtra por casa e ano
     df_faturamento_diario_casa = df_faturamento_diario.copy()
     df_faturamento_diario_casa['Data Evento'] = pd.to_datetime(df_faturamento_diario_casa['Data Evento'], errors='coerce')
     df_faturamento_diario_casa = df_faturamento_diario_casa[
-        (df_faturamento_diario_casa['Casa'] == casa)
+        (df_faturamento_diario_casa['Casa'].isin(casas_selecionadas))
     ].copy()
-
+    
+    # Agrupa o faturamento das casas selecionadas
+    df_faturamento_diario_casa = df_faturamento_diario_casa.groupby(['Categoria', 'Data Evento'], as_index=False)[['Valor Bruto', 'Desconto', 'Valor Liquido']].sum()
+    
     # Cria dia da semana em português
     df_faturamento_diario_casa['Dia Semana'] = df_faturamento_diario_casa['Data Evento'].dt.strftime('%A')
     df_faturamento_diario_casa['Dia Semana'] = df_faturamento_diario_casa['Dia Semana'].apply(
@@ -36,7 +39,7 @@ def prepara_dados_faturamento_casa(df_faturamento_diario, casa):
 
     # Cria mês numérico
     df_faturamento_diario_casa['Mes_Ano'] = df_faturamento_diario_casa['Data Evento'].dt.strftime('%m-%Y')
-    df_faturamento_diario_casa = df_faturamento_diario_casa[['ID_Casa', 'Casa', 'Categoria', 'Data Evento', 'Valor Bruto', 'Dia Semana', 'Nome Mes', 'Mes_Ano']]
+    df_faturamento_diario_casa = df_faturamento_diario_casa[['Categoria', 'Data Evento', 'Valor Bruto', 'Dia Semana', 'Nome Mes', 'Mes_Ano']]
     
     return df_faturamento_diario_casa
 
@@ -47,12 +50,12 @@ def concatena_meses_reais_projetados(df_dias_futuros_mes, df_faturamento_diario_
         df_projecao_futuro = df_dias_futuros_mes[df_dias_futuros_mes['Data Evento'].dt.year == datas['ano_atual']]
     else:
         df_projecao_futuro = df_dias_futuros_mes
-    df_projecao_futuro = df_projecao_futuro[['ID_Casa', 'Casa', 'Categoria', 'Data Evento', 'Valor Final', 'Dia Semana', 'Nome Mes', 'Mes_Ano']]
+    df_projecao_futuro = df_projecao_futuro[['Categoria', 'Data Evento', 'Valor Final', 'Dia Semana', 'Nome Mes', 'Mes_Ano']]
     df_projecao_futuro = df_projecao_futuro.rename(columns={'Valor Final':'Valor Bruto'})
     
     df_concat = pd.concat([df_faturamento_diario_casa, df_projecao_futuro])
-    df_concat['ID_Casa'] = df_concat['ID_Casa'].fillna(id_casa)
-    df_concat['Casa'] = df_concat['Casa'].fillna(casa)
+    # df_concat['ID_Casa'] = df_concat['ID_Casa'].fillna(id_casa)
+    # df_concat['Casa'] = df_concat['Casa'].fillna(casa)
 
     # Cria mês em português
     df_concat['Nome Mes'] = df_concat['Data Evento'].dt.strftime('%B')

@@ -1,5 +1,5 @@
 import streamlit as st
-from utils.components import seletor_ano, input_selecao_casas
+from utils.components import seletor_ano, input_selecao_casas, input_multiselecao_casas
 from utils.functions.general_functions import config_sidebar
 from utils.queries_conciliacao import GET_CASAS
 from utils.queries_forecast import GET_ITENS_VENDIDOS_DIA
@@ -34,17 +34,22 @@ col1, col2 = st.columns(2, vertical_alignment='center')
 
 with col1:
     lista_retirar_casas = ['Bar Léo - Vila Madalena', 'Todas as Casas']
-    id_casa, casa, id_zigpay = input_selecao_casas(lista_retirar_casas, key='faturamento_bruto')
-  
+    df_casas_selecionadas = input_multiselecao_casas(lista_retirar_casas, key='faturamento_bruto')
+    lista_casas_selecionadas = df_casas_selecionadas['Casa'].tolist()
+    lista_ids_casas_selecionadas = df_casas_selecionadas['ID_Casa'].tolist()
 with col2: 
     ano = seletor_ano(2025, 2026, 'ano_faturamento_zig', 'Selecione um ano:')
 st.divider()
+
+if lista_casas_selecionadas == []:
+  st.warning('Nenhuma casa selecionada.')
+  st.stop()
 
 # Query com todos os faturamentos da Zig
 df_faturamento_diario = GET_ITENS_VENDIDOS_DIA()
 
 # Filtrando por casa e gerando coluna com dia da semana
-df_faturamento_diario_casa = prepara_dados_faturamento_casa(df_faturamento_diario, casa)
+df_faturamento_diario_casa = prepara_dados_faturamento_casa(df_faturamento_diario, lista_casas_selecionadas)
 
 # Gera projeção para prox dias do mês corrente/seguinte por dia da semana
 df_dias_futuros_com_categorias = lista_dias_mes_anterior_atual(
@@ -57,6 +62,12 @@ df_dias_futuros_mes = cria_projecao_mes_corrente(df_faturamento_diario_casa, df_
 df_dias_futuros_mes['Mes_Ano'] = df_dias_futuros_mes['Mes_Ano'].fillna(df_dias_futuros_mes['Data Evento'].dt.strftime('%m-%Y'))
 
 # Une meses já concluídos com mês corrente
+if len(lista_casas_selecionadas) == 1:
+    id_casa = lista_ids_casas_selecionadas[0]
+    casa = lista_casas_selecionadas[0]
+else:
+    id_casa = 'Agrupamento'
+    casa = 'Agrupamento'
 df_faturamento_todos_meses = concatena_meses_reais_projetados(df_dias_futuros_mes, df_faturamento_diario_casa, id_casa, casa, ano)
 
 # Calcula faturamento geral por dia da semana para cada mês

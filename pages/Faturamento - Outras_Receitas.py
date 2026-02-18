@@ -28,20 +28,21 @@ st.divider()
 
 data_inicio_default, data_fim_default = get_first_and_last_day_of_month()
 # Seletores
-col1, col2, col3 = st.columns([2, 1, 1])
-with col1:
-    # Filtro de casa:
-  lista_retirar_casas = ['Bar Léo - Vila Madalena', 'Edificio Rolim', 'Priceless', 'Todas as Casas']
+col1, col2, col3, col4 = st.columns([2, 1, 1, 1], vertical_alignment='bottom')
+with col1: # Filtro de casa:
+  lista_retirar_casas = ['Bar Léo - Vila Madalena', 'Edificio Rolim', 'Todas as Casas']
   df_casas_selecionadas = input_multiselecao_casas(lista_retirar_casas, key='calendario')
   lojas_selecionadas = df_casas_selecionadas['Casa'].tolist()
 with col2:
+  checkbox_agrupa = st.checkbox(label="Agrupar casas selecionadas", key="checkbox_agrupa_lojas_selecionadas")
+with col3:
   data_inicio = st.date_input(
       'Data de Início',
       value=data_inicio_default,
       key='data_inicio_input',
       format="DD/MM/YYYY"
   )
-with col3:
+with col4:
   data_fim = st.date_input(
       'Data de Fim',
       value=data_fim_default,
@@ -55,7 +56,7 @@ if lojas_selecionadas == []:
   st.stop()
 
 ReceitExtraord = config_receit_extraord(lojas_selecionadas, data_inicio, data_fim)
-FaturamReceitExtraord, Totais = faturam_receit_extraord(ReceitExtraord)
+FaturamReceitExtraord, Totais = faturam_receit_extraord(ReceitExtraord, checkbox_agrupa)
 df_agrupado = ReceitExtraord.groupby('Data Evento').agg({'Valor Total': 'sum', 'ID': 'count'}).reset_index()
 df_agrupado.rename(columns={'ID': 'Quantidade de Eventos'}, inplace=True)
 

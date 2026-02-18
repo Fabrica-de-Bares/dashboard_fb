@@ -245,6 +245,7 @@ def config_sidebar():
 def filtrar_por_classe_selecionada(dataframe, classe, valores_selecionados):
     if valores_selecionados:
         dataframe = dataframe[dataframe[classe].isin(valores_selecionados)]
+        dataframe = dataframe.sort_values(by=['Loja'])
     return dataframe
 
 

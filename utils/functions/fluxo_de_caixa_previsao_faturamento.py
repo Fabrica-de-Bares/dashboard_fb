@@ -23,7 +23,8 @@ def criar_parciais(df):
   return df_parciais
 
 def criar_seletores_previsao(data_inicio_default, data_fim_default):
-  col1, col2, col3, col4 = st.columns([4, 1, 2, 2])
+  col1, col2 = st.columns(2, vertical_alignment='bottom')
+  # col1, col2, col3, col4 = st.columns([4, 1, 2, 2])
 
   # Adiciona seletores
   with col1:
@@ -31,16 +32,22 @@ def criar_seletores_previsao(data_inicio_default, data_fim_default):
     df_casas_selecionadas = input_multiselecao_casas(lista_retirar_casas, key='calendario')
     lojas_selecionadas = df_casas_selecionadas['Casa'].tolist()
   with col2:
-    multiplicador = st.number_input("Multiplicador", value=1.0)
-  with col3:
+    checkbox_agrupa = st.checkbox(label="Agrupar casas selecionadas", key="checkbox_agrupa_lojas_selecionadas")
+
+  st.write("")
+  col1, col2, col3 = st.columns([2, 2, 1], vertical_alignment='bottom')
+  with col1:
     data_inicio = st.date_input('Data de Início', value=data_inicio_default, key='data_inicio_input', format="DD/MM/YYYY")
-  with col4:
+  with col2:
     data_fim = st.date_input('Data de Fim', value=data_fim_default, key='data_fim_input', format="DD/MM/YYYY")
+  with col3:
+    multiplicador = st.number_input("Multiplicador", value=1.0)
+
 
   # Converte as datas selecionadas para o formato Timestamp
   data_inicio = pd.to_datetime(data_inicio)
   data_fim = pd.to_datetime(data_fim)
-  return lojas_selecionadas, multiplicador, data_inicio, data_fim
+  return lojas_selecionadas, checkbox_agrupa, multiplicador, data_inicio, data_fim
 
 def unificar_parciais(df):
   dfs = {}
