@@ -179,6 +179,11 @@ def conciliacao_inicial(id_casa, casa, start_date, end_date, tab):
                 )
             ]
 
+            # não vai considerar na soma receitas com status_pgto = 'Desconto'
+            df_parc_receit_extr_filtrada = df_parc_receit_extr_filtrada[
+                (df_parc_receit_extr_filtrada['Status_Pgto'] != 'Desconto')
+            ]
+
             # soma final
             df_conciliacao['Receitas Extraordinárias'] = somar_por_data(
                 df_parc_receit_extr_filtrada, "Recebimento_Parcela", "Valor_Parcela", datas

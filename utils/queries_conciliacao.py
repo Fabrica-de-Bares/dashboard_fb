@@ -11,6 +11,7 @@ def GET_CASAS():
         SELECT
           CASE 
             WHEN ID IN (161, 162) THEN 149
+            WHEN ID = 178 THEN 110
             ELSE ID
           END AS ID_Casa_Normalizada,
           NOME_FANTASIA,
@@ -73,6 +74,7 @@ def GET_ZIG_FATURAMENTO():
         SELECT
           CASE 
             WHEN FK_LOJA IN (161, 162) THEN 149
+            WHEN FK_LOJA = 178 THEN 110
             ELSE FK_LOJA
           END AS ID_Casa,
           DATA,
@@ -99,34 +101,86 @@ def GET_ZIG_FATURAMENTO():
 def GET_PARCELAS_RECEIT_EXTR():
     df_parc_receit_extr = dataframe_query('''
       SELECT 
-      vpa.ID as 'ID_Receita',
-      CASE
-        WHEN te.ID IN (161, 162) THEN 149 
-        ELSE te.ID                                                                 
-      END AS 'ID_Casa',
-      CASE
-        WHEN te.ID IN (161, 162) THEN 'Priceless' 
-        ELSE te.NOME_FANTASIA                                                                 
-      END AS 'Casa',
-      trec.NOME as 'Cliente',
-      tre.DATA_OCORRENCIA as 'Data_Ocorrencia',
-      vpa.DATA_VENCIMENTO as 'Vencimento_Parcela',
-      vpa.DATA_RECEBIMENTO as 'Recebimento_Parcela',
-      vpa.VALOR_PARCELA as 'Valor_Parcela',
-      tre.NUM_DOCUMENTACAO as 'Doc_NF',
-      trec2.CLASSIFICACAO as 'Classif_Receita',
-      tfdp.DESCRICAO as 'Forma_Pagamento',
-      tsp.DESCRICAO as 'Status_Pgto',
-      tcb.NOME_DA_CONTA as 'Conta_Bancaria',
-      tre.OBSERVACOES as 'Observacoes'
-      FROM View_Parcelas_Agrupadas vpa
-      INNER JOIN T_EMPRESAS te ON (vpa.FK_EMPRESA = te.ID)
-      LEFT JOIN T_RECEITAS_EXTRAORDINARIAS tre ON (vpa.ID = tre.ID)
-      LEFT JOIN T_RECEITAS_EXTRAORDINARIAS_CLIENTE trec ON (vpa.FK_CLIENTE = trec.ID)
-      LEFT JOIN T_RECEITAS_EXTRAORDINARIAS_CLASSIFICACAO trec2 ON (tre.FK_CLASSIFICACAO = trec2.ID)
-      LEFT JOIN T_FORMAS_DE_PAGAMENTO tfdp ON (tre.FK_FORMA_PAGAMENTO = tfdp.ID)
-      LEFT JOIN T_STATUS_PAGAMENTO tsp ON (tre.FK_STATUS_PGTO = tsp.ID)
-      LEFT JOIN T_CONTAS_BANCARIAS tcb ON (tre.FK_CONTA_BANCARIA = tcb.ID)
+          vpa.ID AS 'ID_Receita',
+          CASE
+              WHEN te.ID IN (161, 162) THEN 149 
+              WHEN te.ID = 178 THEN 110                            
+              ELSE te.ID
+          END AS 'ID_Casa',
+          CASE
+              WHEN te.ID IN (161, 162) THEN 'Priceless'
+              WHEN te.ID = 178 THEN 'Blue Note - São Paulo'                                                             
+              ELSE te.NOME_FANTASIA
+          END AS 'Casa',
+          trec.NOME AS 'Cliente',
+          tre.DATA_OCORRENCIA AS 'Data_Ocorrencia',
+          vpa.DATA_VENCIMENTO AS 'Vencimento_Parcela',
+          vpa.DATA_RECEBIMENTO AS 'Recebimento_Parcela',
+          vpa.VALOR_PARCELA AS 'Valor_Parcela',
+          tre.NUM_DOCUMENTACAO AS 'Doc_NF',
+          trec2.CLASSIFICACAO AS 'Classif_Receita',
+          tfdp.DESCRICAO AS 'Forma_Pagamento',
+          tsp.DESCRICAO AS 'Status_Pgto',
+          tcb.NOME_DA_CONTA AS 'Conta_Bancaria',
+          tre.OBSERVACOES AS 'Observacoes'
+      FROM (
+          SELECT
+              tre.ID,
+              tre.FK_EMPRESA,
+              tre.FK_CLIENTE,
+              tre.DATA_VENCIMENTO_PARCELA_1 AS DATA_VENCIMENTO,
+              tre.DATA_RECEBIMENTO_PARCELA_1 AS DATA_RECEBIMENTO,
+              tre.VALOR_PARCELA_1 AS VALOR_PARCELA,
+              tre.FK_STATUS_PAGAMENTO_PARCELA_1 AS STATUS_PGTO
+          FROM T_RECEITAS_EXTRAORDINARIAS tre
+          UNION ALL
+          SELECT
+              tre.ID,
+              tre.FK_EMPRESA,
+              tre.FK_CLIENTE,
+              tre.DATA_VENCIMENTO_PARCELA_2 AS DATA_VENCIMENTO,
+              tre.DATA_RECEBIMENTO_PARCELA_2 AS DATA_RECEBIMENTO,
+              tre.VALOR_PARCELA_2 AS VALOR_PARCELA,
+              tre.FK_STATUS_PAGAMENTO_PARCELA_2 AS STATUS_PGTO
+          FROM T_RECEITAS_EXTRAORDINARIAS tre
+          UNION ALL
+          SELECT
+              tre.ID,
+              tre.FK_EMPRESA,
+              tre.FK_CLIENTE,
+              tre.DATA_VENCIMENTO_PARCELA_3 AS DATA_VENCIMENTO,
+              tre.DATA_RECEBIMENTO_PARCELA_3 AS DATA_RECEBIMENTO,
+              tre.VALOR_PARCELA_3 AS VALOR_PARCELA,
+              tre.FK_STATUS_PAGAMENTO_PARCELA_3 AS STATUS_PGTO
+          FROM T_RECEITAS_EXTRAORDINARIAS tre
+          UNION ALL
+          SELECT
+              tre.ID,
+              tre.FK_EMPRESA,
+              tre.FK_CLIENTE,
+              tre.DATA_VENCIMENTO_PARCELA_4 AS DATA_VENCIMENTO,
+              tre.DATA_RECEBIMENTO_PARCELA_4 AS DATA_RECEBIMENTO,
+              tre.VALOR_PARCELA_4 AS VALOR_PARCELA,
+              tre.FK_STATUS_PAGAMENTO_PARCELA_4 AS STATUS_PGTO
+          FROM T_RECEITAS_EXTRAORDINARIAS tre
+          UNION ALL
+          SELECT
+              tre.ID,
+              tre.FK_EMPRESA,
+              tre.FK_CLIENTE,
+              tre.DATA_VENCIMENTO_PARCELA_5 AS DATA_VENCIMENTO,
+              tre.DATA_RECEBIMENTO_PARCELA_5 AS DATA_RECEBIMENTO,
+              tre.VALOR_PARCELA_5 AS VALOR_PARCELA,
+              tre.FK_STATUS_PAGAMENTO_PARCELA_5 AS STATUS_PGTO
+          FROM T_RECEITAS_EXTRAORDINARIAS tre
+      ) vpa
+      INNER JOIN T_EMPRESAS te ON vpa.FK_EMPRESA = te.ID
+      LEFT JOIN T_RECEITAS_EXTRAORDINARIAS tre ON vpa.ID = tre.ID
+      LEFT JOIN T_RECEITAS_EXTRAORDINARIAS_CLIENTE trec ON vpa.FK_CLIENTE = trec.ID
+      LEFT JOIN T_RECEITAS_EXTRAORDINARIAS_CLASSIFICACAO trec2 ON tre.FK_CLASSIFICACAO = trec2.ID
+      LEFT JOIN T_FORMAS_DE_PAGAMENTO tfdp ON tre.FK_FORMA_PAGAMENTO = tfdp.ID
+      LEFT JOIN T_STATUS_PAGAMENTO tsp ON vpa.STATUS_PGTO = tsp.ID
+      LEFT JOIN T_CONTAS_BANCARIAS tcb ON tre.FK_CONTA_BANCARIA = tcb.ID
       WHERE vpa.DATA_VENCIMENTO IS NOT NULL
       ORDER BY te.NOME_FANTASIA ASC, vpa.DATA_RECEBIMENTO DESC
     ''')
@@ -143,10 +197,12 @@ def GET_CUSTOS_BLUEME_SEM_PARC():
       tdr.ID as 'ID_Despesa',
       CASE
         WHEN te.ID IN (161, 162) THEN 149 
+        WHEN te.ID = 178 THEN 110                                            
         ELSE te.ID                                                                 
       END AS 'ID_Casa',
       CASE
         WHEN te.ID IN (161, 162) THEN 'Priceless' 
+        WHEN te.ID = 178 THEN 'Blue Note - São Paulo'                                                                              
         ELSE te.NOME_FANTASIA                                                                 
       END AS 'Casa',
       tf.CORPORATE_NAME as 'Fornecedor',
@@ -209,10 +265,12 @@ def GET_CUSTOS_BLUEME_COM_PARC():
       tdr.ID as 'ID_Despesa',
       CASE
         WHEN te.ID IN (161, 162) THEN 149 
+        WHEN te.ID = 178 THEN 110                                            
         ELSE te.ID                                                                 
       END AS 'ID_Casa',
       CASE
-        WHEN te.ID IN (161, 162) THEN 'Priceless' 
+        WHEN te.ID IN (161, 162) THEN 'Priceless'
+        WHEN te.ID = 178 THEN 'Blue Note - São Paulo'                                            
         ELSE te.NOME_FANTASIA                                                                 
       END AS 'Casa',
       tdr.FK_LOJA_CNPJ as 'CNPJ_Loja',
@@ -288,10 +346,12 @@ def GET_EXTRATOS_BANCARIOS():
     tcb.NOME_DA_CONTA as 'Nome_Conta_Bancaria',
     CASE
         WHEN te.ID IN (161, 162) THEN 149 
+        WHEN te.ID = 178 THEN 110                                  
         ELSE te.ID                                                                 
       END AS 'ID_Casa',
       CASE
         WHEN te.ID IN (161, 162) THEN 'Priceless' 
+        WHEN te.ID = 178 THEN 'Blue Note - São Paulo'                                  
         ELSE te.NOME_FANTASIA                                                                 
       END AS 'Casa',
     teb.DATA_TRANSACAO as 'Data_Transacao',
@@ -358,10 +418,12 @@ def GET_TESOURARIA():
     ttt.ID as 'ID_Transacao_Tesouraria',
     CASE
         WHEN te2.ID IN (161, 162) THEN 149 
+        WHEN te2.ID = 178 THEN 110                            
         ELSE te2.ID                                                                 
       END AS 'ID_Casa',
       CASE
         WHEN te2.ID IN (161, 162) THEN 'Priceless' 
+        WHEN te2.ID = 178 THEN 'Blue Note - São Paulo'                                                              
         ELSE te2.NOME_FANTASIA                                                                 
       END AS 'Casa',
     ttt.FK_EMPRESA_TESOURARIA as 'ID_Empresa_Tesouraria',
@@ -384,10 +446,12 @@ def GET_AJUSTES():
       SELECT 
       CASE
         WHEN te.ID IN (161, 162) THEN 149 
+        WHEN te.ID = 178 THEN 110                                     
         ELSE te.ID                                                                 
       END AS 'ID_Casa',
       CASE
-        WHEN te.ID IN (161, 162) THEN 'Priceless' 
+        WHEN te.ID IN (161, 162) THEN 'Priceless'
+        WHEN te.ID = 178 THEN 'Blue Note - São Paulo'                                                                        
         ELSE te.NOME_FANTASIA                                                                 
       END AS 'Casa',
       tac.DATA_AJUSTE AS 'Data_Ajuste',
@@ -410,10 +474,12 @@ def GET_BLOQUEIOS_JUDICIAIS():
       tbj.ID as 'ID_Bloqueio',
       CASE
         WHEN te.ID IN (161, 162) THEN 149 
+        WHEN te.ID = 178 THEN 110                                       
         ELSE te.ID                                                                 
       END AS 'ID_Casa',
       CASE
         WHEN te.ID IN (161, 162) THEN 'Priceless' 
+        WHEN te.ID = 178 THEN 'Blue Note - São Paulo'                                 
         ELSE te.NOME_FANTASIA                                                                 
       END AS 'Casa',
       tbj.DATA_TRANSACAO as 'Data_Transacao',
@@ -487,7 +553,8 @@ def GET_FATURAMENTO_AGREGADO():
         SELECT
           ID             AS original_id,
           CASE 
-            WHEN ID IN (161, 162) THEN 149 
+            WHEN ID IN (161, 162) THEN 149
+            WHEN ID = 178 THEN 110 
             ELSE ID 
           END            AS id_casa_normalizada
         FROM T_EMPRESAS
@@ -548,10 +615,12 @@ def GET_EVENTOS_FATURAM_AGREGADO():
         tep.ID AS ID_Faturam_Agregado,
         CASE
           WHEN te.ID IN (161, 162) THEN 149 
+          WHEN te.ID = 178 THEN 110                                        
           ELSE te.ID                                                                 
         END AS 'ID_Casa',
       CASE
         WHEN te.ID IN (161, 162) THEN 'Priceless' 
+        WHEN te.ID = 178 THEN 'Blue Note - São Paulo'                                                                                
         ELSE te.NOME_FANTASIA                                                                 
       END AS 'Casa',
         YEAR(tpep.DATA_RECEBIMENTO_PARCELA) as Ano,
@@ -576,11 +645,13 @@ def GET_EVENTOS():
       SELECT tep.ID AS 'ID_Evento',
           tep.NOME_EVENTO AS 'Nome_Evento',
           CASE
-            WHEN te.ID IN (161, 162) THEN 149 
+            WHEN te.ID IN (161, 162) THEN 149
+            WHEN te.ID = 178 THEN 110                      
             ELSE te.ID                                                                 
           END AS 'ID_Casa',
           CASE
-            WHEN te.ID IN (161, 162) THEN 'Priceless' 
+            WHEN te.ID IN (161, 162) THEN 'Priceless'
+            WHEN te.ID = 178 THEN 'Blue Note - São Paulo'                                   
             ELSE te.NOME_FANTASIA                                                                 
           END AS 'Casa',
           tpep.ID AS 'ID_Parcela',

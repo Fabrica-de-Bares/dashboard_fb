@@ -44,6 +44,9 @@ def conciliacao_casa(df, casa, datas_completas):
              (df_parc_receit_extr_farol["Recebimento_Parcela"].dt.year >= 2025))
         )
     ]
+    df_parc_receit_extr_farol = df_parc_receit_extr_farol[ # não vou considerar receitas com status_pgto = 'Desconto'
+        df_parc_receit_extr['Status_Pgto'] != 'Desconto'
+    ]
 
     if 'Receitas Extraordinárias' not in df_copia.columns:
         df_copia['Receitas Extraordinárias'] = somar_por_data(
