@@ -23,7 +23,7 @@ if 'loggedIn' not in st.session_state or not st.session_state['loggedIn']:
     st.switch_page('Login.py')
 
 # Constantes
-CASAS_EXCLUIDAS = ['Bar Léo - Vila Madalena', 'Blue Note SP (Novo)', 'Edificio Rolim', 'Todas as Casas', 'Priceless', 'Escritório Fabrica de Bares']
+CASAS_EXCLUIDAS = ['Bar Léo - Vila Madalena', 'Blue Note SP (Novo)', 'Edificio Rolim', 'Todas as Casas', 'Escritório Fabrica de Bares']
 
 
 def main():
