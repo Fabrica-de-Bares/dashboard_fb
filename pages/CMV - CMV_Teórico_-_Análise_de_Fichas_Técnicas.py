@@ -171,7 +171,7 @@ def main():
     df_itens_vendidos_dia = df_itens_vendidos_dia.astype(tipos_dados_itens_vendidos_dia, errors='ignore')
 
     # Merge faturamento com custos das fichas (% CMV Unit.)
-    df_precos_itens_vendidos = pd.merge(df_precos_itens_vendidos, df_itens_vendidos_dia[['Categoria', 'Tipo', 'Valor Unitário', 'Quantidade', 'Desconto', 'Faturamento Bruto', 'Faturamento Líquido']], how='left', on=['ID Casa', 'Casa', 'ID Item Zig'])
+    df_precos_itens_vendidos = pd.merge(df_precos_itens_vendidos, df_itens_vendidos_dia[['Categoria', 'Tipo', 'Valor Unitário', 'Quantidade', 'Desconto', 'Faturamento Bruto', 'Faturamento Líquido']], how='inner', on=['ID Casa', 'Casa', 'ID Item Zig'])
     df_precos_itens_vendidos['% CMV Unit.'] = (df_precos_itens_vendidos['Custo Item'] / df_precos_itens_vendidos['Valor Unitário'])
     df_precos_itens_vendidos.sort_values(by=['% CMV Unit.'], ascending=False, inplace=True)
     

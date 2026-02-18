@@ -32,8 +32,8 @@ col1, col2, col3 = st.columns([2, 1, 1])
 with col1:
     # Filtro de casa:
   lista_retirar_casas = ['Bar Léo - Vila Madalena', 'Edificio Rolim', 'Priceless', 'Todas as Casas']
-  id_casa, casa, id_zigpay = input_selecao_casas(lista_retirar_casas, key='calendario')
-  lojas_selecionadas = [casa]
+  df_casas_selecionadas = input_multiselecao_casas(lista_retirar_casas, key='calendario')
+  lojas_selecionadas = df_casas_selecionadas['Casa'].tolist()
 with col2:
   data_inicio = st.date_input(
       'Data de Início',
@@ -49,6 +49,10 @@ with col3:
       format="DD/MM/YYYY"
   )
 st.divider()
+
+if lojas_selecionadas == []:
+  st.warning('Nenhuma casa selecionada.')
+  st.stop()
 
 ReceitExtraord = config_receit_extraord(lojas_selecionadas, data_inicio, data_fim)
 FaturamReceitExtraord, Totais = faturam_receit_extraord(ReceitExtraord)
@@ -77,7 +81,7 @@ with st.container(border=True):
   col0, col1, col2 = st.columns([1, 15, 1])
   with col1:
     col3, col4 = st.columns([2, 1])
-    with col3:
+    with col3:  
       st.subheader("Detalhamento por Classificação:")
     with col4:
       classificacoes_selecionadas = st.multiselect(label='Selecione Classificações', options=classificacoes)

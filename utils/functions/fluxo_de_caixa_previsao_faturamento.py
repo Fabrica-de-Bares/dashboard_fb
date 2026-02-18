@@ -28,8 +28,8 @@ def criar_seletores_previsao(data_inicio_default, data_fim_default):
   # Adiciona seletores
   with col1:
     lista_retirar_casas = ['Bar Léo - Vila Madalena', 'Edificio Rolim', 'Priceless']
-    id_casa, casa, id_zigpay = input_selecao_casas(lista_retirar_casas, key='calendario')
-    lojas_selecionadas = [casa]
+    df_casas_selecionadas = input_multiselecao_casas(lista_retirar_casas, key='calendario')
+    lojas_selecionadas = df_casas_selecionadas['Casa'].tolist()
   with col2:
     multiplicador = st.number_input("Multiplicador", value=1.0)
   with col3:

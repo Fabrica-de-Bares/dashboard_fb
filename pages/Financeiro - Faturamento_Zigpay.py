@@ -31,8 +31,8 @@ def main():
   with col1:
      # Filtro de casa:
     lista_retirar_casas = ['Bar Léo - Vila Madalena', 'Edificio Rolim', 'Priceless', 'Todas as Casas', 'Escritório Fabrica de Bares']
-    id_casa, casa, id_zigpay = input_selecao_casas(lista_retirar_casas, key='calendario')
-    lojas_selecionadas = [casa]
+    df_casas_selecionadas = input_multiselecao_casas(lista_retirar_casas, key='calendario')
+    lojas_selecionadas = df_casas_selecionadas['Casa'].tolist()
   with col2:
     data_inicio = st.date_input(
         'Data de Início',
@@ -54,7 +54,9 @@ def main():
 
   st.divider()
 
-  # threading.Thread(target=config_Faturamento_zig)
+  if lojas_selecionadas == []:
+    st.warning("Nenhuma casa selecionada.")
+    st.stop()
   OrcamentoFaturamento = config_orcamento_faturamento(lojas_selecionadas, data_inicio, data_fim) 
   orcamfatformatado = OrcamentoFaturamento.copy()
   categorias_desejadas = ['Alimentos', 'Bebidas', 'Couvert', 'Gifts']

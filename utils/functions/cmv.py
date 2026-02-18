@@ -19,6 +19,7 @@ def substituicao_ids(df, colNome, colID):
     161: 149,
     162: 149,
     110: 131,
+    178: 131,
     160: 156,
     177: 176
   }
@@ -35,6 +36,7 @@ def substituicao_ids(df, colNome, colID):
     'Terraço Notie': 'Priceless',
     'Blue Note - São Paulo': 'Blue Note - Agregado',
     'Blue Note SP (Novo)': 'Blue Note - Agregado',
+    'Blue Note SP (Sala 2)': 'Blue Note - Agregado',
     'Girondino - CCBB': 'Girondino - Agregado',
     'Girondino ': 'Girondino - Agregado',
     'The Cavern': 'The Cavern - Agregado',

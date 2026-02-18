@@ -51,18 +51,15 @@ def main():
 	col1, col2, col3 = st.columns(3)
 	with col1:
 		# Filtro de casa:
-		lista_retirar_casas = ['Bar Léo - Vila Madalena', 'Blue Note SP (Novo)', 'Edificio Rolim', 'The Cavern']
-		id_casa, casa, id_zigpay = input_selecao_casas(lista_retirar_casas, key='seletor_casas_eventos_confirmados')
-		if id_casa != -1:
-			df_logs_eventos = df_logs_eventos[df_logs_eventos['ID Casa'] == id_casa]
-			df_logs_parcelas = df_logs_parcelas[df_logs_parcelas['ID Casa'] == id_casa]
-			df_eventos_confirmados = df_eventos_confirmados[df_eventos_confirmados['ID Casa'] == id_casa]
-		else:
-			df_acessos_casa = pd.DataFrame(st.session_state['casas_permitidas'], columns=["ID Loja", "Loja", 'ID Zigpay'])
-			lista_ids_casa = df_acessos_casa['ID Loja'].tolist()
-			df_logs_eventos = df_logs_eventos[df_logs_eventos['ID Casa'].isin(lista_ids_casa)]
-			df_logs_parcelas = df_logs_parcelas[df_logs_parcelas['ID Casa'].isin(lista_ids_casa)]
-			df_eventos_confirmados = df_eventos_confirmados[df_eventos_confirmados['ID Casa'].isin(lista_ids_casa)]
+		lista_retirar_casas = ['Bar Léo - Vila Madalena', 'Blue Note SP (Novo)', 'Edificio Rolim']
+		df_casas_selecionadas = input_multiselecao_casas(lista_retirar_casas, key='seletor_casas_eventos_confirmados')
+		lista_ids_casa = df_casas_selecionadas['ID_Casa'].tolist()
+		df_logs_eventos = df_logs_eventos[df_logs_eventos['ID Casa'].isin(lista_ids_casa)]
+		df_logs_parcelas = df_logs_parcelas[df_logs_parcelas['ID Casa'].isin(lista_ids_casa)]
+		df_eventos_confirmados = df_eventos_confirmados[df_eventos_confirmados['ID Casa'].isin(lista_ids_casa)]
+		if lista_ids_casa == []:
+				st.warning('Nenhuma casa selecionada.')
+				st.stop()
 	with col2:
 		# Filtro Eventos
 		lista_eventos_confirmados = df_eventos_confirmados['ID Evento'].tolist()

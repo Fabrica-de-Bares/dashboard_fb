@@ -77,15 +77,10 @@ def main():
 
 	# Filtro de casa:
 	lista_retirar_casas = ['Bar Léo - Vila Madalena', 'Blue Note SP (Novo)', 'Edificio Rolim']
-	id_casa, casa, id_zigpay = input_selecao_casas(lista_retirar_casas, key='seletor_casas_auditoria')
-	if id_casa != -1:
-		df_eventos = df_eventos[df_eventos['ID Casa'] == id_casa]
-		df_parcelas = df_parcelas[df_parcelas['ID Casa'] == id_casa]
-	else:
-		df_acessos_casas = pd.DataFrame(st.session_state['casas_permitidas'], columns=["ID Loja", "Loja", 'ID Zigpay'])
-		lista_ids_casas = df_acessos_casas['ID Loja'].unique().tolist()
-		df_eventos = df_eventos[df_eventos['ID Casa'].isin(lista_ids_casas)]
-		df_parcelas = df_parcelas[df_parcelas['ID Casa'].isin(lista_ids_casas)]
+	df_casas_selecionadas = input_multiselecao_casas(lista_retirar_casas, key='seletor_casas_auditoria')
+	lista_ids_casas = df_casas_selecionadas['ID_Casa'].unique().tolist()
+	df_eventos = df_eventos[df_eventos['ID Casa'].isin(lista_ids_casas)]
+	df_parcelas = df_parcelas[df_parcelas['ID Casa'].isin(lista_ids_casas)]
 
 	# Filtro Confirmados, Em Negociação e Declinados
 	df_eventos_confirmados = df_eventos[df_eventos['Status'] == 'Confirmado']

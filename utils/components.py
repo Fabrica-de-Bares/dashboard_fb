@@ -47,7 +47,7 @@ def input_selecao_casas_agregadas(lista_casas_retirar, key):
     lista_casas_validas = df_permissao_casas["Loja"].to_list()
     lista_ids_casas_validas = df_permissao_casas["ID Loja"].to_list()
 
-    blue_note_ids = [110, 131]
+    blue_note_ids = [110, 131, 178]
     the_cavern_ids = [176, 177]
 
     # Se algum Blue Note está na permissão, adiciona Blue Note - Agregado
@@ -56,6 +56,7 @@ def input_selecao_casas_agregadas(lista_casas_retirar, key):
             lista_casas_validas.insert(0, "Blue Note - Agregado")
             lista_casas_validas.remove("Blue Note - São Paulo")
             lista_casas_validas.remove("Blue Note SP (Novo)")
+            lista_casas_validas.remove("Blue Note SP (Sala 2)")
 
     # Se algum The Cavern está na permissão, adiciona The Cavern - Agregado
     if any(num in the_cavern_ids for num in lista_ids_casas_validas):

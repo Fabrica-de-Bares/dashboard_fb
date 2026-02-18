@@ -21,7 +21,7 @@ if 'loggedIn' not in st.session_state or not st.session_state['loggedIn']:
 config_sidebar()
 col, col2, col3 = st.columns([6, 1, 1])
 with col:
-  st.title('Controle de Despesas Gerais')
+  st.title(':money_with_wings: Controle de Despesas Gerais')
 with col2:
   st.button(label="Atualizar", on_click = st.cache_data.clear)
 
