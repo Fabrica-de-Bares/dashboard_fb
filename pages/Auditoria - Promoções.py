@@ -52,7 +52,10 @@ with col1:
     # Recupera id da casa
     mapeamento_casas = dict(zip(df_casas["Casa"], df_casas["ID_Casa"]))
     if casa != 'BNSP' and casa != 'Terraço Notiê':
-        id_casa = mapeamento_casas[casa]
+        if casa == 'Edificio Rolim':
+            id_casa = 145
+        else:   
+            id_casa = mapeamento_casas[casa]
     elif casa == 'Terraço Notiê':
         id_casa = 162
     elif casa == 'BNSP':

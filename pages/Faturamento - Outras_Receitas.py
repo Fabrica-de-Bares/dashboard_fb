@@ -88,5 +88,6 @@ with st.container(border=True):
       classificacoes_selecionadas = st.multiselect(label='Selecione Classificações', options=classificacoes)
     DfFiltrado = filtrar_por_classe_selecionada(ReceitExtraord, 'Classificação', classificacoes_selecionadas)
     DfFiltrado = format_columns_brazilian(DfFiltrado, ['Valor Total', 'Categ. AB', 'Categ. Aluguel', 'Categ. Artista', 'Categ. Couvert', 'Categ. Locação', 'Categ. Patrocínio', 'Categ. Taxa de serviço'])
+    DfFiltrado = DfFiltrado.sort_values(by=['Loja', 'Classificação'])
     st.dataframe(DfFiltrado, width='stretch', hide_index=True)
 

@@ -1,7 +1,9 @@
 import pandas as pd
+import streamlit as st
 
 
-def mapeamento_centro_custo(casa, df):
+# Descontos - DRE #
+def mapeamento_centro_custo(df):
     regras_globais_centro_custo = {
         'CONSUMO GERÊNCIA|CONSUMO GERENCIA|DESCONTO FUNCIONÁRIOS 30%|CONSUMO GERENCIAL|COLABORADOR 30%|COLABORADORES \(30%\)|COLABORADOR \(30%\)|REUNIÃO - EVENTOS|COLABORADORES 30%|REUNIÃO - COMPRAS': '  -  Alimentação Funcionário',
         'MÚSICOS|REUNIÃO - ARTÍSTICO|TÉCNICO DE SOM|ARTÍSTICO': 'Alimentação e Transporte',
@@ -185,3 +187,141 @@ def prepara_consolidado(df_descontos_filtrado, df_promocoes_filtrado):
 
     return df_descontos_mes, df_promocoes_mes, df_concatenado
 
+
+# Colunas - DRE (Subir Orçamentos e Real) #
+# Remove linhas que não são de orçamento / apenas títulos
+def limpeza_linhas(df, casa):
+    df_transformado = df.copy()
+    col = (df_transformado['Unnamed: 0'])
+
+    excecoes_parenteses = {
+        '(-) Despesas de Patrocínio',
+        '(+) Receitas de Patrocínio'
+    }
+    contem_parenteses_negativo = col.str.contains(r'\(-\)', na=False) &  ~col.isin(excecoes_parenteses)
+    contem_parenteses_positivo = col.str.contains(r'\(\+\)', na=False) &  ~col.isin(excecoes_parenteses)
+    contem_cargos = col.str.contains(
+        r'squad|chef|gerente|coord|maitre|hostess|garçon|chop|cumin|barista|bartender|bar back|cozinheiro|ajud cozinha|saladeiro|pia|confeiteiro|copeiro|pizza|boqueta|churras|ajud limpeza|estoquista|aux|porteiro|bilheteiro|caixa|operador',
+        case=False,
+        na=False
+    )
+
+    excluir_exatos = {
+        'FATURAMENTO BRUTO',
+        'Eventos',
+        '% sobre Receita Bruta',
+        'RECEITA LÍQUIDA',
+        '% sobre Receita Líquida',
+        'Custos Artístico',
+        'Custos Ténico de Som',
+        '% sobre Receita Artístico',
+        'MDO',
+        'Serviços de Terceiros - Eventos',
+        'Material de Consumo',
+        'Manutenção Geral',
+        'Transportes',
+        'Locações',
+        'Repasses Locação de Espaço',
+        '% sobre Receita de Eventos',
+        'MARGEM BRUTA DE CONTRIBUIÇÃO',
+        '% sobre Receita',
+        'PESSOAL',
+        'E-Staff',
+        '% sobre Receita c/ Squad', 
+        '% sobre Receita s/ Squad',
+        'Custo de Ocupação',
+        'Utilidades',
+        'Informática e TI',
+        'Despesas Gerais',
+        'Marketing',
+        'Serviços de Terceiros',
+        'Locação de Equipamentos',
+        'Sistema de Franquias',
+        'Encargos e Provisões',
+        'Benefícios', 
+        'Outros B',
+        '  - Administrativa',
+        'Viagens e Estadias',
+        'TOTAL - DESPESAS OPERATIVAS',
+        'EBITDA', 'EBIT',
+        '(+/-) Receitas/Despesas Financeiras',
+    }
+
+    # Regra especial para o Blue Note
+    if casa == 'Blue Note - São Paulo':
+        excluir_exatos.discard('Viagens e Estadias')  # não exclui
+
+    df_transformado = df_transformado[
+        (~col.isin(excluir_exatos)) &    # remove títulos
+        (~contem_parenteses_negativo) &  # remove (-)
+        (~contem_parenteses_positivo) &  # remove (+)
+        (~contem_cargos)                 # remove cargos de PJ e Salários
+    ]
+
+    # Renomeia nomes da planilha para class. cont. 2 correspondente no banco
+    condicao = df_transformado['Unnamed: 0'] == 'Alimentação D'
+    df_transformado.loc[condicao, 'Unnamed: 0'] = 'Insumos - Alimentos'
+
+    condicao = df_transformado['Unnamed: 0'] == 'Bebida D'
+    df_transformado.loc[condicao, 'Unnamed: 0'] = 'Insumos - Bebidas'
+
+    condicao = df_transformado['Unnamed: 0'] == 'Embalagens'
+    df_transformado.loc[condicao, 'Unnamed: 0'] = 'Insumos - Embalagens'
+
+    condicao = df_transformado['Unnamed: 0'] == 'PJ'
+    df_transformado.loc[condicao, 'Unnamed: 0'] = 'MDO PJ Fixo'
+
+    condicao = df_transformado['Unnamed: 0'] == 'Salários'
+    df_transformado.loc[condicao, 'Unnamed: 0'] = 'MDO CLT - Salário'
+
+    condicao = df_transformado['Unnamed: 0'] == 'Brindes e Confraternizações'
+    df_transformado.loc[condicao, 'Unnamed: 0'] = 'Brindes e Confraternizações - Marketing'
+    
+    condicao = df_transformado['Unnamed: 0'] == 'Custas Cartório'
+    df_transformado.loc[condicao, 'Unnamed: 0'] = 'Custas Cartório / Operação'
+
+    idx = df_transformado[df_transformado['Unnamed: 0'] == 'Eventos A&B'].index # Caso de dois 'Eventos A&B' (Faturamento Bruto e Custo Mercadoria Vendida)
+    df_transformado.loc[idx[1], 'Unnamed: 0'] = 'Insumos - Eventos A&B'
+    df_transformado.loc[idx[1], 'Classificacao 1'] = 'Custo Mercadoria Vendida'
+
+    if casa == 'Blue Note - São Paulo': # Realoca essas duas categorias de Faturamento Bruto
+        condicao = df_transformado['Unnamed: 0'] == 'Viagens e Estadias' # Não excluí: Renomeia para mapear para a class. cont. 1
+        df_transformado.loc[condicao, 'Unnamed: 0'] = 'Viagens e Estadias - Artístico'
+
+        condicao = df_transformado['Unnamed: 0'] == 'Eventos Rebate Fornecedores - Premium Corp'
+        df_transformado.loc[condicao, 'Unnamed: 0'] = 'Eventos Locações'
+
+        condicao = df_transformado['Unnamed: 0'] == 'Membership'
+        df_transformado.loc[condicao, 'Unnamed: 0'] = 'Outras Receitas'
+        df_transformado = df_transformado.groupby('Unnamed: 0', as_index=False)[['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro']].sum()
+    
+    # Cria coluna de class. cont. 2
+    df_transformado['Classificacao 2'] = df_transformado['Unnamed: 0']
+    return df_transformado
+
+
+# Função para inserir no banco os valores reais de cada ano de DRE
+def inserir_df_no_banco(df, conn):
+    c = conn.cursor()
+    query_insercao = """
+        INSERT INTO T_VALORES_REAIS_DRE
+        (FK_EMPRESA, MES, CATEGORIA, VALOR)
+        VALUES (%s, %s, %s, %s)
+    """
+
+    # garante tipos corretos
+    df = df.copy()
+    df['VALOR'] = df['VALOR'].astype(float)
+
+    dados = df[
+        [
+            'FK_EMPRESA',
+            'MES',
+            'CATEGORIA',
+            'VALOR'
+        ]
+    ].values.tolist()
+
+    c.executemany(query_insercao, dados) # Insere os dados atuais
+    st.success("Dados inseridos com sucesso na tabela 'T_VALORES_REAIS_DRE'")
+    conn.commit()

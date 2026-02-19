@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 from utils.functions.general_functions import config_sidebar
-from utils.functions.controladoria_descontos_dre import *
+from utils.functions.controladoria import *
 from utils.queries_descontos_dre import *
 from utils.components import button_download, seletor_ano, seletor_mes
 
