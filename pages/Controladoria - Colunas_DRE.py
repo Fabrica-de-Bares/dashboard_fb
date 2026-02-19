@@ -10,14 +10,7 @@ pd.set_option('future.no_silent_downcasting', True)
 
 
 # Conexão com o banco de dados
-conn = pymysql.connect(
-    host='homolog.cvuwkhnpr3rt.us-east-2.rds.amazonaws.com',
-    user='fb_catarina_scabelli',
-    password='wwAcH2xEFk2P3aUW',
-    port=6303,
-    database='EPM_FB',
-    autocommit=True
-)
+conn = mysql_connection_fb()
 c = conn.cursor()
 
 
@@ -112,7 +105,7 @@ if tipo_formatacao == 'Subir Orçamentos':
             WHERE tccg2.DESCRICAO = %s
             AND tccg1.FK_VERSAO_PLANO_CONTABIL = 103
         '''
-
+        
         for item in lista_class_cont_2_primeira_coluna:
             c.execute(query_class_cont, (item,))
             resultado_query = c.fetchone()
@@ -268,4 +261,11 @@ elif tipo_formatacao == 'Coluna "Real" DRE':
         
         # Botão para inserir dados do df no epm
         if st.button("Inserir dados no banco", type='primary'):
-            inserir_df_no_banco(df_download, conn)
+            id_casa_selecionada = id_casa
+            ano_selecionado = pd.Timestamp(
+                year=int(ano),
+                month=1,
+                day=1
+            )
+            inserir_df_no_banco(df_download, conn, id_casa_selecionada, ano_selecionado, casa, ano)
+
