@@ -10,7 +10,7 @@ pd.set_option('future.no_silent_downcasting', True)
 
 
 # Conexão com o banco de dados
-conn = mysql_connection_fb()
+conn = mysql_connection_write()
 c = conn.cursor()
 
 

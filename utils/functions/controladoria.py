@@ -3,7 +3,7 @@ import streamlit as st
 import pymysql
 
 
-def mysql_connection_fb():
+def mysql_connection_write():
     mysql_config = st.secrets["mysql_write"]
 
     conn_write = pymysql.connect(
