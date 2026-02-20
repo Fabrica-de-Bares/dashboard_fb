@@ -38,7 +38,7 @@ def substituicao_ids(df, colNome, colID):
     'Blue Note SP (Novo)': 'Blue Note - Agregado',
     'Blue Note SP (Sala 2)': 'Blue Note - Agregado',
     'Girondino - CCBB': 'Girondino - Agregado',
-    'Girondino ': 'Girondino - Agregado',
+    'Girondino': 'Girondino - Agregado',
     'The Cavern': 'The Cavern - Agregado',
     'The Cavern - Almoço': 'The Cavern - Agregado'
   }
@@ -320,7 +320,7 @@ def config_valoracao_estoque(data_inicio, data_fim, loja):
   if loja == 'Blue Note - Agregado':
     loja = 'Blue Note - São Paulo'
   elif loja == 'Girondino - Agregado':
-    loja = 'Girondino '
+    loja = 'Girondino'
   elif loja == 'The Cavern - Agregado':
     loja = 'The Cavern'
 

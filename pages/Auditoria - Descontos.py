@@ -45,7 +45,7 @@ col1, col2, col3 = st.columns(3)
 
 with col1:
     # casas = df_casas['Casa'].tolist()
-    casas = ['Arcos', 'Bar Brahma - Centro', 'Bar Brahma - Granja', 'Bar Léo - Centro', 'Blue Note - São Paulo', 'BNSP', 'Edificio Rolim', 'Girondino ', 'Girondino - CCBB', 'Jacaré', 'Love Cabaret', 'Orfeu', 'Riviera Bar', 'Terraço Notiê', 'The Cavern']
+    casas = ['Arcos', 'Bar Brahma - Centro', 'Bar Brahma - Granja', 'Bar Léo - Centro', 'Blue Note - São Paulo', 'BNSP', 'Edificio Rolim', 'Girondino', 'Girondino - CCBB', 'Jacaré', 'Love Cabaret', 'Orfeu', 'Riviera Bar', 'Terraço Notiê', 'The Cavern']
     casa = st.selectbox("Selecione a casa correspondente ao arquivo de Descontos:", casas)
     
     # Recupera id da casa
@@ -147,7 +147,7 @@ if casa == 'Blue Note - São Paulo' or casa == 'BNSP':
         'reunião t.i': 'REUNIÃO - TI'
     }
 
-if casa == 'Girondino ':
+if casa == 'Girondino':
     regras_categoria = {
         'funcionário|funcionario|funcionário da casa|funcionario da casa|desconto funcionário|desconto funcionario|desconto funça|staff da casa|estaff|funça': 'COLABORADORES (30%)',
         'mkt': 'MARKETING',

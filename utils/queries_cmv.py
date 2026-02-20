@@ -701,7 +701,7 @@ def GET_INSUMOS_AGRUPADOS_BLUE_ME_POR_CATEG_COM_PEDIDO_PERIODO_LOJA(data_inicio,
       AND q.Primeiro_Dia_Mes <= '{data_fim}'
       AND (
         CASE 
-          WHEN q.Loja = 'Girondino ' THEN 'Girondino - Agregado'
+          WHEN q.Loja = 'Girondino' THEN 'Girondino - Agregado'
           WHEN q.Loja = 'Girondino - CCBB' THEN 'Girondino - Agregado'
           WHEN q.Loja = 'Blue Note - São Paulo' THEN 'Blue Note - Agregado'
           WHEN q.Loja = 'Blue Note SP (Novo)' THEN 'Blue Note - Agregado'
@@ -903,7 +903,7 @@ def GET_INSUMOS_BLUE_ME_COM_PEDIDO(data_inicio, data_fim, loja):
       tdr.ID AS tdr_ID,
       te.ID AS ID_Loja,
       CASE 
-      	WHEN te.NOME_FANTASIA = 'Girondino ' THEN 'Girondino - Agregado'
+      	WHEN te.NOME_FANTASIA = 'Girondino' THEN 'Girondino - Agregado'
       	WHEN te.NOME_FANTASIA = 'Girondino - CCBB' THEN 'Girondino - Agregado'
       	WHEN te.NOME_FANTASIA = 'Blue Note - São Paulo' THEN 'Blue Note - Agregado'
       	WHEN te.NOME_FANTASIA = 'Blue Note SP (Novo)' THEN 'Blue Note - Agregado'
@@ -990,7 +990,7 @@ def GET_INSUMOS_BLUE_ME_COM_PEDIDO(data_inicio, data_fim, loja):
       DATE(tdr.COMPETENCIA) BETWEEN DATE('{data_inicio}') AND DATE('{data_fim}')
       AND (
         CASE 
-          WHEN te.NOME_FANTASIA = 'Girondino ' THEN 'Girondino - Agregado'
+          WHEN te.NOME_FANTASIA = 'Girondino' THEN 'Girondino - Agregado'
           WHEN te.NOME_FANTASIA = 'Girondino - CCBB' THEN 'Girondino - Agregado'
           WHEN te.NOME_FANTASIA = 'Blue Note - São Paulo' THEN 'Blue Note - Agregado'
           WHEN te.NOME_FANTASIA = 'Blue Note SP (Novo)' THEN 'Blue Note - Agregado'

@@ -199,7 +199,7 @@ elif tipo_formatacao == 'Coluna "Real" DRE':
         df_transformado = df_transformado.dropna(subset=['Unnamed: 0'])
 
         # Remove todas as linhas abaixo disso (só considera até Saldo Operacional)
-        if casa != 'Girondino ':
+        if casa != 'Girondino':
             indice = df_transformado[df_transformado['Unnamed: 0'] == 'Premissas e parâmetros usados...'].index 
             if not indice.empty:
                 df_transformado = df_transformado.loc[:indice[0] - 1]

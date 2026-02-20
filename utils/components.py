@@ -49,6 +49,7 @@ def input_selecao_casas_agregadas(lista_casas_retirar, key):
 
     blue_note_ids = [110, 131, 178]
     the_cavern_ids = [176, 177]
+    girondino_ids = [156, 160]
 
     # Se algum Blue Note está na permissão, adiciona Blue Note - Agregado
     if any(num in blue_note_ids for num in lista_ids_casas_validas):
@@ -64,6 +65,13 @@ def input_selecao_casas_agregadas(lista_casas_retirar, key):
             lista_casas_validas.insert(0, "The Cavern - Agregado")
             lista_casas_validas.remove("The Cavern")
             lista_casas_validas.remove("The Cavern - Almoço")
+    
+    # Se algum Girondino está na permissão, adiciona Girondino - Agregado
+    if any(num in girondino_ids for num in lista_ids_casas_validas):
+        if 'Girondino - Agregado' not in lista_casas_retirar:
+            lista_casas_validas.insert(0, "Girondino - Agregado")
+            lista_casas_validas.remove("Girondino")
+            lista_casas_validas.remove("Girondino - CCBB")
 
     lista_casas_validas.sort()
 
@@ -85,6 +93,9 @@ def input_selecao_casas_agregadas(lista_casas_retirar, key):
         elif casa == "The Cavern - Agregado":
             id_casa = df_permissao_casas[df_permissao_casas["Loja"] == 'The Cavern']["ID Loja"].values[0]
             id_zigpay = df_permissao_casas[df_permissao_casas["Loja"] == 'The Cavern - Almoço']["ID Zigpay"].values[0]
+        elif casa == "Girondino - Agregado":
+            id_casa = df_permissao_casas[df_permissao_casas["Loja"] == 'Girondino']["ID Loja"].values[0]
+            id_zigpay = df_permissao_casas[df_permissao_casas["Loja"] == 'Girondino - CCBB']["ID Zigpay"].values[0]
         # Obtendo o ID de casa não agregada
         else:
             id_casa = df_permissao_casas[df_permissao_casas["Loja"] == casa]["ID Loja"].values[0]
