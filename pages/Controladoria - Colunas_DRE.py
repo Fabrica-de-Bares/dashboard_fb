@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 import pymysql
-from utils.functions.general_functions import config_sidebar
+from utils.functions.general_functions import config_sidebar, mysql_connection_fb
 from utils.functions.controladoria import *
 from utils.queries_conciliacao import GET_CASAS
 from utils.components import button_download, seletor_ano
@@ -10,8 +10,8 @@ pd.set_option('future.no_silent_downcasting', True)
 
 
 # Conexão com o banco de dados
-conn = mysql_connection_write()
-c = conn.cursor()
+conn = mysql_connection_fb()
+c = conn.cursor(buffered=True)
 
 
 st.set_page_config(
@@ -260,12 +260,12 @@ elif tipo_formatacao == 'Coluna "Real" DRE':
         st.dataframe(df_download, hide_index=True)
         
         # Botão para inserir dados do df no epm
-        if st.button("Inserir dados no banco", type='primary'):
-            id_casa_selecionada = id_casa
-            ano_selecionado = pd.Timestamp(
-                year=int(ano),
-                month=1,
-                day=1
-            )
-            inserir_df_no_banco(df_download, conn, id_casa_selecionada, ano_selecionado, casa, ano)
+        # if st.button("Inserir dados no banco", type='primary'):
+        #     id_casa_selecionada = id_casa
+        #     ano_selecionado = pd.Timestamp(
+        #         year=int(ano),
+        #         month=1,
+        #         day=1
+        #     )
+        #     inserir_df_no_banco(df_download, conn, id_casa_selecionada, ano_selecionado, casa, ano)
 
