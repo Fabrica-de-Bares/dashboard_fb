@@ -129,11 +129,10 @@ def main():
 		with col2:
 			if filtro_data_categoria is None:
 				st.warning("Por favor, selecione um filtro de data.")
-			
+			df_parcelas_casa = df_parcelas_filtradas_por_data[df_parcelas_filtradas_por_data['ID Casa'].isin(lista_ids_casa)]
 			if lista_ids_casa != [149]:
-				df_parcelas_casa = df_parcelas_filtradas_por_data[df_parcelas_filtradas_por_data['ID Casa'].isin(lista_ids_casa)]
 				montar_tabs_geral(df_parcelas_casa, 'Todas as Casas Selecionadas', lista_ids_casa, filtro_data_categoria, df_orcamentos)
-			else: 
+			else:
 				montar_tabs_priceless(df_parcelas_casa, 149, df_eventos, filtro_data_categoria, df_orcamentos)
 	st.write("")
 
