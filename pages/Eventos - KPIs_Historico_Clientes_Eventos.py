@@ -66,23 +66,23 @@ def main():
 
             for _, cliente in df_clientes_selecionados.groupby('ID Cliente'):
 
-                st.markdown(f'### :material/group:  {cliente['Cliente'].values[0]}')
+                st.markdown(f"### :material/group:  {cliente['Cliente'].values[0]}")
                 st.write('')
 
                 col1, col2, col3, col4 = st.columns([1, 1, 1, 1], gap="small", vertical_alignment="top")
                 with col1:
-                    st.markdown(f'**Documento:** {cliente['Documento'].values[0]}')
-                    st.markdown(f'**E-mail:** {cliente['Email'].values[0]}')
+                    st.markdown(f"**Documento:** {cliente['Documento'].values[0]}")
+                    st.markdown(f"**E-mail:** {cliente['Email'].values[0]}")
                 with col2:
-                    st.markdown(f'**Telefone:** {cliente['Telefone'].values[0]}')
-                    st.markdown(f'**Pessoa de Contato:** {cliente['Pessoa de Contato'].values[0]}')
+                    st.markdown(f"**Telefone:** {cliente['Telefone'].values[0]}")
+                    st.markdown(f"**Pessoa de Contato:** {cliente['Pessoa de Contato'].values[0]}")
                 with col3:
-                    st.markdown(f'**Endereço:** {cliente['Endereço'].values[0]}')
-                    st.markdown(f'**CEP:** {cliente['CEP'].values[0]}')
+                    st.markdown(f"**Endereço:** {cliente['Endereço'].values[0]}")
+                    st.markdown(f"**CEP:** {cliente['CEP'].values[0]}")
                 if cliente['Setor Empresa'].values[0] != 'Não informado' or cliente['Razão Social'].values[0] != 'Não informado':
                     with col4:
-                        st.markdown(f'**Razão Social:** {cliente["Razão Social"].values[0]}')
-                        st.markdown(f'**Setor Empresa:** {cliente["Setor Empresa"].values[0]}')
+                        st.markdown(f"**Razão Social:** {cliente['Razão Social'].values[0]}")
+                        st.markdown(f"**Setor Empresa:** {cliente['Setor Empresa'].values[0]}")
 
                 st.markdown("#### Eventos Realizados")
                 df_eventos_realizados_cliente = df_clientes_eventos.copy()
