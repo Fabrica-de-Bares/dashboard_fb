@@ -6,6 +6,7 @@
 
 # Ignorar venv
 venv/
+.venv/
 
 # Ignorar arquivos de configuração do editor
 .vscode/
