@@ -46,7 +46,7 @@ casas_validas = [
     'Bar Léo - Centro', 
     'Blue Note - São Paulo', 
     'Blue Note SP (Novo)', 
-    # 'Blue Note SP (Sala 2)'
+    'Blue Note SP (Sala 2)',
     'Edificio Rolim', 
     'Escritório Fabrica de Bares', 
     'Girondino ', 

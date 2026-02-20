@@ -61,7 +61,7 @@ col_casas, col_botao = st.columns([4, 1])
 with col_casas:
     # Usando session_state se disponível, senão usa o valor padrão
     default_casas = st.session_state.get('casas_selecionadas', [casas[1]] if casas else []) # default: Arcos
-    lista_casas_retirar = []
+    lista_casas_retirar = ['Todas as Casas']
     df_casas_selecionadas = input_multiselecao_casas(lista_casas_retirar, key="casas_artistico")
     casas_selecionadas = df_casas_selecionadas['Casa'].tolist()
 
@@ -93,6 +93,7 @@ mapeamento_lojas = dict(zip(df_casas["Casa"], df_casas["ID_Casa"]))
 
 # Obtendo os IDs das casas selecionadas
 ids_casas_selecionadas = []
+casas_selecionadas = [casa for casa in casas_selecionadas if casa not in ['Blue Note SP (Sala 2)', 'Terraço Notie']]
 for casa in casas_selecionadas:
     if casa == "Todas as casas":
         # pega todos os IDs exceto o "All bar"

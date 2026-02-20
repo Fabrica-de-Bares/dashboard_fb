@@ -11,6 +11,7 @@ from utils.queries_conciliacao import *
 
 
 nomes_meses = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']
+casas_validas = [casa for casa in casas_validas if casa != 'Blue Note SP (Sala 2)']
 
 st.set_page_config(
     page_title="Conciliação FB - Farol",

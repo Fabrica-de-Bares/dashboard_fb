@@ -106,12 +106,18 @@ def input_multiselecao_casas(lista_casas_retirar, key):
     df_casas = df_casas[df_casas["ID_Casa"].isin(lista_ids_casas_acesso)].sort_values(by="Casa").reset_index(drop=True)
     lista_casas_validas = df_casas["Casa"].to_list()
 
-    lista_casas = st.multiselect("Casa", lista_casas_validas, key=key)
+    # Adiciona opção Todas as casas
+    if 'Todas as Casas' not in lista_casas_retirar:
+        lista_casas_validas.insert(0, "Todas as Casas")
+
+    lista_casas = st.multiselect("Casa", lista_casas_validas, key=key, default=lista_casas_validas[0])
     df_validas = pd.DataFrame(lista_casas_validas, columns=["Casa"])
     df_validas = df_validas[df_validas["Casa"].isin(lista_casas)].sort_values(by="Casa").reset_index(drop=True)
 
-    df_result = df_casas.merge(df_validas, on="Casa", how="inner")
-    
+    if lista_casas and lista_casas[0] == 'Todas as Casas':
+        df_result = df_casas
+    else:
+        df_result = df_casas.merge(df_validas, on="Casa", how="inner")
     return df_result
 
 
