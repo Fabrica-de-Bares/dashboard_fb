@@ -51,7 +51,7 @@ def main():
 	col1, col2, col3 = st.columns(3)
 	with col1:
 		# Filtro de casa:
-		lista_retirar_casas = ['Bar Léo - Vila Madalena', 'Blue Note SP (Novo)', 'Edificio Rolim']
+		lista_retirar_casas = ['Bar Léo - Vila Madalena', 'Blue Note SP (Novo)', 'Edificio Rolim', 'Terraço Notie']
 		df_casas_selecionadas = input_multiselecao_casas(lista_retirar_casas, key='seletor_casas_eventos_confirmados')
 		lista_ids_casa = df_casas_selecionadas['ID_Casa'].tolist()
 		df_logs_eventos = df_logs_eventos[df_logs_eventos['ID Casa'].isin(lista_ids_casa)]
