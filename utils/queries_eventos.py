@@ -381,7 +381,7 @@ def GET_ACESSOS_COMISSOES():
 	return dataframe_query(f'''
 		SELECT
 			CONCAT(tee.ID, ' - ', tee.NOME_COMPLETO) AS 'ID - Responsavel',
-			au.EMAIL AS 'E-mail',
+			au.LOGIN as 'Login',
 			tee.CARGO AS 'Cargo',
 			te.ID AS 'ID Casa',
 			te.NOME_FANTASIA AS 'Casa'

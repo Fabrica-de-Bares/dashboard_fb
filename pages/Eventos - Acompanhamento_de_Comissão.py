@@ -48,7 +48,7 @@ def main():
     df_acessos_comissoes = GET_ACESSOS_COMISSOES()
     user = st.session_state["user_login"]
     if user not in st.secrets["comissions_total_access"]["users"]:
-        df_acessos_comissoes = df_acessos_comissoes[df_acessos_comissoes['E-mail'] == user]
+        df_acessos_comissoes = df_acessos_comissoes[df_acessos_comissoes['Login'] == user]
 
     # Lista dos vendedores cujas comissões serão exibidas
     lista_vendedores_logado = df_acessos_comissoes['ID - Responsavel'].unique().tolist()
