@@ -110,7 +110,7 @@ def main():
             st.divider()
             col1, col2 = st.columns([1, 1], gap="large")
             with col1:
-                lista_retirar_casas = ['Bar Léo - Vila Madalena', 'Blue Note SP (Novo)', 'Edificio Rolim', 'The Cavern', 'Terraço Notie']
+                lista_retirar_casas = ['Bar Léo - Vila Madalena', 'Blue Note SP (Novo)', 'Edificio Rolim', 'The Cavern - Almoço', 'Terraço Notie', 'Escritório Fabrica de Bares']
                 id_casa_faturamento, casa_faturamento, id_zigpay_faturamento = input_selecao_casas(lista_retirar_casas, key='faturamento_bruto_comissao')
             with col2:
                 ano = seletor_ano(2024, 2026, key='ano_faturamento')
@@ -163,7 +163,7 @@ def main():
             # Seletores
             col0, col1, col2, col3= st.columns([1,1,1,1])
             with col0:
-                lista_retirar_casas = ['Bar Léo - Vila Madalena', 'Blue Note SP (Novo)', 'Edificio Rolim', 'The Cavern', 'Terraço Notie']
+                lista_retirar_casas = ['Bar Léo - Vila Madalena', 'Blue Note SP (Novo)', 'Edificio Rolim', 'The Cavern - Almoço', 'Terraço Notie', 'Escritório Fabrica de Bares']
                 id_casa, casa, id_zigpay = input_selecao_casas(lista_retirar_casas, key='acompanhamento_comissao_casas')
                 # Filtra por casa se não for "Todas as Casas"
                 if id_casa != -1:
