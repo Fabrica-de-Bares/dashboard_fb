@@ -163,7 +163,7 @@ def main():
             # Seletores
             col0, col1, col2, col3= st.columns([1,1,1,1])
             with col0:
-                lista_retirar_casas = ['Bar Léo - Vila Madalena', 'Blue Note SP (Novo)', 'Edificio Rolim', 'The Cavern']
+                lista_retirar_casas = ['Bar Léo - Vila Madalena', 'Blue Note SP (Novo)', 'Edificio Rolim', 'The Cavern', 'Terraço Notie']
                 id_casa, casa, id_zigpay = input_selecao_casas(lista_retirar_casas, key='acompanhamento_comissao_casas')
                 # Filtra por casa se não for "Todas as Casas"
                 if id_casa != -1:
