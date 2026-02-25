@@ -100,13 +100,13 @@ def GET_ITENS_VENDIDOS_DIA():
           SUM(COALESCE((tivd.VALOR_UNITARIO * tivd.QUANTIDADE), 0)) AS 'Valor Bruto',
           SUM(COALESCE(((tivd.VALOR_UNITARIO * tivd.QUANTIDADE) - tivd.DESCONTO), 0)) AS 'Valor Liquido'
         FROM T_ITENS_VENDIDOS_DIA tivd
-        LEFT JOIN T_EMPRESAS te ON te.ID = tivd.FK_CASA 
+        LEFT JOIN T_EMPRESAS te ON tivd.LOJA_ID = te.ID_ZIGPAY
         LEFT JOIN T_VISUALIZACAO_ITENS_VENDIDOS_POR_CASA tvivpc 
           ON tvivpc.ID_ZIG_ITEM_VENDIDO = tivd.PRODUCT_ID
           AND tvivpc.ID_CASA = tivd.FK_CASA
         LEFT JOIN T_ITENS_VENDIDOS_CADASTROS tivc ON tivc.ID_ZIGPAY = tivd.PRODUCT_ID
         LEFT JOIN T_ITENS_VENDIDOS_CATEGORIAS tivc2 ON tivc2.ID = tivc.FK_CATEGORIA 
-        GROUP BY `ID_Casa`, tvivpc.ID_ZIG_ITEM_VENDIDO, DATE(tivd.EVENT_DATE)                                                                      
+        GROUP BY te.ID, tivc2.DESCRICAO, DATE(tivd.EVENT_DATE)                                                                      
     '''
     )
     # Agrupa por casa e data
@@ -118,39 +118,61 @@ def GET_ITENS_VENDIDOS_DIA():
 @st.cache_data
 def GET_FATURAMENTO_EVENTOS():
     df_faturamento_eventos = dataframe_query(f'''
-    SELECT 
+    SELECT
         te.ID AS 'ID_Casa',
         te.NOME_FANTASIA AS 'Casa',
         tep.DATA_EVENTO AS 'Data Evento',
-        tep.VALOR_AB AS Valor_AB,
-        tep.VALOR_LOCACAO_AROO_1 AS 'VALOR_LOCACAO_AROO_1',
-        tep.VALOR_LOCACAO_AROO_2 AS 'VALOR_LOCACAO_AROO_2',
-        tep.VALOR_LOCACAO_AROO_3 AS 'VALOR_LOCACAO_AROO_3',          
-        tep.VALOR_LOCACAO_ANEXO AS 'VALOR_LOCACAO_ANEXO',
-        tep.VALOR_LOCACAO_NOTIE AS 'VALOR_LOCACAO_NOTIE', 
-        tep.VALOR_LOCACAO_MIRANTE AS 'VALOR_LOCACAO_MIRANTE', 
-        tep.VALOR_LOCACAO_GERADOR AS 'VALOR_LOCACAO_GERADOR',          
-        tep.VALOR_LOCACAO_DECORACAO_MOBILIARIO AS 'VALOR_LOCACAO_DECORACAO_MOBILIARIO',          
-        tep.VALOR_LOCACAO_UTENSILIOS AS 'VALOR_LOCACAO_UTENSILIOS',   
-        tep.VALOR_LOCACAO_ESPACO AS 'VALOR_LOCACAO_ESPACO',
-        tep.VALOR_CONTRATACAO_ARTISTICO AS 'Couvert'                                                                                                                                                                                                                           
-    FROM T_EVENTOS_PRICELESS tep
-    LEFT JOIN T_EMPRESAS te ON (tep.FK_EMPRESA = te.ID)  
-    ORDER BY tep.DATA_EVENTO                                                                           
+        SUM(
+            ROUND(COALESCE(tep.VALOR_AB, 0) * (tpep.VALOR_PARCELA / tep.VALOR_TOTAL_EVENTO), 2)
+            +
+            ROUND(COALESCE(tep.VALOR_TAXA_SERVICO, 0) * (tpep.VALOR_PARCELA / tep.VALOR_TOTAL_EVENTO), 2)
+        ) AS 'Eventos A&B',
+        SUM(
+            ROUND(COALESCE((COALESCE(tep.VALOR_CONTRATACAO_ARTISTICO, 0) * (tpep.VALOR_PARCELA / tep.VALOR_TOTAL_EVENTO)), 0), 2) 
+            +
+            ROUND(COALESCE((COALESCE(tep.VALOR_CONTRATACAO_TECNICO_SOM, 0) * (tpep.VALOR_PARCELA / tep.VALOR_TOTAL_EVENTO)), 0), 2)
+            +
+            ROUND(COALESCE((COALESCE(tep.VALOR_CONTRATACAO_COUVERT_ARTISTICO, 0) * (tpep.VALOR_PARCELA / tep.VALOR_TOTAL_EVENTO)), 0), 2)
+        ) AS 'Eventos Couvert',
+        SUM(
+            ROUND(COALESCE((COALESCE(tep.VALOR_LOCACAO_ESPACO, 0) * (tpep.VALOR_PARCELA / tep.VALOR_TOTAL_EVENTO)), 0), 2)
+            +
+            ROUND(COALESCE((COALESCE(tep.VALOR_LOCACAO_GERADOR, 0) * (tpep.VALOR_PARCELA / tep.VALOR_TOTAL_EVENTO)), 0), 2) 
+            +
+            ROUND(COALESCE((COALESCE(tep.VALOR_LOCACAO_DECORACAO_MOBILIARIO, 0) * (tpep.VALOR_PARCELA / tep.VALOR_TOTAL_EVENTO)), 0), 2) 
+            +
+            ROUND(COALESCE((COALESCE(tep.VALOR_LOCACAO_UTENSILIOS, 0) * (tpep.VALOR_PARCELA / tep.VALOR_TOTAL_EVENTO)), 0), 2) 
+            +
+            ROUND(COALESCE((COALESCE(tep.VALOR_MAO_DE_OBRA_EXTRA, 0) * (tpep.VALOR_PARCELA / tep.VALOR_TOTAL_EVENTO)), 0), 2)
+            +
+            ROUND(COALESCE((COALESCE(tep.VALOR_COMISSAO_BV, 0) * (tpep.VALOR_PARCELA / tep.VALOR_TOTAL_EVENTO)), 0), 2)
+            +
+            ROUND(COALESCE((COALESCE(tep.VALOR_TAXA_ADMINISTRATIVA, 0) * (tpep.VALOR_PARCELA / tep.VALOR_TOTAL_EVENTO)), 0), 2) 
+            +
+            ROUND(COALESCE((COALESCE(tep.VALOR_EXTRAS_GERAIS, 0) * (tpep.VALOR_PARCELA / tep.VALOR_TOTAL_EVENTO)), 0), 2)
+            +
+            ROUND(COALESCE((COALESCE(tep.VALOR_IMPOSTO, 0) * (tpep.VALOR_PARCELA / tep.VALOR_TOTAL_EVENTO)), 0), 2) 
+            +
+            ROUND(COALESCE((COALESCE(tep.VALOR_ACRESCIMO_FORMA_PAGAMENTO, 0) * (tpep.VALOR_PARCELA / tep.VALOR_TOTAL_EVENTO)), 0), 2) 
+        ) AS 'Eventos Locações'
+    FROM T_PARCELAS_EVENTOS_PRICELESS tpep
+    LEFT JOIN T_EVENTOS_PRICELESS tep ON (tpep.FK_EVENTO_PRICELESS = tep.ID)
+    LEFT JOIN T_EMPRESAS te ON (tep.FK_EMPRESA = te.ID)
+    WHERE tep.FK_STATUS_EVENTO = 101
+    GROUP BY
+        te.ID,
+        te.NOME_FANTASIA,
+        tep.DATA_EVENTO    
+    ORDER BY tep.DATA_EVENTO                                                                       
     '''
     )
 
-    # Define quais colunas serão "mantidas"
+    # Mantém essas colunas
     id_vars = ['ID_Casa', 'Casa', 'Data Evento']
 
-    # Define quais colunas serão transformadas em categorias
-    value_vars = ['Valor_AB', 'VALOR_LOCACAO_AROO_1', 'VALOR_LOCACAO_AROO_2',
-                'VALOR_LOCACAO_AROO_3', 'VALOR_LOCACAO_ANEXO',
-                'VALOR_LOCACAO_NOTIE', 'VALOR_LOCACAO_MIRANTE',
-                'VALOR_LOCACAO_GERADOR', 'VALOR_LOCACAO_DECORACAO_MOBILIARIO',
-                'VALOR_LOCACAO_UTENSILIOS', 'VALOR_LOCACAO_ESPACO', 'Couvert']
+    # Essas viram categoria
+    value_vars = ['Eventos A&B', 'Eventos Couvert', 'Eventos Locações']
 
-    # Faz o melt
     df_eventos_melt = df_faturamento_eventos.melt(
         id_vars=id_vars,
         value_vars=value_vars,
@@ -158,35 +180,19 @@ def GET_FATURAMENTO_EVENTOS():
         value_name='Valor Bruto'
     )
 
-    # Remove linhas sem valor
-    df_eventos_melt = df_eventos_melt.dropna(subset=['Valor Bruto'])
+    # remove zero e null
+    df_eventos_melt = df_eventos_melt[
+        df_eventos_melt['Valor Bruto'].notna() &
+        (df_eventos_melt['Valor Bruto'] != 0)
+    ]
 
-    # Simplifica nomes de categoria
-    df_eventos_melt['Categoria'] = df_eventos_melt['Categoria'].replace({
-        'Valor_AB': 'Eventos A&B',
-        'VALOR_LOCACAO_AROO_1': 'Eventos Locações',
-        'VALOR_LOCACAO_AROO_2': 'Eventos Locações',
-        'VALOR_LOCACAO_AROO_3': 'Eventos Locações',
-        'VALOR_LOCACAO_ANEXO': 'Eventos Locações',
-        'VALOR_LOCACAO_NOTIE': 'Eventos Locações',
-        'VALOR_LOCACAO_MIRANTE': 'Eventos Locações',
-        'VALOR_LOCACAO_GERADOR': 'Eventos Locações',
-        'VALOR_LOCACAO_DECORACAO_MOBILIARIO': 'Eventos Locações',
-        'VALOR_LOCACAO_UTENSILIOS': 'Eventos Locações',
-        'VALOR_LOCACAO_ESPACO': 'Eventos Locações',
-        'Couvert': 'Eventos Couvert'
-    })
+    # cria colunas finais
+    df_eventos_melt['Desconto'] = 0
+    df_eventos_melt['Valor Liquido'] = df_eventos_melt['Valor Bruto']
 
-    # Agrupa somando o valor total por categoria por data
-    df_eventos_final = (
-        df_eventos_melt
-        .groupby(['ID_Casa', 'Casa', 'Data Evento', 'Categoria'], as_index=False)
-        .agg({'Valor Bruto': 'sum'})
-    )
-
-    df_eventos_final['Desconto'] = 0
-    df_eventos_final['Valor Liquido'] = df_eventos_final['Valor Bruto']
-    df_eventos_final = df_eventos_final[['ID_Casa', 'Casa', 'Categoria', 'Data Evento', 'Valor Bruto', 'Desconto', 'Valor Liquido']]
+    df_eventos_final = df_eventos_melt[
+        ['ID_Casa', 'Casa', 'Categoria', 'Data Evento', 'Valor Bruto', 'Desconto', 'Valor Liquido']
+    ]
     return df_eventos_final
 
 
@@ -210,7 +216,7 @@ def GET_PARCELAS_RECEIT_EXTR():
         INNER JOIN T_EMPRESAS te ON (vpa.FK_EMPRESA = te.ID)
         LEFT JOIN T_RECEITAS_EXTRAORDINARIAS tre ON (vpa.ID = tre.ID)
         LEFT JOIN T_RECEITAS_EXTRAORDINARIAS_CLASSIFICACAO trec2 ON (tre.FK_CLASSIFICACAO = trec2.ID)
-        WHERE YEAR(tre.DATA_OCORRENCIA) > 2024 AND trec2.CLASSIFICACAO != 'Eventos' AND te.NOME_FANTASIA IN ({casas_str})
+        WHERE YEAR(tre.DATA_OCORRENCIA) > 2024 AND trec2.CLASSIFICACAO = 'Coleta de Óleo' AND te.NOME_FANTASIA IN ({casas_str})
         ORDER BY te.NOME_FANTASIA ASC, tre.DATA_OCORRENCIA
         ''')
     
@@ -301,6 +307,37 @@ def GET_TODOS_FATURAMENTOS_MENSAL(df_faturamento_agregado_dia):
     return df_faturamento_agregado_mensal
 
 
+# Descontos DRE
+@st.cache_data
+def GET_DESCONTOS():
+    df_descontos =  dataframe_query(f'''
+    SELECT 
+        CASE
+            WHEN te.ID = 162 THEN 'Priceless'
+            ELSE te.NOME_FANTASIA                                                                           
+        END AS 'Casa',
+        tddre.DATA AS 'Mês',
+        tddre.CATEGORIA AS 'Categoria',
+        tddre.TOTAL_DESCONTO AS 'Total Desc',
+        tddre.CMV AS 'CMV',
+        tddre.PERMANECE_DESCONTO AS 'Permanece no Desconto',
+        tddre.ALOCA_CENTRO_CUSTO AS 'Aloca no Centro de Custo',
+        tddre.CENTRO_CUSTO AS 'Centro de Custo',
+        tddre.DEDUCAO_FATURAMENTO_ALIM AS 'Dedução Faturamento - Alimento',
+        tddre.DEDUCAO_FATURAMENTO_BEB AS 'Dedução Faturamento - Bebida',
+        CASE 
+            WHEN tddre.DESCONTOS_DRE = 'Desconto - Operação' THEN 'Descontos - Operação'  
+            WHEN tddre.DESCONTOS_DRE = 'Desconto - Marketing' THEN 'Descontos - Marketing'   
+            ELSE tddre.DESCONTOS_DRE                                                                                         
+        END AS 'Descontos - DRE'
+    FROM T_DESCONTOS_DRE AS tddre
+    LEFT JOIN T_EMPRESAS AS te ON (tddre.FK_CASA = te.ID)
+    WHERE tddre.DESCONTOS_DRE IN ('Desconto - Alimentação Escritório', 'Descontos - Operação', 'Descontos - Marketing')
+    ORDER BY tddre.CATEGORIA ASC
+    ''')
+    return df_descontos
+
+
 ######################################## CMV ########################################
 @st.cache_data
 def GET_VALORACAO_ESTOQUE(data_inicio, data_fim):
@@ -374,38 +411,36 @@ def GET_EVENTOS_CMV(data_inicio, data_fim):
 
 ######################################## Despesas ########################################
 @st.cache_data
-def GET_DESPESAS_RAPIDAS():
+def GET_AUT_BLUE_ME_SEM_PEDIDO():
     return dataframe_query(f'''
-        SELECT 
-            CASE
-                WHEN te.ID = 131 THEN 110
-                ELSE te.ID    
-            END AS ID_Casa,                                                                                                                      
-            CASE
-                WHEN te.NOME_FANTASIA = 'Blue Note SP (Novo)' THEN 'Blue Note - São Paulo'
-                ELSE te.NOME_FANTASIA    
-            END AS Casa, 
-        STR_TO_DATE(tdr.COMPETENCIA, '%Y-%m-%d') AS Data_Competencia,
-        STR_TO_DATE(tdr.VENCIMENTO, '%Y-%m-%d') AS Data_Vencimento,
-        tdr.OBSERVACAO AS Descricao,
-        tdr.VALOR_PAGAMENTO AS Valor_Pagamento,
-        tdr.VALOR_LIQUIDO AS Valor_Liquido,
-        tccg2.DESCRICAO AS Classificacao_Contabil_2,
-        tccg1.DESCRICAO AS Classificacao_Contabil_1,
+    SELECT
+        CASE
+            WHEN te.ID = 131 THEN 110
+            ELSE te.ID    
+        END AS ID_Casa, 
+        CASE
+            WHEN te.NOME_FANTASIA = 'Blue Note SP (Novo)' THEN 'Blue Note - São Paulo'
+            ELSE te.NOME_FANTASIA    
+        END AS Casa, 
+        STR_TO_DATE(tdr.COMPETENCIA, '%Y-%m-%d') AS 'Data_Competencia',
+        STR_TO_DATE(tdr.VENCIMENTO, '%Y-%m-%d') AS 'Data_Vencimento',
+        tdr.OBSERVACAO as 'Descricao',
+        tdr.VALOR_PAGAMENTO AS 'Valor_Pagamento',
+        tdr.VALOR_LIQUIDO AS 'Valor_Liquido',
+        tccg.DESCRICAO as 'Classificacao_Contabil_1',
+        tccg2.DESCRICAO as 'Classificacao_Contabil_2',
         vcpj.Cargo_DRE as 'Cargo_DRE'
     FROM T_DESPESA_RAPIDA tdr
-    LEFT JOIN T_EMPRESAS te ON tdr.FK_LOJA = te.ID
+    INNER JOIN T_EMPRESAS te ON (tdr.FK_LOJA = te.ID)
     LEFT JOIN T_FORNECEDOR tf ON (tdr.FK_FORNECEDOR = tf.ID)
-    LEFT JOIN T_CLASSIFICACAO_CONTABIL_GRUPO_2 tccg2 ON tdr.FK_CLASSIFICACAO_CONTABIL_GRUPO_2 = tccg2.ID
-    LEFT JOIN T_CLASSIFICACAO_CONTABIL_GRUPO_1 tccg1 ON tccg2.FK_GRUPO_1 = tccg1.ID
+    LEFT JOIN T_CLASSIFICACAO_CONTABIL_GRUPO_1 tccg ON (tdr.FK_CLASSIFICACAO_CONTABIL_GRUPO_1 = tccg.ID)
+    LEFT JOIN T_CLASSIFICACAO_CONTABIL_GRUPO_2 tccg2 ON (tdr.FK_CLASSIFICACAO_CONTABIL_GRUPO_2 = tccg2.ID)
     LEFT JOIN View_Cargos_PJ vcpj ON (tf.CORPORATE_NAME = vcpj.Codigo_PJ)
-    WHERE tccg1.FK_VERSAO_PLANO_CONTABIL = 103 
-        AND tdr.BIT_CANCELADA = 0
-        AND YEAR(tdr.COMPETENCIA) > 2024
-        AND NOT EXISTS (
-        SELECT 1
-        FROM T_DESPESA_RAPIDA_ITEM tdri
-        WHERE tdri.FK_DESPESA_RAPIDA = tdr.ID)
+    LEFT JOIN T_DESPESA_RAPIDA_ITEM tdri ON (tdr.ID = tdri.FK_DESPESA_RAPIDA)
+    WHERE tccg.FK_VERSAO_PLANO_CONTABIL = 103
+    AND tdri.ID IS NULL
+    AND tdr.BIT_CANCELADA = 0
+    ORDER BY tdr.ID ASC;
     ''')
 
 

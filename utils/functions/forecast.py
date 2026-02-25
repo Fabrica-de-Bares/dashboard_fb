@@ -810,8 +810,7 @@ def calcula_cmv_proximos_meses(df_faturamento_meses_futuros, df_calculo_cmv, ano
     # Resgata faturamentos projetados por mês
     df_resgata_faturamento_meses_futuros = df_resgata_faturamento_meses_futuros.groupby(['Ano', 'Mês'], as_index=False)[['Valor Bruto', 'Valor Projetado']].sum()
     df_resgata_faturamento_meses_futuros['Mês'] = df_resgata_faturamento_meses_futuros['Mês'].astype(int)
-    df_resgata_faturamento_meses_futuros['Mes_Ano'] = df_resgata_faturamento_meses_futuros['Ano'].astype(str) + '-' + df_resgata_faturamento_meses_futuros['Mês'].astype(str).str.zfill(2)
-    
+    df_resgata_faturamento_meses_futuros['Mes_Ano'] = (df_resgata_faturamento_meses_futuros['Ano'].astype(int).astype(str) + '-' + df_resgata_faturamento_meses_futuros['Mês'].astype(int).astype(str).str.zfill(2))    
     df_merge_meses_anteriores_seguintes = pd.merge(
         df_calculo_cmv,
         df_resgata_faturamento_meses_futuros[['Ano', 'Mês', 'Mes_Ano', 'Valor Projetado']],
@@ -888,7 +887,10 @@ def exibe_cmv_meses_anteriores_e_seguintes(df_cmv_meses_anteriores_seguintes, ti
         colunas_percent_dataframe = ['CMV Percentual Projetado']
 
     if tipo == 'meses anteriores':
-        df_cmv = df_cmv[(df_cmv['Ano'] == ano_atual - 1)]
+        if mes_atual == 1:
+            df_cmv = df_cmv[df_cmv['Ano'] == ano_atual - 1]
+        else:
+            df_cmv = df_cmv[(df_cmv['Mês'] < mes_atual) & (df_cmv['Ano'] == ano_atual)]
         colunas = ['Mês', 'Ano', 'Faturamento AB Real', 'CMV Real', 'CMV Real Percentual', 'Faturamento AB Projetado', 'CMV Percentual Projetado', 'CMV Projetado']
         colunas_num_dataframe = ['Faturamento AB Real', 'CMV Real', 'Faturamento AB Projetado', 'CMV Projetado']
         colunas_percent_dataframe = ['CMV Real Percentual', 'CMV Percentual Projetado']
@@ -926,6 +928,21 @@ def prepara_dados_custos_mensais(df_custos_gerais, df_faturamento_meses_futuros,
             'MDO Terceirizada - Eventos'
         )
 
+    elif class_cont == 'Mão de Obra - Salários':
+        df_custos_filtrado = df_custos_gerais[
+            (df_custos_gerais['Casa'] == casa) &
+            ((df_custos_gerais['Classificacao_Contabil_1'] == class_cont) |
+            (df_custos_gerais['Classificacao_Contabil_2'] == '  -  INSS Segurados') |
+            (df_custos_gerais['Classificacao_Contabil_2'] == 'IRRF - MDO CLT - Salário')) 
+        ].copy()
+
+        # Faz a renomeação por conta das class. cont. 2 que foram selecionadas que não são iguais as da class.cont. 1 de salários
+        df_custos_filtrado['Classificacao_Contabil_2'] = (df_custos_filtrado['Classificacao_Contabil_2'].replace({
+                '  -  INSS Segurados': 'MDO CLT - Salário',
+                'IRRF - MDO CLT - Salário': 'MDO CLT - Salário'
+            })
+        )
+
     elif class_cont == 'Mão de Obra - PJ':
         df_custos_filtrado = df_custos_gerais[
             (df_custos_gerais['Casa'] == casa) &
@@ -935,16 +952,25 @@ def prepara_dados_custos_mensais(df_custos_gerais, df_faturamento_meses_futuros,
             (df_custos_gerais['Cargo_DRE'] != '  - Analista') & 
             (df_custos_gerais['Cargo_DRE'] != '  - Diretoria')) 
         ].copy()
+
+    elif class_cont == 'Desconto sobre Venda':
+        df_descontos_filtrado = df_custos_gerais[df_custos_gerais['Casa'] == casa]
+        # Renomeia essa colunas para poder aplicar o código abaixo
+        df_descontos_filtrado = df_descontos_filtrado.rename(columns={'Descontos - DRE': 'Classificacao_Contabil_2', 'Mês': 'Data_Competencia'})
+        df_custos_filtrado = df_descontos_filtrado.copy()
+
     else:
         df_custos_filtrado = df_custos_gerais[
             (df_custos_gerais['Casa'] == casa) &
             (df_custos_gerais['Classificacao_Contabil_1'] == class_cont) 
         ].copy()
-
-    if class_cont != 'Utilidades': # A class. cont.2 Utensílios usa 'Valor_Liquido'
-        col_valor = 'Valor_Pagamento'
-    else:
+    
+    if class_cont == 'Utilidades': # A class. cont.2 Utensílios usa 'Valor_Liquido'
         col_valor = 'Valor_Liquido'
+    elif class_cont == 'Desconto sobre Venda':
+        col_valor = 'Permanece no Desconto'
+    else:
+        col_valor = 'Valor_Pagamento'
 
     # Cria colunas de mês e ano e soma o total mensal para cada class. cont. 2
     df_custos_filtrado['Data_Competencia'] = pd.to_datetime(df_custos_filtrado['Data_Competencia'], errors='coerce')
@@ -1024,19 +1050,17 @@ def prepara_dados_custos_mensais(df_custos_gerais, df_faturamento_meses_futuros,
         on=['Casa', 'Ano', 'Mês', 'Classificacao_Contabil_2'],
         how='left'
     )
-    
     return df_custos_faturamentos_mensais_passados
 
 
 def projecao_custos_proximos_meses(df_merge_custos_faturamentos_mensais, class_cont_custo, ano_atual, mes_atual):
     # Cria coluna da porcentagem custo/faturamento a ser projetada
-    
     df_merge_custos_faturamentos_mensais['Custo Percentual Projetado'] = None
     df_merge_custos_faturamentos_mensais['Custo Projetado'] = None
 
     # Cria colunas auxiliares de data
     df_merge_custos_faturamentos_mensais['Mês'] = df_merge_custos_faturamentos_mensais['Mês'].astype(int)
-    df_merge_custos_faturamentos_mensais['Mes_Ano'] = df_merge_custos_faturamentos_mensais['Ano'].astype(str) + '-' + df_merge_custos_faturamentos_mensais['Mês'].astype(str).str.zfill(2)
+    df_merge_custos_faturamentos_mensais['Mes_Ano'] = (df_merge_custos_faturamentos_mensais['Ano'].astype(int).astype(str) + '-' + df_merge_custos_faturamentos_mensais['Mês'].astype(int).astype(str).str.zfill(2))    
     df_merge_custos_faturamentos_mensais['Data'] = pd.to_datetime(df_merge_custos_faturamentos_mensais['Mes_Ano'], format='%Y-%m')
     
     # Premissa 1: Outras class. cont. de custos (custo1 + custo2 / fat1 + fat2)
@@ -1154,7 +1178,7 @@ def exibe_custos_meses_anteriores_e_seguintes(df_projecao_custos_meses_anteriore
         if mes_atual == 1:
             df_projecao_custos = df_projecao_custos[df_projecao_custos['Ano'] == ano_atual - 1]
         else:
-            df_projecao_custos = df_projecao_custos[(df_projecao_custos['Mês'] <= mes_atual) & (df_projecao_custos['Ano'] == ano_atual)]
+            df_projecao_custos = df_projecao_custos[(df_projecao_custos['Mês'] < mes_atual) & (df_projecao_custos['Ano'] == ano_atual)]
         colunas = ['Class. Contábil 2', 'Mês', 'Ano', 'Faturamento Real Mês', 'Custo Percentual Projetado', 'Custo Projetado', 'Custo Real']
         colunas_num_dataframe = ['Faturamento Real Mês', 'Custo Projetado', 'Custo Real']
         if igual_mes_anterior == False:
