@@ -15,9 +15,12 @@ pd.set_option('future.no_silent_downcasting', True)
 ############################################ PROJEÇÕES MÊS CORRENTE ############################################
 
 # Prepara df de faturamento agregado diário para a casa selecionada
-def prepara_dados_faturam_agregado_diario(id_casa, df_faturamento_agregado_dia, inicio_do_mes_anterior, fim_do_mes_atual, dois_meses_antes):
+def prepara_dados_faturam_agregado_diario(id_casa, df_faturamento_agregado_dia, fim_do_mes_atual, dois_meses_antes):
     # Filtra por casa
-    df_faturamento_agregado_casa = df_faturamento_agregado_dia[df_faturamento_agregado_dia['ID_Casa'] == id_casa].copy()
+    df_faturamento_agregado_casa = df_faturamento_agregado_dia[
+        (df_faturamento_agregado_dia['ID_Casa'] == id_casa) &
+        df_faturamento_agregado_dia['Categoria'].isin(['Alimentos', 'Bebidas', 'Couvert', 'Delivery', 'Gifts', 'Eventos A&B', 'Eventos Couvert', 'Eventos Locações', 'Outras Receitas'])
+    ].copy()
     df_faturamento_agregado_casa['Data Evento'] = pd.to_datetime(df_faturamento_agregado_casa['Data Evento'], errors='coerce')
     
     # Traduz dia da semana para português
@@ -271,10 +274,11 @@ def exibe_faturamento_outras_receitas(df_parc_receit_extr_dia, df_parc_receitas_
             df_parc_receitas_extr,
             how='left',
             left_on=['Casa', 'Data Evento'],
-            right_on=['Casa', 'Data Ocorrencia']
+            right_on=['Casa', 'Data Evento']
         )
-        df_detalha_outras_receitas = df_detalha_outras_receitas[['Categoria_x', 'Data Ocorrencia', 'Categoria_y', 'Valor Parcela']]
-        df_detalha_outras_receitas = df_detalha_outras_receitas.rename(columns={'Categoria_y':'Classificacao_Receita', 'Categoria_x':'Categoria'})
+
+        df_detalha_outras_receitas = df_detalha_outras_receitas[['Categoria_x', 'Data Evento', 'Categoria_y', 'Valor Bruto_y']]
+        df_detalha_outras_receitas = df_detalha_outras_receitas.rename(columns={'Categoria_y':'Classificacao Receita', 'Categoria_x':'Categoria', 'Valor Bruto_y':'Valor Parcela'})
 
         # Exibe df de 'Outras Receitas'
         df_parc_receitas_extr_futuras = df_parc_receitas_extr_futuras[['Categoria', 'Data Evento', 'Valor Bruto', 'Desconto', 'Valor Liquido']]
@@ -911,8 +915,25 @@ def exibe_cmv_meses_anteriores_e_seguintes(df_cmv_meses_anteriores_seguintes, ti
     st.divider()
 
 ############################################ PROJEÇÃO DESPESAS - PRÓXIMOS MESES ############################################
+def merge_despesas_complexas(df_tabela_primaria, df_tabela_secundaria, casa, class_cont):
+    df_tabela_secundaria_filtrada = df_tabela_secundaria[df_tabela_secundaria['Casa'] == casa].copy()
+    df_tabela_secundaria_filtrada = df_tabela_secundaria_filtrada.groupby(['Casa', 'Mês', 'Ano'], as_index=False)['Valor'].sum()
 
-def prepara_dados_custos_mensais(df_custos_gerais, df_faturamento_meses_futuros, casa, class_cont, df_aut_blue_me_com_pedido=None):
+    df_tabela_resultante = pd.merge(
+        df_tabela_primaria,
+        df_tabela_secundaria_filtrada,
+        on=['Casa', 'Mês', 'Ano'],
+        how='left'
+    ).fillna(0)
+    if class_cont == 'Gorjeta':
+        df_tabela_resultante['Custo Real'] = df_tabela_resultante['Custo Real'] + df_tabela_resultante['Valor']
+    else:
+        df_tabela_resultante['Custo Real'] = df_tabela_resultante['Custo Real'] - df_tabela_resultante['Valor']
+    df_tabela_resultante.drop(columns=["Valor"], inplace=True)
+    return df_tabela_resultante
+
+
+def prepara_dados_custos_mensais(df_custos_gerais, df_faturamento_meses_futuros, casa, class_cont, df_aut_blue_me_com_pedido=None, df_tabela_secundaria=None):
     # Filtra por class. cont. 1 e casa
     if class_cont == 'Custos de Eventos':
         df_custos_filtrado = df_custos_gerais[
@@ -954,7 +975,10 @@ def prepara_dados_custos_mensais(df_custos_gerais, df_faturamento_meses_futuros,
         ].copy()
 
     elif class_cont == 'Desconto sobre Venda':
-        df_descontos_filtrado = df_custos_gerais[df_custos_gerais['Casa'] == casa]
+        df_descontos_filtrado = df_custos_gerais[
+            (df_custos_gerais['Casa'] == casa) &
+            (df_custos_gerais['Descontos - DRE'].isin(['Descontos - Operação', 'Desconto - Alimentação Escritório', 'Descontos - Marketing']))
+        ].copy()
         # Renomeia essa colunas para poder aplicar o código abaixo
         df_descontos_filtrado = df_descontos_filtrado.rename(columns={'Descontos - DRE': 'Classificacao_Contabil_2', 'Mês': 'Data_Competencia'})
         df_custos_filtrado = df_descontos_filtrado.copy()
@@ -979,6 +1003,10 @@ def prepara_dados_custos_mensais(df_custos_gerais, df_faturamento_meses_futuros,
     df_custos_filtrado_mensal = df_custos_filtrado.groupby(['Casa', 'Mês', 'Ano', 'Classificacao_Contabil_2'], as_index=False)[col_valor].sum()
     df_custos_filtrado_mensal = df_custos_filtrado_mensal.rename(columns={col_valor:'Custo Real'})
     
+    # Casos em que o custo mensal não depende apenas da aut_blue_me_sem_pedido: merge com outra tabela
+    if class_cont in ['Mão de Obra - Salários', 'Gorjeta']: 
+        df_custos_filtrado_mensal = merge_despesas_complexas(df_custos_filtrado_mensal, df_tabela_secundaria, casa, class_cont)
+
     # --- Ajuste especial para Bar Brahma (+3000/mês quando for MDO PJ Fixo) ---
     if casa == 'Bar Brahma - Centro':  # ajuste o nome exato da sua tabela
         cond = df_custos_filtrado_mensal['Classificacao_Contabil_2'] == 'MDO PJ Fixo'

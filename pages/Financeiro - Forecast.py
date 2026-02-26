@@ -30,20 +30,23 @@ st.divider()
 
 
 # Dados - Faturamento Diário
-(df_teste, df_faturamento_agregado_dia, 
- df_faturamento_eventos, 
- df_parc_receitas_extr, 
- df_parc_receit_extr_dia) = GET_TODOS_FATURAMENTOS_DIA()
-
-# Dados - Faturamento e Orçamento Mensal
-df_orcamentos = GET_ORCAMENTOS()
-df_faturamento_agregado_mes = GET_TODOS_FATURAMENTOS_MENSAL(df_faturamento_agregado_dia)
+(df_faturamento_zig, df_faturamento_agregado_dia, 
+ df_faturamento_eventos_inicial, df_faturamento_eventos, 
+ df_parc_receitas_extr_categoria, df_parc_receit_extr_dia) = GET_TODOS_FATURAMENTOS_DIA()
 
 # Dados - Descontos e Promoções
 df_descontos = GET_DESCONTOS()
+df_promocoes = GET_PROMOCOES()
+
+# Dados - Faturamento e Orçamento Mensal
+df_orcamentos = GET_ORCAMENTOS()
+df_faturamento_agregado_mes = GET_FATURAMENTO_CATEGORIA_MENSAL(df_faturamento_agregado_dia, df_descontos, df_promocoes, df_faturamento_eventos_inicial)
 
 # Dados - Despesas por classificação contábil
 df_aut_blue_me_sem_pedido = GET_AUT_BLUE_ME_SEM_PEDIDO()
+
+# Dados - Folha/Gorjeta
+df_aut_folha = GET_AUT_FOLHA_PAGAMENTO()
 
 # Filtrando Datas
 datas = calcular_datas()
@@ -63,7 +66,7 @@ with tab1:
     st.divider()
 
     # Prepara df de faturamento agregado diário para a casa selecionada
-    df_faturamento_agregado_mes_corrente = prepara_dados_faturam_agregado_diario(id_casa, df_faturamento_agregado_dia, datas['inicio_mes_anterior'], datas['fim_mes_atual'], datas['inicio_dois_meses_antes'])
+    df_faturamento_agregado_mes_corrente = prepara_dados_faturam_agregado_diario(id_casa, df_faturamento_agregado_dia, datas['fim_mes_atual'], datas['inicio_dois_meses_antes'])
     
     # --- CRIA COMBINAÇÃO DE TODAS AS CATEGORIAS x DIAS (mês anterior e corrente) ---
     df_dias_futuros_com_categorias = lista_dias_mes_anterior_atual(
@@ -85,7 +88,7 @@ with tab1:
         exibe_faturamento_categoria_mes_corrente('Delivery', df_dias_futuros_mes, 'dias seguintes', datas)
         exibe_faturamento_categoria_mes_corrente('Couvert', df_dias_futuros_mes, 'dias seguintes', datas)
         exibe_faturamento_eventos(df_faturamento_eventos, id_casa, datas)
-        exibe_faturamento_outras_receitas(df_parc_receit_extr_dia, df_parc_receitas_extr, id_casa, datas)
+        exibe_faturamento_outras_receitas(df_parc_receit_extr_dia, df_parc_receitas_extr_categoria, id_casa, datas)
 
     st.divider()
         
@@ -180,6 +183,11 @@ with tab3:
         df_projecao_custos_eventos_meses_anteriores_seguintes = projecao_custos_proximos_meses(df_custos_eventos_faturamentos_mensais_passados, 'Custos Eventos', datas['ano_atual'], datas['mes_atual'])
         exibe_custos_meses_anteriores_e_seguintes(df_projecao_custos_eventos_meses_anteriores_seguintes, 'Custos de Eventos', 'meses seguintes', datas['ano_atual'], datas['mes_atual'])
 
+        # Dedução da Gorjeta
+        df_deducao_gorjeta_faturamentos_mensais_passados = prepara_dados_custos_mensais(df_aut_blue_me_sem_pedido, df_faturamento_meses_futuros, casa, 'Gorjeta', df_tabela_secundaria=df_aut_folha)
+        df_projecao_deducao_gorjeta_meses_anteriores_seguintes = projecao_custos_proximos_meses(df_deducao_gorjeta_faturamentos_mensais_passados, 'Dedução da Gorjeta', datas['ano_atual'], datas['mes_atual'])
+        exibe_custos_meses_anteriores_e_seguintes(df_projecao_deducao_gorjeta_meses_anteriores_seguintes, 'Dedução da Gorjeta', 'meses seguintes', datas['ano_atual'], datas['mes_atual'])
+
         # Deduções sobre Venda
         df_deducoes_venda_faturamentos_mensais_passados = prepara_dados_custos_mensais(df_aut_blue_me_sem_pedido, df_faturamento_meses_futuros, casa, 'Deduções sobre Venda')
         df_projecao_deducoes_venda_meses_anteriores_seguintes = projecao_custos_proximos_meses(df_deducoes_venda_faturamentos_mensais_passados, 'Deduções sobre Venda', datas['ano_atual'], datas['mes_atual'])
@@ -191,7 +199,7 @@ with tab3:
         exibe_custos_meses_anteriores_e_seguintes(df_projecao_custos_pj_meses_anteriores_seguintes, 'Mão de Obra - PJ', 'meses seguintes', datas['ano_atual'], datas['mes_atual'], igual_mes_anterior=True)
 
         # Salários
-        df_custos_salarios_faturamentos_mensais_passados = prepara_dados_custos_mensais(df_aut_blue_me_sem_pedido, df_faturamento_meses_futuros, casa, 'Mão de Obra - Salários')
+        df_custos_salarios_faturamentos_mensais_passados = prepara_dados_custos_mensais(df_aut_blue_me_sem_pedido, df_faturamento_meses_futuros, casa, 'Mão de Obra - Salários', df_tabela_secundaria=df_aut_folha)
         df_projecao_custos_salarios_meses_anteriores_seguintes = projecao_custos_proximos_meses(df_custos_salarios_faturamentos_mensais_passados, 'Salários', datas['ano_atual'], datas['mes_atual'])
         exibe_custos_meses_anteriores_e_seguintes(df_projecao_custos_salarios_meses_anteriores_seguintes, 'Mão de Obra - Salários', 'meses seguintes', datas['ano_atual'], datas['mes_atual'], igual_mes_anterior=True)
 
@@ -261,6 +269,9 @@ with tab3:
 
         # Custos Eventos
         exibe_custos_meses_anteriores_e_seguintes(df_projecao_custos_eventos_meses_anteriores_seguintes, 'Custos de Eventos', 'meses anteriores', datas['ano_atual'], datas['mes_atual'])
+
+        # Dedução da Gorjeta
+        exibe_custos_meses_anteriores_e_seguintes(df_projecao_deducao_gorjeta_meses_anteriores_seguintes, 'Dedução da Gorjeta', 'meses anteriores', datas['ano_atual'], datas['mes_atual'])
 
         # Deduções sobre Venda
         exibe_custos_meses_anteriores_e_seguintes(df_projecao_deducoes_venda_meses_anteriores_seguintes, 'Deduções sobre Venda', 'meses anteriores', datas['ano_atual'], datas['mes_atual'])
