@@ -79,6 +79,7 @@ def GET_ITENS_VENDIDOS_DIA():
         WHEN tivd.FK_CASA = 112 THEN 104
         WHEN te.ID IN (161, 162) THEN 149 -- Priceless
         WHEN te.ID = 131 THEN 110 -- Blue Note
+        WHEN te.ID = 177 THEN 176 -- The Cavern                                    
         ELSE tivd.FK_CASA
       END AS `ID_Casa`,
       CASE
@@ -87,8 +88,9 @@ def GET_ITENS_VENDIDOS_DIA():
         WHEN tivd.FK_CASA = 169 THEN 'Bar Brahma - Granja'
         WHEN tivd.FK_CASA = 139 THEN 'Jacaré'
         WHEN tivd.FK_CASA = 112 THEN 'Orfeu'
-        WHEN te.NOME_FANTASIA IN ('Abaru - Priceless', 'Notiê - Priceless') THEN 'Priceless'
+        WHEN te.NOME_FANTASIA IN ('Terraço Notie', 'Notiê - Priceless') THEN 'Priceless'
         WHEN te.NOME_FANTASIA = 'Blue Note SP (Novo)' THEN 'Blue Note - São Paulo'
+        WHEN te.NOME_FANTASIA = 'The Cavern - Almoço' THEN 'The Cavern'                                    
         ELSE te.NOME_FANTASIA
       END AS 'Casa',
       CASE
@@ -101,12 +103,11 @@ def GET_ITENS_VENDIDOS_DIA():
           SUM(COALESCE(((tivd.VALOR_UNITARIO * tivd.QUANTIDADE) - tivd.DESCONTO), 0)) AS 'Valor Liquido'
         FROM T_ITENS_VENDIDOS_DIA tivd
         LEFT JOIN T_EMPRESAS te ON tivd.LOJA_ID = te.ID_ZIGPAY
-        LEFT JOIN T_VISUALIZACAO_ITENS_VENDIDOS_POR_CASA tvivpc 
-          ON tvivpc.ID_ZIG_ITEM_VENDIDO = tivd.PRODUCT_ID
-          AND tvivpc.ID_CASA = tivd.FK_CASA
         LEFT JOIN T_ITENS_VENDIDOS_CADASTROS tivc ON tivc.ID_ZIGPAY = tivd.PRODUCT_ID
         LEFT JOIN T_ITENS_VENDIDOS_CATEGORIAS tivc2 ON tivc2.ID = tivc.FK_CATEGORIA 
-        GROUP BY te.ID, tivc2.DESCRICAO, DATE(tivd.EVENT_DATE)                                                                      
+        LEFT JOIN T_ITENS_VENDIDOS_TIPOS tivt ON tivc.FK_TIPO = tivt.ID
+        GROUP BY te.ID, tivc2.DESCRICAO, DATE(tivd.EVENT_DATE)
+		ORDER BY tivd.EVENT_DATE DESC;                                                                     
     '''
     )
     # Agrupa por casa e data
@@ -209,10 +210,12 @@ def GET_PARCELAS_RECEIT_EXTR():
     SELECT 
         CASE
             WHEN te.ID = 131 THEN 110
+            WHEN te.ID = 177 THEN 176                              
             ELSE te.ID    
         END AS 'ID_Casa',                                                                                                                      
         CASE
             WHEN te.NOME_FANTASIA = 'Blue Note SP (Novo)' THEN 'Blue Note - São Paulo'
+            WHEN te.NOME_FANTASIA = 'The Cavern - Almoço' THEN 'The Cavern'                              
             ELSE te.NOME_FANTASIA    
         END AS 'Casa',  
         tre.DATA_OCORRENCIA as 'Data Ocorrencia',
@@ -341,7 +344,11 @@ def GET_DESCONTOS():
 def GET_PROMOCOES():
     return dataframe_query(f'''
     SELECT 
-        te.NOME_FANTASIA AS 'Casa',
+        CASE                   
+            WHEN te.ID = 131 THEN 'Blue Note - São Paulo' 
+            WHEN te.ID = 162 THEN 'Priceless'
+            ELSE te.NOME_FANTASIA                                                     
+        END AS 'Casa',
         MONTH(tpz.DATA) AS 'Mês',
         YEAR(tpz.DATA) AS 'Ano',                   
         tpz.PRODUTO AS 'Produto',

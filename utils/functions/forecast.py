@@ -917,19 +917,55 @@ def exibe_cmv_meses_anteriores_e_seguintes(df_cmv_meses_anteriores_seguintes, ti
 ############################################ PROJEÇÃO DESPESAS - PRÓXIMOS MESES ############################################
 def merge_despesas_complexas(df_tabela_primaria, df_tabela_secundaria, casa, class_cont):
     df_tabela_secundaria_filtrada = df_tabela_secundaria[df_tabela_secundaria['Casa'] == casa].copy()
-    df_tabela_secundaria_filtrada = df_tabela_secundaria_filtrada.groupby(['Casa', 'Mês', 'Ano'], as_index=False)['Valor'].sum()
 
-    df_tabela_resultante = pd.merge(
-        df_tabela_primaria,
-        df_tabela_secundaria_filtrada,
-        on=['Casa', 'Mês', 'Ano'],
-        how='left'
-    ).fillna(0)
-    if class_cont == 'Gorjeta':
-        df_tabela_resultante['Custo Real'] = df_tabela_resultante['Custo Real'] + df_tabela_resultante['Valor']
-    else:
-        df_tabela_resultante['Custo Real'] = df_tabela_resultante['Custo Real'] - df_tabela_resultante['Valor']
-    df_tabela_resultante.drop(columns=["Valor"], inplace=True)
+    if class_cont in ['Custos Artístico Geral', 'Marketing']: 
+        df_tabela_secundaria_filtrada = df_tabela_secundaria_filtrada.groupby(['Casa', 'Mês', 'Ano', 'Centro de Custo'], as_index=False)['Aloca no Centro de Custo'].sum()
+
+        df_tabela_resultante = pd.merge(
+            df_tabela_primaria,
+            df_tabela_secundaria_filtrada,
+            left_on=['Casa', 'Mês', 'Ano', 'Classificacao_Contabil_2'],
+            right_on=['Casa', 'Mês', 'Ano', 'Centro de Custo'],
+            how='outer'
+        )
+        
+        if class_cont == 'Custos Artístico Geral':
+            condicao = (
+                df_tabela_resultante['Centro de Custo'].isin(['Alimentação e Transporte']) &
+                df_tabela_resultante['Classificacao_Contabil_2'].isna()
+            )
+        elif class_cont == 'Marketing':
+            condicao = (
+                df_tabela_resultante['Centro de Custo'].isin(['Eventos de Marketing', 'Produção Gráfica e Material Institucional']) &
+                df_tabela_resultante['Classificacao_Contabil_2'].isna()
+            )
+
+        df_tabela_resultante.loc[condicao, 'Classificacao_Contabil_2'] = df_tabela_resultante['Centro de Custo']
+        df_tabela_resultante['Custo Real'].fillna(0, inplace=True)
+        df_tabela_resultante['Aloca no Centro de Custo'].fillna(0, inplace=True)
+
+        condicao = df_tabela_resultante['Classificacao_Contabil_2'].isin(['Alimentação e Transporte', 'Eventos de Marketing', 'Produção Gráfica e Material Institucional'])
+        df_tabela_resultante.loc[condicao, 'Custo Real'] = df_tabela_resultante['Custo Real'] + df_tabela_resultante['Aloca no Centro de Custo']
+        df_tabela_resultante.drop(columns=['Centro de Custo', 'Aloca no Centro de Custo'], inplace=True)
+        df_tabela_resultante.dropna(subset=['Classificacao_Contabil_2'], inplace=True)
+
+    elif class_cont in ['Gorjeta', 'Mão de Obra - Salários']: 
+        df_tabela_secundaria_filtrada = df_tabela_secundaria_filtrada.groupby(['Casa', 'Mês', 'Ano'], as_index=False)['Valor'].sum()
+
+        df_tabela_resultante = pd.merge(
+            df_tabela_primaria,
+            df_tabela_secundaria_filtrada,
+            on=['Casa', 'Mês', 'Ano'],
+            how='left'
+        ).fillna(0)
+
+        if class_cont == 'Gorjeta':
+            df_tabela_resultante['Custo Real'] = df_tabela_resultante['Custo Real'] + df_tabela_resultante['Valor']
+        elif class_cont == 'Mão de Obra - Salários':
+            df_tabela_resultante['Custo Real'] = df_tabela_resultante['Custo Real'] - df_tabela_resultante['Valor']
+        
+        df_tabela_resultante.drop(columns=['Valor'], inplace=True)
+    
     return df_tabela_resultante
 
 
@@ -1004,7 +1040,7 @@ def prepara_dados_custos_mensais(df_custos_gerais, df_faturamento_meses_futuros,
     df_custos_filtrado_mensal = df_custos_filtrado_mensal.rename(columns={col_valor:'Custo Real'})
     
     # Casos em que o custo mensal não depende apenas da aut_blue_me_sem_pedido: merge com outra tabela
-    if class_cont in ['Mão de Obra - Salários', 'Gorjeta']: 
+    if class_cont in ['Mão de Obra - Salários', 'Gorjeta', 'Custos Artístico Geral', 'Marketing']: 
         df_custos_filtrado_mensal = merge_despesas_complexas(df_custos_filtrado_mensal, df_tabela_secundaria, casa, class_cont)
 
     # --- Ajuste especial para Bar Brahma (+3000/mês quando for MDO PJ Fixo) ---
