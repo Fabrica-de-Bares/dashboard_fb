@@ -1015,10 +1015,18 @@ def prepara_dados_custos_mensais(df_custos_gerais, df_faturamento_meses_futuros,
             (df_custos_gerais['Casa'] == casa) &
             (df_custos_gerais['Descontos - DRE'].isin(['Descontos - Operação', 'Desconto - Alimentação Escritório', 'Descontos - Marketing']))
         ].copy()
-        # Renomeia essa colunas para poder aplicar o código abaixo
-        df_descontos_filtrado = df_descontos_filtrado.rename(columns={'Descontos - DRE': 'Classificacao_Contabil_2', 'Mês': 'Data_Competencia'})
-        df_custos_filtrado = df_descontos_filtrado.copy()
 
+        # Renomeia essa coluna para poder aplicar o código abaixo e cria coluna de data
+        df_descontos_filtrado = df_descontos_filtrado.rename(columns={'Descontos - DRE': 'Classificacao_Contabil_2'})
+        df_descontos_filtrado['Data_Competencia'] = pd.to_datetime(
+            dict(
+                year=df_descontos_filtrado['Ano'],
+                month=df_descontos_filtrado['Mês'],
+                day=1
+            )
+        )
+        df_custos_filtrado = df_descontos_filtrado.copy()
+        
     else:
         df_custos_filtrado = df_custos_gerais[
             (df_custos_gerais['Casa'] == casa) &
@@ -1038,7 +1046,7 @@ def prepara_dados_custos_mensais(df_custos_gerais, df_faturamento_meses_futuros,
     df_custos_filtrado['Mês'] = df_custos_filtrado['Data_Competencia'].dt.month
     df_custos_filtrado_mensal = df_custos_filtrado.groupby(['Casa', 'Mês', 'Ano', 'Classificacao_Contabil_2'], as_index=False)[col_valor].sum()
     df_custos_filtrado_mensal = df_custos_filtrado_mensal.rename(columns={col_valor:'Custo Real'})
-    
+
     # Casos em que o custo mensal não depende apenas da aut_blue_me_sem_pedido: merge com outra tabela
     if class_cont in ['Mão de Obra - Salários', 'Gorjeta', 'Custos Artístico Geral', 'Marketing']: 
         df_custos_filtrado_mensal = merge_despesas_complexas(df_custos_filtrado_mensal, df_tabela_secundaria, casa, class_cont)
