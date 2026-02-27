@@ -30,16 +30,27 @@ st.divider()
 
 
 # Dados - Faturamento Diário
-(df_teste, df_faturamento_agregado_dia, 
- df_faturamento_eventos, 
- df_parc_receitas_extr, 
- df_parc_receit_extr_dia) = GET_TODOS_FATURAMENTOS_DIA()
+(df_faturamento_zig, df_faturamento_agregado_dia, 
+ df_faturamento_eventos_inicial, df_faturamento_eventos, 
+ df_parc_receitas_extr_categoria, df_parc_receit_extr_dia) = GET_TODOS_FATURAMENTOS_DIA()
 
+# Dados - Descontos e Promoções
+df_descontos = GET_DESCONTOS()
+df_promocoes = GET_PROMOCOES()
+
+# Dados - Faturamento e Orçamento Mensal
+df_orcamentos = GET_ORCAMENTOS()
+df_faturamento_agregado_mes = GET_FATURAMENTO_CATEGORIA_MENSAL(df_faturamento_agregado_dia, df_descontos, df_promocoes, df_faturamento_eventos_inicial)
+
+# Dados - Despesas por classificação contábil
+df_aut_blue_me_sem_pedido = GET_AUT_BLUE_ME_SEM_PEDIDO()
+
+# Dados - Folha/Gorjeta
+df_aut_folha = GET_AUT_FOLHA_PAGAMENTO()
 
 # Filtrando Datas
 datas = calcular_datas()
 
-st.divider()
 
 # Seletor de casa
 lista_retirar_casas = ['Bar Léo - Vila Madalena', 'Todas as Casas']
@@ -55,7 +66,7 @@ with tab1:
     st.divider()
 
     # Prepara df de faturamento agregado diário para a casa selecionada
-    df_faturamento_agregado_mes_corrente = prepara_dados_faturam_agregado_diario(id_casa, df_faturamento_agregado_dia, datas['inicio_mes_anterior'], datas['fim_mes_atual'], datas['inicio_dois_meses_antes'])
+    df_faturamento_agregado_mes_corrente = prepara_dados_faturam_agregado_diario(id_casa, df_faturamento_agregado_dia, datas['fim_mes_atual'], datas['inicio_dois_meses_antes'])
     
     # --- CRIA COMBINAÇÃO DE TODAS AS CATEGORIAS x DIAS (mês anterior e corrente) ---
     df_dias_futuros_com_categorias = lista_dias_mes_anterior_atual(
@@ -77,7 +88,7 @@ with tab1:
         exibe_faturamento_categoria_mes_corrente('Delivery', df_dias_futuros_mes, 'dias seguintes', datas)
         exibe_faturamento_categoria_mes_corrente('Couvert', df_dias_futuros_mes, 'dias seguintes', datas)
         exibe_faturamento_eventos(df_faturamento_eventos, id_casa, datas)
-        exibe_faturamento_outras_receitas(df_parc_receit_extr_dia, df_parc_receitas_extr, id_casa, datas)
+        exibe_faturamento_outras_receitas(df_parc_receit_extr_dia, df_parc_receitas_extr_categoria, id_casa, datas)
 
     st.divider()
         
@@ -87,11 +98,7 @@ with tab1:
 
 
 ###################### PROJEÇÃO DE FATURAMENTO - PRÓXIMOS MESES ###################### 
-with tab2:
-    # Dados - Faturamento e Orçamento Mensal
-    df_orcamentos = GET_ORCAMENTOS()
-    df_faturamento_agregado_mes = GET_TODOS_FATURAMENTOS_MENSAL(df_faturamento_agregado_dia)
-    
+with tab2:    
     st.markdown(f'''
         <h3>Projeções - {casa} - Próximos meses</h3>
         ''', unsafe_allow_html=True)
@@ -128,10 +135,6 @@ with tab2:
 
 ###################### DESPESAS - PRÓXIMOS MESES ###################### 
 with tab3:
-    df_despesas_gerais = GET_DESPESAS_RAPIDAS()
-    # df_teste = df_despesas_gerais[df_despesas_gerais['Casa'] == casa]
-    # st.write(df_teste)
-
     st.markdown(f'''
         <h3>Projeções - {casa} - Próximos meses</h3>
         ''', unsafe_allow_html=True)
@@ -165,74 +168,83 @@ with tab3:
         df_cmv_meses_anteriores_seguintes = calcula_cmv_proximos_meses(df_faturamento_meses_futuros, df_calculo_cmv, datas['ano_atual'], datas['mes_atual'])
         exibe_cmv_meses_anteriores_e_seguintes(df_cmv_meses_anteriores_seguintes, 'meses seguintes', datas['mes_atual'], datas['ano_atual'])
 
+        # Desconto sobre Venda (vem dos Descontos)
+        df_descontos_mensais_passados = prepara_dados_custos_mensais(df_descontos, df_faturamento_meses_futuros, casa, 'Desconto sobre Venda')
+        df_projecao_descontos_meses_anteriores_seguintes = projecao_custos_proximos_meses(df_descontos_mensais_passados, 'Desconto sobre Venda', datas['ano_atual'], datas['mes_atual'])
+        exibe_custos_meses_anteriores_e_seguintes(df_projecao_descontos_meses_anteriores_seguintes, 'Desconto sobre Venda', 'meses seguintes', datas['ano_atual'], datas['mes_atual'])
+
         # Custos Artístico Geral
-        df_custos_artistico_faturamentos_mensais_passados = prepara_dados_custos_mensais(df_despesas_gerais, df_faturamento_meses_futuros, casa, 'Custos Artístico Geral')
+        df_custos_artistico_faturamentos_mensais_passados = prepara_dados_custos_mensais(df_aut_blue_me_sem_pedido, df_faturamento_meses_futuros, casa, 'Custos Artístico Geral', df_tabela_secundaria=df_descontos)
         df_projecao_custos_artistico_meses_anteriores_seguintes = projecao_custos_proximos_meses(df_custos_artistico_faturamentos_mensais_passados, 'Custos Artístico Geral', datas['ano_atual'], datas['mes_atual'])
         exibe_custos_meses_anteriores_e_seguintes(df_projecao_custos_artistico_meses_anteriores_seguintes, 'Custos Artístico Geral', 'meses seguintes', datas['ano_atual'], datas['mes_atual'])
 
         # Custos Eventos
-        df_custos_eventos_faturamentos_mensais_passados = prepara_dados_custos_mensais(df_despesas_gerais, df_faturamento_meses_futuros, casa, 'Custos de Eventos')
+        df_custos_eventos_faturamentos_mensais_passados = prepara_dados_custos_mensais(df_aut_blue_me_sem_pedido, df_faturamento_meses_futuros, casa, 'Custos de Eventos')
         df_projecao_custos_eventos_meses_anteriores_seguintes = projecao_custos_proximos_meses(df_custos_eventos_faturamentos_mensais_passados, 'Custos Eventos', datas['ano_atual'], datas['mes_atual'])
         exibe_custos_meses_anteriores_e_seguintes(df_projecao_custos_eventos_meses_anteriores_seguintes, 'Custos de Eventos', 'meses seguintes', datas['ano_atual'], datas['mes_atual'])
 
+        # Dedução da Gorjeta
+        df_deducao_gorjeta_faturamentos_mensais_passados = prepara_dados_custos_mensais(df_aut_blue_me_sem_pedido, df_faturamento_meses_futuros, casa, 'Gorjeta', df_tabela_secundaria=df_aut_folha)
+        df_projecao_deducao_gorjeta_meses_anteriores_seguintes = projecao_custos_proximos_meses(df_deducao_gorjeta_faturamentos_mensais_passados, 'Dedução da Gorjeta', datas['ano_atual'], datas['mes_atual'])
+        exibe_custos_meses_anteriores_e_seguintes(df_projecao_deducao_gorjeta_meses_anteriores_seguintes, 'Dedução da Gorjeta', 'meses seguintes', datas['ano_atual'], datas['mes_atual'])
+
         # Deduções sobre Venda
-        df_deducoes_venda_faturamentos_mensais_passados = prepara_dados_custos_mensais(df_despesas_gerais, df_faturamento_meses_futuros, casa, 'Deduções sobre Venda')
+        df_deducoes_venda_faturamentos_mensais_passados = prepara_dados_custos_mensais(df_aut_blue_me_sem_pedido, df_faturamento_meses_futuros, casa, 'Deduções sobre Venda')
         df_projecao_deducoes_venda_meses_anteriores_seguintes = projecao_custos_proximos_meses(df_deducoes_venda_faturamentos_mensais_passados, 'Deduções sobre Venda', datas['ano_atual'], datas['mes_atual'])
         exibe_custos_meses_anteriores_e_seguintes(df_projecao_deducoes_venda_meses_anteriores_seguintes, 'Deduções sobre Venda', 'meses seguintes', datas['ano_atual'], datas['mes_atual'])
 
         # PJ
-        df_custos_pj_faturamentos_mensais_passados = prepara_dados_custos_mensais(df_despesas_gerais, df_faturamento_meses_futuros, casa, 'Mão de Obra - PJ')
+        df_custos_pj_faturamentos_mensais_passados = prepara_dados_custos_mensais(df_aut_blue_me_sem_pedido, df_faturamento_meses_futuros, casa, 'Mão de Obra - PJ')
         df_projecao_custos_pj_meses_anteriores_seguintes = projecao_custos_proximos_meses(df_custos_pj_faturamentos_mensais_passados, 'PJ', datas['ano_atual'], datas['mes_atual'])
         exibe_custos_meses_anteriores_e_seguintes(df_projecao_custos_pj_meses_anteriores_seguintes, 'Mão de Obra - PJ', 'meses seguintes', datas['ano_atual'], datas['mes_atual'], igual_mes_anterior=True)
 
         # Salários
-        df_custos_salarios_faturamentos_mensais_passados = prepara_dados_custos_mensais(df_despesas_gerais, df_faturamento_meses_futuros, casa, 'Mão de Obra - Salários')
+        df_custos_salarios_faturamentos_mensais_passados = prepara_dados_custos_mensais(df_aut_blue_me_sem_pedido, df_faturamento_meses_futuros, casa, 'Mão de Obra - Salários', df_tabela_secundaria=df_aut_folha)
         df_projecao_custos_salarios_meses_anteriores_seguintes = projecao_custos_proximos_meses(df_custos_salarios_faturamentos_mensais_passados, 'Salários', datas['ano_atual'], datas['mes_atual'])
         exibe_custos_meses_anteriores_e_seguintes(df_projecao_custos_salarios_meses_anteriores_seguintes, 'Mão de Obra - Salários', 'meses seguintes', datas['ano_atual'], datas['mes_atual'], igual_mes_anterior=True)
 
         # E-Staff
-        df_custos_estaff_faturamentos_mensais_passados = prepara_dados_custos_mensais(df_despesas_gerais, df_faturamento_meses_futuros, casa, 'Mão de Obra - Extra')
+        df_custos_estaff_faturamentos_mensais_passados = prepara_dados_custos_mensais(df_aut_blue_me_sem_pedido, df_faturamento_meses_futuros, casa, 'Mão de Obra - Extra')
         df_projecao_custos_estaff_meses_anteriores_seguintes = projecao_custos_proximos_meses(df_custos_estaff_faturamentos_mensais_passados, 'Mão de Obra - Extra', datas['ano_atual'], datas['mes_atual'])
         exibe_custos_meses_anteriores_e_seguintes(df_projecao_custos_estaff_meses_anteriores_seguintes, 'E-Staff', 'meses seguintes', datas['ano_atual'], datas['mes_atual'])
 
         # Custo de Ocupação
-        df_custos_ocupacao_faturamentos_mensais_passados = prepara_dados_custos_mensais(df_despesas_gerais, df_faturamento_meses_futuros, casa, 'Custo de Ocupação')
+        df_custos_ocupacao_faturamentos_mensais_passados = prepara_dados_custos_mensais(df_aut_blue_me_sem_pedido, df_faturamento_meses_futuros, casa, 'Custo de Ocupação')
         df_projecao_custos_ocupacao_meses_anteriores_seguintes = projecao_custos_proximos_meses(df_custos_ocupacao_faturamentos_mensais_passados, 'Custo de Ocupação', datas['ano_atual'], datas['mes_atual'])
         exibe_custos_meses_anteriores_e_seguintes(df_projecao_custos_ocupacao_meses_anteriores_seguintes, 'Custo de Ocupação', 'meses seguintes', datas['ano_atual'], datas['mes_atual'], igual_mes_anterior=True)
 
         # Utilidades
-        # df_aut_blue_me_com_pedido = GET_AUT_BLUE_ME_COM_PEDIDO()
-        df_custos_utilidades_faturamentos_mensais_passados = prepara_dados_custos_mensais(df_despesas_gerais, df_faturamento_meses_futuros, casa, 'Utilidades', df_aut_blue_me_com_pedido=df_aut_blue_me_com_pedido)
+        df_custos_utilidades_faturamentos_mensais_passados = prepara_dados_custos_mensais(df_aut_blue_me_sem_pedido, df_faturamento_meses_futuros, casa, 'Utilidades', df_aut_blue_me_com_pedido=df_aut_blue_me_com_pedido)
         df_projecao_custos_utilidades_meses_anteriores_seguintes = projecao_custos_proximos_meses(df_custos_utilidades_faturamentos_mensais_passados, 'Utilidades', datas['ano_atual'], datas['mes_atual'])
         exibe_custos_meses_anteriores_e_seguintes(df_projecao_custos_utilidades_meses_anteriores_seguintes, 'Utilidades', 'meses seguintes', datas['ano_atual'], datas['mes_atual'])
 
         # Informática e TI
-        df_custos_informatica_faturamentos_mensais_passados = prepara_dados_custos_mensais(df_despesas_gerais, df_faturamento_meses_futuros, casa, 'Informática e TI')
+        df_custos_informatica_faturamentos_mensais_passados = prepara_dados_custos_mensais(df_aut_blue_me_sem_pedido, df_faturamento_meses_futuros, casa, 'Informática e TI')
         df_projecao_custos_informatica_meses_anteriores_seguintes = projecao_custos_proximos_meses(df_custos_informatica_faturamentos_mensais_passados, 'Informática e TI', datas['ano_atual'], datas['mes_atual'])
         exibe_custos_meses_anteriores_e_seguintes(df_projecao_custos_informatica_meses_anteriores_seguintes, 'Informática e TI', 'meses seguintes', datas['ano_atual'], datas['mes_atual'], igual_mes_anterior=True)
 
         # Despesas Gerais (Manutenção)
-        df_custos_manutencao_faturamentos_mensais_passados = prepara_dados_custos_mensais(df_despesas_gerais, df_faturamento_meses_futuros, casa, 'Manutenção')
+        df_custos_manutencao_faturamentos_mensais_passados = prepara_dados_custos_mensais(df_aut_blue_me_sem_pedido, df_faturamento_meses_futuros, casa, 'Manutenção')
         df_projecao_custos_manutencao_meses_anteriores_seguintes = projecao_custos_proximos_meses(df_custos_manutencao_faturamentos_mensais_passados, 'Manutenção', datas['ano_atual'], datas['mes_atual'])
         exibe_custos_meses_anteriores_e_seguintes(df_projecao_custos_manutencao_meses_anteriores_seguintes, 'Despesas Gerais (Manutenção)', 'meses seguintes', datas['ano_atual'], datas['mes_atual'])
 
         # Marketing
-        df_custos_marketing_faturamentos_mensais_passados = prepara_dados_custos_mensais(df_despesas_gerais, df_faturamento_meses_futuros, casa, 'Marketing')
+        df_custos_marketing_faturamentos_mensais_passados = prepara_dados_custos_mensais(df_aut_blue_me_sem_pedido, df_faturamento_meses_futuros, casa, 'Marketing', df_tabela_secundaria=df_descontos)
         df_projecao_custos_marketing_meses_anteriores_seguintes = projecao_custos_proximos_meses(df_custos_marketing_faturamentos_mensais_passados, 'Marketing', datas['ano_atual'], datas['mes_atual'])
         exibe_custos_meses_anteriores_e_seguintes(df_projecao_custos_marketing_meses_anteriores_seguintes, 'Marketing', 'meses seguintes', datas['ano_atual'], datas['mes_atual'])
 
         # Serviços de Terceiros
-        df_custos_terceiros_faturamentos_mensais_passados = prepara_dados_custos_mensais(df_despesas_gerais, df_faturamento_meses_futuros, casa, 'Serviços de Terceiros')
+        df_custos_terceiros_faturamentos_mensais_passados = prepara_dados_custos_mensais(df_aut_blue_me_sem_pedido, df_faturamento_meses_futuros, casa, 'Serviços de Terceiros')
         df_projecao_custos_terceiros_meses_anteriores_seguintes = projecao_custos_proximos_meses(df_custos_terceiros_faturamentos_mensais_passados, 'Serviços de Terceiros', datas['ano_atual'], datas['mes_atual'])
         exibe_custos_meses_anteriores_e_seguintes(df_projecao_custos_terceiros_meses_anteriores_seguintes, 'Serviços de Terceiros', 'meses seguintes', datas['ano_atual'], datas['mes_atual'], igual_mes_anterior=True)
 
         # Locação de Equipamentos
-        df_custos_equipamentos_faturamentos_mensais_passados = prepara_dados_custos_mensais(df_despesas_gerais, df_faturamento_meses_futuros, casa, 'Locação de Equipamentos')
+        df_custos_equipamentos_faturamentos_mensais_passados = prepara_dados_custos_mensais(df_aut_blue_me_sem_pedido, df_faturamento_meses_futuros, casa, 'Locação de Equipamentos')
         df_projecao_custos_equipamentos_meses_anteriores_seguintes = projecao_custos_proximos_meses(df_custos_equipamentos_faturamentos_mensais_passados, 'Locação de Equipamentos', datas['ano_atual'], datas['mes_atual'])
         exibe_custos_meses_anteriores_e_seguintes(df_projecao_custos_equipamentos_meses_anteriores_seguintes, 'Locação de Equipamentos', 'meses seguintes', datas['ano_atual'], datas['mes_atual'], igual_mes_anterior=True)
 
         # Sistema de Franquias
-        df_custos_franquias_faturamentos_mensais_passados = prepara_dados_custos_mensais(df_despesas_gerais, df_faturamento_meses_futuros, casa, 'Sistema de Franquias')
+        df_custos_franquias_faturamentos_mensais_passados = prepara_dados_custos_mensais(df_aut_blue_me_sem_pedido, df_faturamento_meses_futuros, casa, 'Sistema de Franquias')
         df_projecao_custos_franquias_meses_anteriores_seguintes = projecao_custos_proximos_meses(df_custos_franquias_faturamentos_mensais_passados, 'Sistema de Franquias', datas['ano_atual'], datas['mes_atual'])
         if casa == 'Blue Note - São Paulo':
             exibe_custos_meses_anteriores_e_seguintes(df_projecao_custos_franquias_meses_anteriores_seguintes, 'Sistema de Franquias', 'meses seguintes', datas['ano_atual'], datas['mes_atual'], igual_mes_anterior=True)
@@ -248,11 +260,17 @@ with tab3:
         # CMV
         exibe_cmv_meses_anteriores_e_seguintes(df_cmv_meses_anteriores_seguintes, 'meses anteriores', datas['mes_atual'], datas['ano_atual'])
         
+        # Desconto sobre Venda
+        exibe_custos_meses_anteriores_e_seguintes(df_projecao_descontos_meses_anteriores_seguintes, 'Desconto sobre Venda', 'meses anteriores', datas['ano_atual'], datas['mes_atual'])
+
         # Custos Artístico Geral
         exibe_custos_meses_anteriores_e_seguintes(df_projecao_custos_artistico_meses_anteriores_seguintes, 'Custos Artístico Geral', 'meses anteriores', datas['ano_atual'], datas['mes_atual'])
 
         # Custos Eventos
         exibe_custos_meses_anteriores_e_seguintes(df_projecao_custos_eventos_meses_anteriores_seguintes, 'Custos de Eventos', 'meses anteriores', datas['ano_atual'], datas['mes_atual'])
+
+        # Dedução da Gorjeta
+        exibe_custos_meses_anteriores_e_seguintes(df_projecao_deducao_gorjeta_meses_anteriores_seguintes, 'Dedução da Gorjeta', 'meses anteriores', datas['ano_atual'], datas['mes_atual'])
 
         # Deduções sobre Venda
         exibe_custos_meses_anteriores_e_seguintes(df_projecao_deducoes_venda_meses_anteriores_seguintes, 'Deduções sobre Venda', 'meses anteriores', datas['ano_atual'], datas['mes_atual'])
