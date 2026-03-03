@@ -208,6 +208,16 @@ with tab3:
         df_projecao_custos_estaff_meses_anteriores_seguintes = projecao_custos_proximos_meses(df_custos_estaff_faturamentos_mensais_passados, 'Mão de Obra - Extra', datas['ano_atual'], datas['mes_atual'])
         exibe_custos_meses_anteriores_e_seguintes(df_projecao_custos_estaff_meses_anteriores_seguintes, 'E-Staff', 'meses seguintes', datas['ano_atual'], datas['mes_atual'])
 
+        # Encargos e Provisões
+        df_custos_encarg_prov_faturamentos_mensais_passados = prepara_dados_custos_mensais(df_aut_blue_me_sem_pedido, df_faturamento_meses_futuros, casa, 'Mão de Obra - Encargos e Provisões')
+        df_projecao_custos_encarg_prov_meses_anteriores_seguintes = projecao_custos_proximos_meses(df_custos_encarg_prov_faturamentos_mensais_passados, 'Mão de Obra - Encargos e Provisões', datas['ano_atual'], datas['mes_atual'])
+        exibe_custos_meses_anteriores_e_seguintes(df_projecao_custos_encarg_prov_meses_anteriores_seguintes, 'Encargos e Provisões', 'meses seguintes', datas['ano_atual'], datas['mes_atual'])
+
+        # Benefícios
+        df_custos_beneficios_faturamentos_mensais_passados = prepara_dados_custos_mensais(df_aut_blue_me_sem_pedido, df_faturamento_meses_futuros, casa, 'Mão de Obra - Benefícios', df_tabela_secundaria=df_descontos)
+        df_projecao_custos_beneficios_meses_anteriores_seguintes = projecao_custos_proximos_meses(df_custos_beneficios_faturamentos_mensais_passados, 'Mão de Obra - Benefícios', datas['ano_atual'], datas['mes_atual'])
+        exibe_custos_meses_anteriores_e_seguintes(df_projecao_custos_beneficios_meses_anteriores_seguintes, 'Benefícios', 'meses seguintes', datas['ano_atual'], datas['mes_atual'])
+
         # Custo de Ocupação
         df_custos_ocupacao_faturamentos_mensais_passados = prepara_dados_custos_mensais(df_aut_blue_me_sem_pedido, df_faturamento_meses_futuros, casa, 'Custo de Ocupação')
         df_projecao_custos_ocupacao_meses_anteriores_seguintes = projecao_custos_proximos_meses(df_custos_ocupacao_faturamentos_mensais_passados, 'Custo de Ocupação', datas['ano_atual'], datas['mes_atual'])
@@ -283,6 +293,12 @@ with tab3:
 
         # E-Staff
         exibe_custos_meses_anteriores_e_seguintes(df_projecao_custos_estaff_meses_anteriores_seguintes, 'E-Staff', 'meses anteriores', datas['ano_atual'], datas['mes_atual'])
+        
+        # Encargos e Provisões
+        exibe_custos_meses_anteriores_e_seguintes(df_projecao_custos_encarg_prov_meses_anteriores_seguintes, 'Encargos e Provisões', 'meses anteriores', datas['ano_atual'], datas['mes_atual'])
+        
+        # Benefícios
+        exibe_custos_meses_anteriores_e_seguintes(df_projecao_custos_beneficios_meses_anteriores_seguintes, 'Benefícios', 'meses anteriores', datas['ano_atual'], datas['mes_atual'])
         
         # Custo de Ocupação
         exibe_custos_meses_anteriores_e_seguintes(df_projecao_custos_ocupacao_meses_anteriores_seguintes, 'Custo de Ocupação', 'meses anteriores', datas['ano_atual'], datas['mes_atual'], igual_mes_anterior=True)
