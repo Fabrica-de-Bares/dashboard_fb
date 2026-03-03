@@ -324,14 +324,13 @@ def GET_DESCONTOS():
         tddre.CMV AS 'CMV',
         tddre.PERMANECE_DESCONTO AS 'Permanece no Desconto',
         tddre.ALOCA_CENTRO_CUSTO AS 'Aloca no Centro de Custo',
-        tddre.CENTRO_CUSTO AS 'Centro de Custo',
+        CASE
+            WHEN tddre.CENTRO_CUSTO = '-  Alimentação Funcionário' THEN '  -  Alimentação Funcionário'
+            ELSE tddre.CENTRO_CUSTO 
+	    END AS 'Centro de Custo',
         tddre.DEDUCAO_FATURAMENTO_ALIM AS 'Dedução Faturamento - Alimento',
         tddre.DEDUCAO_FATURAMENTO_BEB AS 'Dedução Faturamento - Bebida',
-        CASE 
-            WHEN tddre.DESCONTOS_DRE = 'Desconto - Operação' THEN 'Descontos - Operação'  
-            WHEN tddre.DESCONTOS_DRE = 'Desconto - Marketing' THEN 'Descontos - Marketing'   
-            ELSE tddre.DESCONTOS_DRE                                                                                         
-        END AS 'Descontos - DRE'
+        tddre.DESCONTOS_DRE AS 'Descontos - DRE'
     FROM T_DESCONTOS_DRE AS tddre
     LEFT JOIN T_EMPRESAS AS te ON (tddre.FK_CASA = te.ID)
     # WHERE tddre.DESCONTOS_DRE IN ('Desconto - Alimentação Escritório', 'Descontos - Operação', 'Descontos - Marketing')
@@ -562,17 +561,20 @@ def GET_AUT_BLUE_ME_SEM_PEDIDO():
         CASE
             WHEN te.ID = 131 THEN 110
             ELSE te.ID    
-        END AS ID_Casa, 
+        END AS 'ID_Casa', 
         CASE
             WHEN te.NOME_FANTASIA = 'Blue Note SP (Novo)' THEN 'Blue Note - São Paulo'
             ELSE te.NOME_FANTASIA    
-        END AS Casa, 
+        END AS 'Casa', 
         STR_TO_DATE(tdr.COMPETENCIA, '%Y-%m-%d') AS 'Data_Competencia',
         STR_TO_DATE(tdr.VENCIMENTO, '%Y-%m-%d') AS 'Data_Vencimento',
         tdr.OBSERVACAO as 'Descricao',
         tdr.VALOR_PAGAMENTO AS 'Valor_Pagamento',
         tdr.VALOR_LIQUIDO AS 'Valor_Liquido',
-        tccg.DESCRICAO as 'Classificacao_Contabil_1',
+        CASE
+            WHEN tccg.DESCRICAO = 'Despesas com Transporte / Hospedagem' THEN 'Manutenção' -- considera como Despesas Gerais  
+            ELSE tccg.DESCRICAO                            
+        END as 'Classificacao_Contabil_1',
         tccg2.DESCRICAO as 'Classificacao_Contabil_2',
         vcpj.Cargo_DRE as 'Cargo_DRE'
     FROM T_DESPESA_RAPIDA tdr
@@ -582,10 +584,51 @@ def GET_AUT_BLUE_ME_SEM_PEDIDO():
     LEFT JOIN T_CLASSIFICACAO_CONTABIL_GRUPO_2 tccg2 ON (tdr.FK_CLASSIFICACAO_CONTABIL_GRUPO_2 = tccg2.ID)
     LEFT JOIN View_Cargos_PJ vcpj ON (tf.CORPORATE_NAME = vcpj.Codigo_PJ)
     LEFT JOIN T_DESPESA_RAPIDA_ITEM tdri ON (tdr.ID = tdri.FK_DESPESA_RAPIDA)
-    WHERE tccg.FK_VERSAO_PLANO_CONTABIL = 103
+    WHERE tccg.FK_VERSAO_PLANO_CONTABIL = 103 AND YEAR(tdr.COMPETENCIA) >= 2024
     AND tdri.ID IS NULL
-    AND tdr.BIT_CANCELADA = 0
-    ORDER BY tdr.ID ASC;
+    AND tdr.BIT_CANCELADA = 0            
+    UNION ALL
+    SELECT   # Aut_Endividamentos (Ações Trabalhistas/Processo Judicial - Encargos e Provisões)
+        CASE
+            WHEN te.ID = 131 THEN 110
+            ELSE te.ID    
+        END AS 'ID_Casa', 
+        CASE
+            WHEN te.NOME_FANTASIA = 'Blue Note SP (Novo)' THEN 'Blue Note - São Paulo'
+            ELSE te.NOME_FANTASIA    
+        END AS 'Casa', 
+        CASE
+            WHEN tdp.FK_DESPESA IS NOT NULL THEN STR_TO_DATE(tc2.`Data`, '%Y-%m-%d')
+            ELSE STR_TO_DATE(tc.`Data`, '%Y-%m-%d')
+        END AS 'Data_Competencia',
+        CASE
+            WHEN tdp.FK_DESPESA IS NOT NULL THEN STR_TO_DATE(tdp.`DATA`, '%Y-%m-%d')
+            ELSE STR_TO_DATE(tdr.VENCIMENTO, '%Y-%m-%d')
+        END as 'Data_Vencimento',
+        tdr.OBSERVACAO as 'Descricao',
+        CASE
+            WHEN tdp.FK_DESPESA IS NOT NULL
+                THEN tdp.VALOR
+            ELSE IF(tdr.VALOR_LIQUIDO IS NULL, tdr.VALOR_PAGAMENTO, tdr.VALOR_LIQUIDO)
+        END as 'Valor_Pagamento', # nesse caso, valor liquido é o considerado
+        NULL AS 'Valor_Liquido',                   
+        CASE
+            WHEN tccg.DESCRICAO = 'Endividamento' THEN 'Mão de Obra - Encargos e Provisões'
+            ELSE tccg.DESCRICAO
+        END AS 'Classificacao_Contabil_1',
+        CASE
+            WHEN tccg2.DESCRICAO = 'Processo Judicial' THEN '  -  Ações trabalhistas'
+            ELSE tccg2.DESCRICAO
+        END AS 'Classificacao_Contabil_2',
+        NULL AS 'Cargo_DRE'
+    FROM T_DESPESA_RAPIDA tdr
+    INNER JOIN T_EMPRESAS te ON (tdr.FK_LOJA = te.ID)
+    LEFT JOIN T_CLASSIFICACAO_CONTABIL_GRUPO_1 tccg ON (tdr.FK_CLASSIFICACAO_CONTABIL_GRUPO_1 = tccg.ID)
+    LEFT JOIN T_CLASSIFICACAO_CONTABIL_GRUPO_2 tccg2 ON (tdr.FK_CLASSIFICACAO_CONTABIL_GRUPO_2 = tccg2.ID)
+    LEFT JOIN T_DEPESA_PARCELAS tdp ON (tdp.FK_DESPESA = tdr.ID)
+    LEFT JOIN T_CALENDARIO tc ON (tdr.FK_DATA_REALIZACAO_PGTO = tc.ID)
+    LEFT JOIN T_CALENDARIO tc2 ON (tdp.FK_DATA_REALIZACAO_PGTO = tc2.ID)
+    WHERE tccg.ID IN (165,206,244) AND tccg2.DESCRICAO = 'Processo Judicial';             
     ''')
 
 
