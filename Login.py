@@ -112,8 +112,9 @@ def main():
         cargo_abas = GET_ABAS_CARGOS(cargo)
         abas_permitidas = cargo_abas.to_dict("records")
         for aba in abas_permitidas:
-            aba["page_link"] = ABAS[aba["ID Aba"]]["page_link"]
-            aba["Aba"] = ABAS[aba["ID Aba"]]["nome_aba"]
+            if aba["ID Aba"] in ABAS.keys():
+                aba["page_link"] = ABAS[aba["ID Aba"]]["page_link"]
+                aba["Aba"] = ABAS[aba["ID Aba"]]["nome_aba"]
         st.session_state["abas_permitidas"] = abas_permitidas
 
         # Verifica a primeira permissão do usuário
