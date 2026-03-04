@@ -194,6 +194,19 @@ def main():
 			with col2:
 				button_download(df_comparacao_download, f"comparacao", f"comparacao")
 
+			st.markdown("### Farol - Valor Total x Valor Total das Categorias")
+			df_valor_total_categorias = df_eventos.copy()
+			# Colunas que começam com "Valor"
+			colunas_valor = [col for col in df_valor_total_categorias.columns if col.startswith("Valor") and col != "Valor Total Evento"]
+			df_valor_total_categorias[colunas_valor] = df_valor_total_categorias[colunas_valor].fillna(0)
+			df_valor_total_categorias['Valor Total Categorias'] = df_valor_total_categorias[colunas_valor].sum(axis=1)
+			df_valor_total_categorias['Diferença'] = df_valor_total_categorias['Valor Total Evento'] - df_valor_total_categorias['Valor Total Categorias']
+			df_valor_total_categorias = df_valor_total_categorias[df_valor_total_categorias['Diferença'] != 0]
+			colunas = ['ID Evento', 'Nome Evento', 'ID Casa', 'Casa', 'Data Evento', 'Valor Total Evento', 'Valor Total Categorias', 'Diferença', 'Status'] + colunas_valor
+			df_valor_total_categorias = format_columns_brazilian(df_valor_total_categorias, ['Valor Total Evento', 'Valor Total Categorias', 'Diferença'] + colunas_valor)
+			df_valor_total_categorias = df_format_date_columns_brazilian(df_valor_total_categorias, ['Data Evento'])
+			st.dataframe(df_valor_total_categorias[colunas], width='stretch', hide_index=True)
+
 	st.markdown("")
 if __name__ == '__main__':
   main()
