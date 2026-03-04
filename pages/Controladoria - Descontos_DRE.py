@@ -92,7 +92,7 @@ df_categorias_mes.loc[condicao, 'Aloca no Centro de Custo'] = df_categorias_mes[
 
 if not df_categorias_mes.empty:
     # Mapeamento - Centro de Custo
-    df_categorias_mes_centro_custo = mapeamento_centro_custo(casa, df_categorias_mes)
+    df_categorias_mes_centro_custo = mapeamento_centro_custo(df_categorias_mes)
 
     # Calcula 'Permanece no Desconto' de acordo com 'Centro de Custo'
     df_categorias_mes_centro_custo["Permanece no Desconto"] = np.where(
