@@ -163,7 +163,7 @@ def main():
             # Seletores
             col0, col1, col2, col3= st.columns([1,1,1,1])
             with col0:
-                lista_retirar_casas = ['Bar Léo - Vila Madalena', 'Blue Note SP (Novo)', 'Edificio Rolim', 'The Cavern - Almoço', 'Terraço Notie', 'Escritório Fabrica de Bares']
+                lista_retirar_casas = ['Bar Léo - Vila Madalena', 'Blue Note SP (Novo)', 'Edificio Rolim', 'The Cavern - Almoço', 'Terraço Notie', 'Escritório Fabrica de Bares', 'Blue Note SP (Sala 2)',]
                 id_casa, casa, id_zigpay = input_selecao_casas(lista_retirar_casas, key='acompanhamento_comissao_casas')
                 # Filtra por casa se não for "Todas as Casas"
                 if id_casa != -1:
@@ -281,7 +281,7 @@ def main():
                         total_vendido_vendedor = df_vendedor['Valor da Parcela'].sum()
                         total_vendido += total_vendido_vendedor # para o card de total vendido no final
                         total_liquido_vendedor = df_vendedor['Valor Líquido'].sum()
-                        total_liquido =+ total_liquido_vendedor
+                        total_liquido += total_liquido_vendedor
                         total_deducao_imposto = df_vendedor['Dedução Imposto'].sum()
                         total_comissao = df_vendedor['Comissão'].sum()
                         comissao += total_comissao
