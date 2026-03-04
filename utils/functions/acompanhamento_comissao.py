@@ -89,7 +89,6 @@ def calcular_comissao_gerente_blue_note(df_recebimentos_total_mes, vendedor, id_
 
         if not df_recebimentos_total_mes.empty:
             # Calcula imposto em relação à parcela
-            st.write(df_recebimentos_total_mes)
             df_recebimentos_total_mes['Dedução Imposto'] = (df_recebimentos_total_mes['Valor da Parcela'] / df_recebimentos_total_mes['Valor Total Evento']) * df_recebimentos_total_mes['Valor Total Imposto']
             df_recebimentos_total_mes['Valor Líquido'] = df_recebimentos_total_mes['Valor da Parcela'] - df_recebimentos_total_mes['Dedução Imposto']
 
