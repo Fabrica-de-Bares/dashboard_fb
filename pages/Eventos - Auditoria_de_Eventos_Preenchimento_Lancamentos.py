@@ -189,10 +189,13 @@ def main():
 			df_comparacao = format_columns_brazilian(df_comparacao, ['Valor Total Evento', 'Valor Total Parcelas', 'Diferença'])
 			df_comparacao = df_format_date_columns_brazilian(df_comparacao, ['Data Evento'])
 			df_comparacao.sort_values(by=['Casa'], inplace=True)
-			st.dataframe(df_comparacao, width='stretch', hide_index=True)
-			col1, col2 = st.columns([4, 1])
-			with col2:
-				button_download(df_comparacao_download, f"comparacao", f"comparacao")
+			if df_comparacao.empty:
+				st.success("Nenhuma diferença entre o valor total do evento e o valor total das parcelas.")
+			else:
+				st.dataframe(df_comparacao, width='stretch', hide_index=True)
+				col1, col2 = st.columns([4, 1])
+				with col2:
+					button_download(df_comparacao_download, f"comparacao", f"comparacao")
 
 			st.markdown("### Farol - Valor Total x Valor Total das Categorias")
 			df_valor_total_categorias = df_eventos.copy()
@@ -210,9 +213,9 @@ def main():
 				st.success("Nenhum evento com diferença de Valor Total Eventos e Valor Total de categorias.")
 			else:
 				st.dataframe(df_valor_total_categorias[colunas], width='stretch', hide_index=True)
-			col1, col2 = st.columns([4, 1])
-			with col2:
-				button_download(df_valor_total_categorias_download, f"valor_total_categorias", f"valor_total_categorias")
+				col1, col2 = st.columns([4, 1])
+				with col2:
+					button_download(df_valor_total_categorias_download, f"valor_total_categorias", f"valor_total_categorias")
 
 	st.markdown("")
 if __name__ == '__main__':
