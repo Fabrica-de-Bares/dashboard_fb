@@ -205,6 +205,7 @@ def main():
 			df_valor_total_categorias['Valor Total Categorias'] = df_valor_total_categorias[colunas_valor].sum(axis=1)
 			df_valor_total_categorias['Diferença'] = df_valor_total_categorias['Valor Total Evento'] - df_valor_total_categorias['Valor Total Categorias']
 			df_valor_total_categorias = df_valor_total_categorias[df_valor_total_categorias['Diferença'] != 0]
+			df_valor_total_categorias = df_valor_total_categorias[df_valor_total_categorias['Status'] == 'Confirmado']
 			colunas = ['ID Evento', 'Nome Evento', 'ID Casa', 'Casa', 'Data Evento', 'Valor Total Evento', 'Valor Total Categorias', 'Diferença', 'Status']
 			df_valor_total_categorias_download = df_valor_total_categorias[colunas].copy()
 			df_valor_total_categorias = format_columns_brazilian(df_valor_total_categorias, ['Valor Total Evento', 'Valor Total Categorias', 'Diferença'])
