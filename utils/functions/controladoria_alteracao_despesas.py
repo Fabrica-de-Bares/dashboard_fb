@@ -29,8 +29,20 @@ def destacar_alteracoes(df, colunas_comparar):
 
 
 def despesas_alteradas_por_campo(df_log_despesas, colunas_comparar):
+    df_alteracao = df_log_despesas.copy()
+
+    # Seleciona e ordena as colunas para melhor visualização
+    if colunas_comparar == ['Data Competência'] or colunas_comparar == ['Data Vencimento'] or colunas_comparar == ['Valor Original', 'Valor Liquido']:
+        df_alteracao = df_alteracao[['Casa', 'ID Despesa', 'Data Alteração', 'Nome Usuário', 'Email Usuário', 'Data Competência', 'Data Vencimento', 'Valor Original', 'Valor Liquido', 'Status Pagamento', 'Class. Cont. 1', 'Class. Cont. 2']]
+    elif colunas_comparar == ['Class. Cont. 1', 'Class. Cont. 2']:
+        df_alteracao = df_alteracao[['Casa', 'ID Despesa', 'Data Alteração', 'Nome Usuário', 'Email Usuário', 'Class. Cont. 1', 'Class. Cont. 2', 'Data Competência', 'Data Vencimento', 'Valor Original', 'Valor Liquido', 'Status Pagamento']]
+    elif colunas_comparar == ['Status Aprovação Operação']:
+        df_alteracao = df_alteracao[['Casa', 'ID Despesa', 'Data Alteração', 'Nome Usuário', 'Email Usuário', 'Status Aprovação Operação', 'Status Aprovação Diretoria', 'Data Competência', 'Data Vencimento', 'Valor Original', 'Valor Liquido', 'Status Pagamento', 'Class. Cont. 1', 'Class. Cont. 2']]
+    elif colunas_comparar == ['Real/Provisão']:
+        df_alteracao = df_alteracao[['Casa', 'ID Despesa', 'Data Alteração', 'Nome Usuário', 'Email Usuário', 'Real/Provisão', 'Data Competência', 'Data Vencimento', 'Valor Original', 'Valor Liquido', 'Status Pagamento', 'Class. Cont. 1', 'Class. Cont. 2']]
+
     ids_com_alteracao = (
-        df_log_despesas
+        df_alteracao
             .groupby('ID Despesa')[colunas_comparar]
             .nunique()
             .gt(1)        
@@ -39,19 +51,21 @@ def despesas_alteradas_por_campo(df_log_despesas, colunas_comparar):
 
     # Lista de despesas com alteração nos campos definidos
     ids_com_alteracao = ids_com_alteracao[ids_com_alteracao].index
-    df_alteracao = df_log_despesas[df_log_despesas['ID Despesa'].isin(ids_com_alteracao)].copy()
+    df_alteracao = df_alteracao[df_alteracao['ID Despesa'].isin(ids_com_alteracao)].copy()
 
     # Remove logs sem alteração em campos relevantes
-    colunas_verificar_duplicatas = [col for col in df_alteracao if (col not in ['Data Alteração', 'Nome Usuário', 'Email Usuário'])]
-    df_alteracao = df_alteracao.drop_duplicates(subset=colunas_verificar_duplicatas, keep='first')
-    df_alteracao = df_alteracao[['Casa', 'ID Despesa', 'Data Alteração', 'Nome Usuário', 'Email Usuário', 'Data Competência', 'Data Vencimento', 'Valor Original', 'Valor Liquido', 'Status Pagamento', 'Fornecedor', 'Class. Cont. 1', 'Class. Cont. 2']]
-
+    if 'Status Aprovação Operação' not in colunas_comparar:
+        colunas_verificar_duplicatas = [col for col in df_alteracao if (col not in ['Data Alteração', 'Nome Usuário', 'Email Usuário'] and col in colunas_comparar + ['ID Despesa'])]
+    else:
+        colunas_verificar_duplicatas = [col for col in df_alteracao if (col not in ['Data Alteração', 'Nome Usuário', 'Email Usuário'])]
+    
+    df_alteracao = df_alteracao.drop_duplicates(subset=colunas_verificar_duplicatas, keep='last') # mantém a versão mais recente da despesa
     return df_alteracao
 
 
 def exibe_contagem_ids_alterados(df):
-    df_contador = df.groupby('ID Despesa').size().reset_index(name='Contagem')
-    contagem_ids = len(df_contador['ID Despesa'].tolist())
+    lista_ids_despesas = df['ID Despesa'].unique().tolist()
+    contagem_ids = len(lista_ids_despesas)
     if contagem_ids == 0:
         st.success('Sem despesas alteradas!')
     else:

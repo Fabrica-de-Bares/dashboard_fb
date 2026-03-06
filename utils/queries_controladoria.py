@@ -67,25 +67,69 @@ def GET_LOGS_DESPESAS():
       tf.CORPORATE_NAME AS 'Fornecedor',
       tlogdr.OBSERVACAO AS 'Observação',                                                                                   
       tccg1.DESCRICAO AS 'Class. Cont. 1',
-      tccg2.DESCRICAO AS 'Class. Cont. 2'
-      # tlogdr.FK_REAL_PROVISAO,
-      # tlogdr.FK_APROVACAO_DIRETORIA                                                         
-      # tscd.DESCRICAO AS 'Status Documentação',
-      # tsad.DESCRICAO AS 'Status Aprovação Diretoria',
-      # tsad.DESCRICAO AS 'Status Aprovação Caixa',
-      # tsao.DESCRICAO AS 'Status Aprovação Operação'                                                                                                              
+      tccg2.DESCRICAO AS 'Class. Cont. 2',
+      tsad.DESCRICAO AS 'Status Aprovação Diretoria',
+      tsao.DESCRICAO AS 'Status Aprovação Operação',
+      tdmr.MOTIVO_DESCRICAO AS 'Motivo Reprovação',
+      trp.DESCRICAO AS 'Real/Provisão'                                                                                                                                                
 		FROM ZLOG_T_DESPESA_RAPIDA tlogdr 
 			LEFT JOIN ADMIN_USERS au ON (tlogdr.LOG_USER = au.ID)
 			LEFT JOIN T_EMPRESAS te ON (tlogdr.FK_LOJA = te.ID)
-      LEFT JOIN T_FORMAS_DE_PAGAMENTO tfp ON (tlogdr.FK_FORMA_PAGAMENTO = tfp.ID)                   
+      LEFT JOIN T_FORMAS_DE_PAGAMENTO tfp ON (tlogdr.FK_FORMA_PAGAMENTO = tfp.ID) 
+      LEFT JOIN T_STATUS_PAGAMENTO tsp ON (tlogdr.FK_STATUS_PGTO = tsp.ID)                   
 			LEFT JOIN T_FORNECEDOR tf ON (tlogdr.FK_FORNECEDOR = tf.ID)
       LEFT JOIN T_CLASSIFICACAO_CONTABIL_GRUPO_1 tccg1 ON (tlogdr.FK_CLASSIFICACAO_CONTABIL_GRUPO_1 = tccg1.ID)
       LEFT JOIN T_CLASSIFICACAO_CONTABIL_GRUPO_2 tccg2 ON (tlogdr.FK_CLASSIFICACAO_CONTABIL_GRUPO_2 = tccg2.ID)
-      LEFT JOIN T_STATUS_CONFERENCIA_DOCUMENTACAO tscd ON (tlogdr.FK_CONFERENCIA_DOCUMENTACAO = tscd.ID) 
       LEFT JOIN T_STATUS_APROVACAO_DIRETORIA tsad ON (tlogdr.FK_APROVACAO_DIRETORIA = tsad.ID)   
-      LEFT JOIN T_STATUS_APROVACAO_CAIXA tsac ON (tlogdr.FK_APROVACAO_CAIXA = tsac.ID)                                            
-      LEFT JOIN T_STATUS_APROVACAO_OPERACAO tsao ON (tlogdr.FK_APROVACAO_OPERACAO = tsao.ID)                                            
-      LEFT JOIN T_STATUS_PAGAMENTO tsp ON (tlogdr.FK_STATUS_PGTO = tsp.ID) 
-      WHERE YEAR(tlogdr.LOG_DATE) = 2026;                                                                          
+      LEFT JOIN T_STATUS_APROVACAO_OPERACAO tsao ON (tlogdr.FK_APROVACAO_OPERACAO = tsao.ID)  
+      LEFT JOIN T_DESPESA_MOTIVO_REPROVACAO tdmr ON (tlogdr.FK_MOTIVO_REPROVACAO = tdmr.ID)
+      LEFT JOIN T_REAL_PROVISAO trp ON (tlogdr.FK_REAL_PROVISAO = trp.ID)                                                                                       
+      # WHERE tlogdr.BIT_CANCELADA = 0;                                                                          
   ''')
 
+
+@st.cache_data
+def GET_IDS_APROVACAO_OPERACAO_ALTERADOS():
+   return dataframe_query('''
+    SELECT DISTINCT ID AS 'ID Despesa'
+    FROM (
+        SELECT
+            ID, 
+            LOG_DATE,
+            FK_APROVACAO_OPERACAO,
+            LAG(FK_APROVACAO_OPERACAO) OVER (
+                PARTITION BY ID
+                ORDER BY LOG_DATE
+            ) AS status_anterior
+        FROM ZLOG_T_DESPESA_RAPIDA
+    ) t
+    WHERE FK_APROVACAO_OPERACAO = 102 # Depois: reprovado
+    AND status_anterior = 101         # Antes: aprovado
+    AND YEAR(LOG_DATE) = 2026
+    ORDER BY ID, LOG_DATE;                      
+  ''')
+
+
+@st.cache_data
+def GET_CLASS_CONT_1():
+  return dataframe_query('''
+    SELECT 
+      tccg1.ID,
+      tccg1.DESCRICAO
+    FROM T_CLASSIFICACAO_CONTABIL_GRUPO_1 tccg1
+    WHERE tccg1.FK_VERSAO_PLANO_CONTABIL = 103;
+  ''')
+
+
+@st.cache_data
+def GET_CLASS_CONT_2():
+  return dataframe_query('''
+    SELECT 
+      tccg2.ID,
+      tccg2.DESCRICAO AS 'DESCRICAO_2',
+      tccg2.FK_GRUPO_1,
+      tccg1.DESCRICAO AS 'DESCRICAO_1'
+    FROM T_CLASSIFICACAO_CONTABIL_GRUPO_2 tccg2
+    LEFT JOIN T_CLASSIFICACAO_CONTABIL_GRUPO_1 tccg1 ON (tccg2.FK_GRUPO_1 = tccg1.ID)
+    WHERE tccg1.FK_VERSAO_PLANO_CONTABIL = 103;
+  ''')
