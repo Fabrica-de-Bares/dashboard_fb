@@ -31,12 +31,14 @@ def main():
 	
 	# Formata tipos de dados do dataframe de eventos
 	tipos_de_dados_eventos = {
+		'Valor Locação Espaço': float,
 		'Valor Locação Aroo 1': float,
 		'Valor Locação Aroo 2': float,
 		'Valor Locação Aroo 3': float,
 		'Valor Locação Anexo': float,
 		'Valor Locação Notie': float,
 		'Valor Locação Mirante': float,
+		'Valor Locação Bar': float,
 		'Valor Imposto': float,
 		'Valor AB': float,
 		'Valor Total Evento': float,
@@ -48,7 +50,10 @@ def main():
 		'Valor Comissão BV': float,
 		'Valor Extras Gerais': float,
 		'Valor Taxa Serviço': float,
-		'Valor Acréscimo Forma de Pagamento': float
+		'Valor Acréscimo Forma de Pagamento': float,
+		'Valor Contratação Artístico': float,
+		'Valor Contratação Técnico de Som': float,
+		'Valor Contratação Couvert Artístico': float
 	}
 	df_eventos = df_eventos.astype(tipos_de_dados_eventos, errors='ignore')
 	df_eventos['Data Contratação'] = pd.to_datetime(df_eventos['Data Contratação'], errors='coerce')
