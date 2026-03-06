@@ -290,3 +290,36 @@ def GET_COMPRAS_PRODUTOS_COM_RECEBIMENTO(data_inicio, data_fim, categoria):
     ORDER BY
       tdr.COMPETENCIA DESC
   ''')
+
+
+
+@st.cache_data
+def GET_COMPRAS_POR_ANO():
+  return dataframe_query('''
+    SELECT 
+      F.ID AS 'ID Fornecedor',
+      F.FANTASY_NAME AS 'Fornecedor',
+      E.NOME_FANTASIA AS 'Casa',
+      DR.COMPETENCIA AS 'Data Competencia',
+      N2.DESCRICAO AS 'Categoria Insumo',
+      -- N5.ID AS 'ID Nivel 5',
+      -- N5.DESCRICAO AS 'INSUMO N5',
+      -- tudm.UNIDADE_MEDIDA_NAME AS 'Unidade Medida',                   
+      -- DRI.QUANTIDADE AS 'Quantidade Insumo',
+      SUM(DRI.VALOR) AS 'Valor Compra',
+      CONCAT(MONTH(DR.COMPETENCIA), '/', YEAR(DR.COMPETENCIA)) AS 'Mes/Ano'                   
+      -- SUM(DRI.VALOR) / SUM(DRI.QUANTIDADE) AS 'Valor Med Por Insumo'                                
+    FROM T_DESPESA_RAPIDA_ITEM DRI 
+      INNER JOIN T_INSUMOS_NIVEL_5 N5 ON (DRI.FK_INSUMO = N5.ID)
+      INNER JOIN T_INSUMOS_NIVEL_4 N4 ON (N5.FK_INSUMOS_NIVEL_4 = N4.ID)
+      INNER JOIN T_INSUMOS_NIVEL_3 N3 ON (N4.FK_INSUMOS_NIVEL_3 = N3.ID)
+      INNER JOIN T_INSUMOS_NIVEL_2 N2 ON (N3.FK_INSUMOS_NIVEL_2 = N2.ID)
+      INNER JOIN T_DESPESA_RAPIDA DR ON (DRI.FK_DESPESA_RAPIDA = DR.ID)
+      INNER JOIN T_FORNECEDOR F ON (DR.FK_FORNECEDOR = F.ID)
+      INNER JOIN T_EMPRESAS E ON (DR.FK_LOJA = E.ID)
+      LEFT JOIN T_UNIDADES_DE_MEDIDAS tudm ON (N5.FK_UNIDADE_MEDIDA = tudm.ID)
+    WHERE DR.BIT_CANCELADA = 0
+    GROUP BY E.NOME_FANTASIA, F.ID, MONTH(DR.COMPETENCIA), YEAR(DR.COMPETENCIA), N2.DESCRICAO 
+    ORDER BY F.FANTASY_NAME, N2.DESCRICAO
+  ''')
+

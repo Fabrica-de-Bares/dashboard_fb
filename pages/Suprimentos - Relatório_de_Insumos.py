@@ -233,5 +233,33 @@ def main():
 		st.dataframe(categoryN2_inputs_merged_style, hide_index=True, width='stretch')
 		function_copy_dataframe_as_tsv(categoryN2_inputs_merged)
 
+		st.markdown('---')
+
+		# Compras anuais por fornecedor e categoria (insumo N2)
+		df_compras_anuais = GET_COMPRAS_POR_ANO()
+		df_compras_anuais['Data Competencia'] = pd.to_datetime(df_compras_anuais['Data Competencia'], errors='coerce')
+
+		with st.container(border=True):
+			col1, col2 = st.columns([1, 1], vertical_alignment='bottom')
+			with col1:
+				st.markdown('### Compras por ano')
+			with col2:
+				ano = seletor_ano(2024, 2026, 'ano_compras', label='Selecionar ano', help=None)
+
+			df_compras_anuais_filtrado = df_compras_anuais[
+				df_compras_anuais['Casa'].isin(companies_filtered) &
+				(df_compras_anuais['Data Competencia'].dt.year == ano)
+			]
+			df_compras_anuais_styled = df_compras_anuais_filtrado[['Casa', 'ID Fornecedor', 'Fornecedor', 'Categoria Insumo', 'Valor Compra', 'Mes/Ano']]
+			df_compras_anuais_styled = function_format_number_columns(
+				df_compras_anuais_styled,
+				columns_money=['Valor Compra'],
+			)
+			df_compras_anuais_styled.sort_values(by=['Casa', 'Mes/Ano', 'Categoria Insumo'], inplace=True)
+
+			st.dataframe(df_compras_anuais_styled, hide_index=True, width='stretch')
+			function_copy_dataframe_as_tsv(df_compras_anuais_filtrado)
+
+
 if __name__ == '__main__':
 	main()
