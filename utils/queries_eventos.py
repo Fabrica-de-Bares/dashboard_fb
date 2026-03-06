@@ -396,49 +396,47 @@ def GET_ACESSOS_COMISSOES():
 def GET_EVENTOS_AUDITORIA():
 	return dataframe_query(f'''
 		SELECT
-			COALESCE(tep.FK_EVENTO_DO_ADITIVO, tep.ID) AS 'ID Evento',
-			tep2.NOME_EVENTO AS 'Nome Evento',
+			tep.ID AS 'ID Evento',
+			tep.NOME_EVENTO AS 'Nome Evento',
 			te.ID AS 'ID Casa',
 			te.NOME_FANTASIA AS 'Casa',
 			tsep.DESCRICAO AS 'Status',
 			temd.DESCRICAO AS 'Motivo Declínio',
-			SUM(tep.VALOR_TOTAL_EVENTO) AS 'Valor Total Evento',
-			SUM(tep.VALOR_AB) AS 'Valor AB',
-			SUM(tep.VALOR_LOCACAO_ESPACO) AS 'Valor Locação Espaço',
-			SUM(tep.VALOR_CONTRATACAO_ARTISTICO) AS 'Valor Contratação Artístico',
-			SUM(tep.VALOR_CONTRATACAO_TECNICO_SOM) AS 'Valor Contratação Técnico de Som',
-			SUM(tep.VALOR_CONTRATACAO_COUVERT_ARTISTICO) AS 'Valor Contratação Couvert Artístico',			
-			SUM(tep.VALOR_LOCACAO_AROO_1) AS 'Valor Locação Aroo 1',
-			SUM(tep.VALOR_LOCACAO_AROO_2) AS 'Valor Locação Aroo 2',
-			SUM(tep.VALOR_LOCACAO_AROO_3) AS 'Valor Locação Aroo 3',
-			SUM(tep.VALOR_LOCACAO_ANEXO) AS 'Valor Locação Anexo',
-			SUM(tep.VALOR_LOCACAO_NOTIE) AS 'Valor Locação Notie',
-			SUM(tep.VALOR_LOCACAO_MIRANTE) AS 'Valor Locação Mirante',
-			SUM(tep.VALOR_LOCACAO_BAR) AS 'Valor Locação Bar',
-			SUM(tep.VALOR_IMPOSTO) AS 'Valor Imposto',
-			SUM(tep.VALOR_LOCACAO_GERADOR) AS 'Valor Locação Gerador',
-			SUM(tep.VALOR_LOCACAO_DECORACAO_MOBILIARIO) AS 'Valor Locação Mobiliário',
-			SUM(tep.VALOR_LOCACAO_UTENSILIOS) AS 'Valor Locação Utensílios',
-			SUM(tep.VALOR_MAO_DE_OBRA_EXTRA) AS 'Valor Mão de Obra Extra',
-			SUM(tep.VALOR_TAXA_ADMINISTRATIVA) AS 'Valor Taxa Administrativa',
-			SUM(tep.VALOR_COMISSAO_BV) AS 'Valor Comissão BV',
-			SUM(tep.VALOR_EXTRAS_GERAIS) AS 'Valor Extras Gerais',
-			SUM(tep.VALOR_TAXA_SERVICO) AS 'Valor Taxa Serviço',
-			SUM(tep.VALOR_ACRESCIMO_FORMA_PAGAMENTO) AS 'Valor Acréscimo Forma de Pagamento',
-			tep2.OBSERVACOES AS 'Observações',
+			tep.VALOR_TOTAL_EVENTO AS 'Valor Total Evento',
+			tep.VALOR_AB AS 'Valor AB',
+			tep.VALOR_LOCACAO_ESPACO AS 'Valor Locação Espaço',
+			tep.VALOR_CONTRATACAO_ARTISTICO AS 'Valor Contratação Artístico',
+			tep.VALOR_CONTRATACAO_TECNICO_SOM AS 'Valor Contratação Técnico de Som',
+			tep.VALOR_CONTRATACAO_COUVERT_ARTISTICO AS 'Valor Contratação Couvert Artístico',			
+			tep.VALOR_LOCACAO_AROO_1 AS 'Valor Locação Aroo 1',
+			tep.VALOR_LOCACAO_AROO_2 AS 'Valor Locação Aroo 2',
+			tep.VALOR_LOCACAO_AROO_3 AS 'Valor Locação Aroo 3',
+			tep.VALOR_LOCACAO_ANEXO AS 'Valor Locação Anexo',
+			tep.VALOR_LOCACAO_NOTIE AS 'Valor Locação Notie',
+			tep.VALOR_LOCACAO_MIRANTE AS 'Valor Locação Mirante',
+			tep.VALOR_LOCACAO_BAR AS 'Valor Locação Bar',
+			tep.VALOR_IMPOSTO AS 'Valor Imposto',
+			tep.VALOR_LOCACAO_GERADOR AS 'Valor Locação Gerador',
+			tep.VALOR_LOCACAO_DECORACAO_MOBILIARIO AS 'Valor Locação Mobiliário',
+			tep.VALOR_LOCACAO_UTENSILIOS AS 'Valor Locação Utensílios',
+			tep.VALOR_MAO_DE_OBRA_EXTRA AS 'Valor Mão de Obra Extra',
+			tep.VALOR_TAXA_ADMINISTRATIVA AS 'Valor Taxa Administrativa',
+			tep.VALOR_COMISSAO_BV AS 'Valor Comissão BV',
+			tep.VALOR_EXTRAS_GERAIS AS 'Valor Extras Gerais',
+			tep.VALOR_TAXA_SERVICO AS 'Valor Taxa Serviço',
+			tep.VALOR_ACRESCIMO_FORMA_PAGAMENTO AS 'Valor Acréscimo Forma de Pagamento',
+			tep.OBSERVACOES AS 'Observações',
 			trec.NOME AS 'Cliente',
-			DATE(tep2.DATA_EVENTO) AS 'Data Evento',
-			DATE(tep2.DATA_RECEBIMENTO_LEAD) AS 'Data Recebimento Lead',
-			DATE(tep2.DATA_ENVIO_PROPOSTA) AS 'Data Envio Proposta',
-			DATE(tep2.DATA_CONTRATACAO) AS 'Data Contratação'
+			DATE(tep.DATA_EVENTO) AS 'Data Evento',
+			DATE(tep.DATA_RECEBIMENTO_LEAD) AS 'Data Recebimento Lead',
+			DATE(tep.DATA_ENVIO_PROPOSTA) AS 'Data Envio Proposta',
+			DATE(tep.DATA_CONTRATACAO) AS 'Data Contratação'
 		FROM T_EVENTOS_PRICELESS tep
-			LEFT JOIN T_EVENTOS_PRICELESS tep2 ON COALESCE(tep.FK_EVENTO_DO_ADITIVO, tep.ID) = tep2.ID # tep2 = evento pai
 			INNER JOIN T_EMPRESAS te ON te.ID = tep.FK_EMPRESA
 			INNER JOIN T_EXECUTIVAS_EVENTOS tee ON tee.ID = tep.FK_EXECUTIVA_EVENTOS
 			LEFT JOIN T_STATUS_EVENTO_PRE tsep ON tsep.ID = tep.FK_STATUS_EVENTO
 			LEFT JOIN T_EVENTOS_MOTIVOS_DECLINIO temd ON temd.ID = tep.FK_MOTIVO_DECLINIO
 			LEFT JOIN T_RECEITAS_EXTRAORDINARIAS_CLIENTE trec ON (tep.FK_CLIENTE = trec.ID)
-		GROUP BY COALESCE(tep.FK_EVENTO_DO_ADITIVO, tep.ID)
 	''')
 
 
