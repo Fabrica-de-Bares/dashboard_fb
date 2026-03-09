@@ -204,6 +204,8 @@ def main():
 
 			st.markdown("### Farol - Valor Total x Valor Total das Categorias")
 			df_valor_total_categorias = df_eventos.copy()
+			# Filtra a partir do ano de 2026
+			df_valor_total_categorias = df_valor_total_categorias[df_valor_total_categorias['Data Evento'] >= datetime.datetime(2026, 1, 1)]
 			# Colunas que começam com "Valor"
 			colunas_valor = [col for col in df_valor_total_categorias.columns if col.startswith("Valor") and col != "Valor Total Evento"]
 			df_valor_total_categorias[colunas_valor] = df_valor_total_categorias[colunas_valor].fillna(0)
