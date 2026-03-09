@@ -111,12 +111,54 @@ if not df_categorias_mes.empty:
     df_categorias_mes_centro_custo.loc[condicao, 'Dedução Faturamento - Bebida'] = df_categorias_mes_centro_custo['DESCONTO'] * DEDUCAO_FAT_BEB
 
     # Mapeamento - Descontos - DRE
-    df_categorias_mes_descontos_dre = mapeamento_descontos_dre(casa, df_categorias_mes_centro_custo)
+    df_categorias_mes_descontos_dre = mapeamento_descontos_dre(df_categorias_mes_centro_custo)
+    df_descontos_dre_editavel = df_categorias_mes_descontos_dre.copy()
 
-    # Formata para download
-    df_download = df_categorias_mes_descontos_dre.copy()
+    # Exibe tebela resultante editável
+    col1, col2 = st.columns(2)
+    with col1:
+        st.subheader('Tabela formatada')
+    # with col2:
+        # button_download(df_download, f"{casa} - {mes}{ano}", f"Descontos - {casa}")
+    
+    # Organiza colunas para exibição
+    df_descontos_dre_editavel.sort_values(by=['Descontos - DRE'], ascending=True, na_position='first', inplace=True) # None ficam no início do df
+    df_descontos_dre_editavel = df_descontos_dre_editavel.rename(columns={
+        'FK_CASA': 'ID Casa',
+        'CATEGORIA': 'Categoria',
+        'DESCONTO': 'Total Desconto',
+        'DATA': 'Data'
+    })
+    df_descontos_dre_editavel = df_descontos_dre_editavel[['ID Casa', 'Data', 'Categoria', 'Total Desconto', 'CMV', 'Aloca no Centro de Custo', 'Centro de Custo', 'Permanece no Desconto', 'Dedução Faturamento - Alimento', 'Dedução Faturamento - Bebida', 'Descontos - DRE']]
+
+    # Exibe df com coluna editável
+    df_descontos_dre_editavel = st.data_editor(
+        df_descontos_dre_editavel,
+        # column_config={
+        #     "Descontos - DRE": st.column_config.NumberColumn(
+        #         "Your rating",
+        #         help="How much do you like this command (1-5)?",
+        #         min_value=1,
+        #         max_value=5,
+        #         step=1,
+        #         format="%d ⭐",
+        #     ),
+        # },
+        disabled=[col for col in df_descontos_dre_editavel if col != 'Descontos - DRE'],
+        hide_index=True,
+    )
+    
+    # Contabiliza registros sem classificação
+    df_descontos_dre_vazios = df_descontos_dre_editavel[(df_descontos_dre_editavel['Descontos - DRE'].isna()) | (df_descontos_dre_editavel['Descontos - DRE'] == '')]
+    contagem_descontos_dre_vazios = df_descontos_dre_vazios['Data'].count()
+
+    # Formata df para download
+    df_download = df_descontos_dre_editavel.copy()
     df_download = df_download.rename(columns={
-        'DESCONTO': 'TOTAL_DESCONTO',
+        'ID Casa': 'FK_CASA',
+        'Categoria': 'CATEGORIA',
+        'Total Desconto': 'TOTAL_DESCONTO',
+        'Data': 'DATA',
         'Aloca no Centro de Custo': 'ALOCA_CENTRO_CUSTO',
         'Centro de Custo': 'CENTRO_CUSTO',
         'Permanece no Desconto': 'PERMANECE_DESCONTO',
@@ -127,23 +169,24 @@ if not df_categorias_mes.empty:
     df_download = df_download[['FK_CASA', 'DATA', 'CATEGORIA', 'TOTAL_DESCONTO', 'CMV', 'ALOCA_CENTRO_CUSTO', 'CENTRO_CUSTO', 'PERMANECE_DESCONTO', 'DEDUCAO_FATURAMENTO_ALIM', 'DEDUCAO_FATURAMENTO_BEB', 'DESCONTOS_DRE']]
     df_download = df_download.sort_values(by=['FK_CASA'])
 
-    # Exibe tebala resultante
-    col1, col2 = st.columns(2)
-    with col1:
-        st.subheader('Tabela formatada')
-    with col2:
-        button_download(df_download, f"{casa} - {mes}{ano}", f"Descontos - {casa}")
-    
-    df_categorias_mes_descontos_dre = df_categorias_mes_descontos_dre.rename(columns={
-        'FK_CASA': 'ID Casa',
-        'CATEGORIA': 'Categoria',
-        'DESCONTO': 'Total Desconto',
-        'DATA': 'Data'
-    })
-    df_categorias_mes_descontos_dre = df_categorias_mes_descontos_dre[['ID Casa', 'Data', 'Categoria', 'Total Desconto', 'CMV', 'Aloca no Centro de Custo', 'Centro de Custo', 'Permanece no Desconto', 'Dedução Faturamento - Alimento', 'Dedução Faturamento - Bebida', 'Descontos - DRE']]
-    df_categorias_mes_descontos_dre = df_categorias_mes_descontos_dre.sort_values(by=['ID Casa'])
-    st.dataframe(df_categorias_mes_descontos_dre, hide_index=True)
+    col1, col2 = st.columns([5, 1], vertical_alignment='center')
+    if contagem_descontos_dre_vazios == 0: 
+        with col1: st.success('Todos registros classificados na coluna "Descontos - DRE"!')
+        with col2: button_download(df_download, f"{casa} - {mes}{ano}", f"Descontos - {casa}")
+        
+    else: 
+        with col1: st.warning(f'Atenção: há {contagem_descontos_dre_vazios} registros sem classificação na coluna "Descontos - DRE"')
+        with col2: button_download(df_download, f"{casa} - {mes}{ano}", f"Descontos - {casa}")
+        
+        st.markdown("""
+            **Preencha os registros vazios com uma das opções abaixo, sem erros de digitação.**
 
-else:
+            - Desconto - Alimentação Escritório
+            - Descontos - Marketing
+            - Descontos - Operação
+            - Faturamento de Eventos - Promoções Utilizadas
+        """)
+
+else: # Quando não há dados de Descontos e Promoções para o mês selecionado
     st.info('Nada a ser exibido para a data selecionada.')
     

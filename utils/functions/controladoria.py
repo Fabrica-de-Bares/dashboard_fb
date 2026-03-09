@@ -71,13 +71,13 @@ def mapeamento_centro_custo(df):
     return df_categorias_mes_centro_custo
 
 
-def mapeamento_descontos_dre(casa, df):
+def mapeamento_descontos_dre(df):
     regras_globais_descontos_dre = {
         'EVENTO': 'Faturamento - Eventos',
         'COTA|OPERAÇÕES|REUNIÃO|MÚSICOS|REUNIÃO - ARTÍSTICO|REUNIÃO - TI|OUTROS|CLIENTE - DUO GOURMET|ASSINADA SÓCIOS E DIRETOR|ASSINADA SÓCIO FACUNDO|CORTESIA|CONVÊNIO|REUNIÃO - SUPRIMENTOS|RETIRADA / REDUÇÃO DE SERVIÇO|TREINAMENTO|LUCIANO PERES - SOCIO|LUCIANO PERES - SÓCIO|REUNIÃO - FABLAB|TESTE|TÉCNICO DE SOM|POLÍCIA|REUNIÃO - OPERAÇÕES|SEM JUSTIFICATIVA|PROMOÇÕES|OPERACIONAL|SERVIÇO|PERMUTA|OUTRO|REUNIÃO - OPERACIONAL|CONTA ASSINADA|10% LOJISTAS - CPF|10% CONVENIADOS - CPF|PROMOO': 'Descontos - Operação',
         'CONSUMO GERÊNCIA|CONSUMO GERENCIAL|DESCONTO FUNCIONÁRIO|CONSUMO COLABORADOR|COLABORADOR 30%|COLABORADORES \(30%\)|COLABORADOR \(30%\)|REUNIÃO - EVENTOS|COLABORADORES 30%|REUNIÃO - COMPRAS|30% FÁBRICA DE BARES|CARTÃO BLACK - ESHOWS, ESTAFF, FABLAB|CARTÃO BLACK - FB|30% FUNCIONÁRIOS FB|30% ESHOWS - CPF|30% ESHOWS - RG|30% DIVERTI - CPF|DIVERT 30%|30% FB - ORFEU|CONTA ASSINADA - FDB|CONTA ASSINADA - FACUNDO|REUNIÃO - EVENTOS|REUNIÃO - COMPRAS|30% FB - ORFEU': 'Desconto - Alimentação Escritório',
         'REUNIÃO - MKT|REUNIÃO - MARKETING|MARKETING|PROMOÇÃO|FOTOS E VIDEOS MKT|INFLUENCER|\[Ação de Marketing\]': 'Descontos - Marketing',
-        '\[Event\]|\[Evento\]|PACOTE': 'Faturamento de Eventos - Promoções Utilizadas',
+        '\[Event\]|\[Evento\]|\[Evento \]|PACOTE': 'Faturamento de Eventos - Promoções Utilizadas',
         '\[Evento\] - Confraternização FB': 'Descontos - Promoções Utilizadas' # Bar Léo
     }
 
