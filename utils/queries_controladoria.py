@@ -49,6 +49,16 @@ def GET_PROMOCOES():
 
 
 @st.cache_data
+def GET_DATAS_FECHAMENTO():
+  return dataframe_query('''
+    SELECT 
+      tdf.MES,
+      tdf.ANO,
+      tdf.DATA_FECHAMENTO
+    FROM T_DATAS_FECHAMENTO_DRE tdf;
+  ''')
+
+@st.cache_data
 def GET_LOGS_DESPESAS():
   return dataframe_query('''
     SELECT
@@ -71,7 +81,8 @@ def GET_LOGS_DESPESAS():
       tsad.DESCRICAO AS 'Status Aprovação Diretoria',
       tsao.DESCRICAO AS 'Status Aprovação Operação',
       tdmr.MOTIVO_DESCRICAO AS 'Motivo Reprovação',
-      trp.DESCRICAO AS 'Real/Provisão'                                                                                                                                                
+      trp.DESCRICAO AS 'Real/Provisão',
+      tlogdr.BIT_CANCELADA AS 'Bit Cancelada'                                                                                                                                                                   
 		FROM ZLOG_T_DESPESA_RAPIDA tlogdr 
 			LEFT JOIN ADMIN_USERS au ON (tlogdr.LOG_USER = au.ID)
 			LEFT JOIN T_EMPRESAS te ON (tlogdr.FK_LOJA = te.ID)
