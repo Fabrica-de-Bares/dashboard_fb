@@ -52,11 +52,15 @@ def GET_PROMOCOES():
 def GET_DATAS_FECHAMENTO():
   return dataframe_query('''
     SELECT 
+      te.ID AS 'ID Casa',
+      te.NOME_FANTASIA AS 'Casa',
       tdf.MES,
       tdf.ANO,
       tdf.DATA_FECHAMENTO
-    FROM T_DATAS_FECHAMENTO_DRE tdf;
+    FROM T_DATAS_FECHAMENTO_DRE tdf
+    LEFT JOIN T_EMPRESAS AS te ON (tdf.FK_EMPRESA = te.ID);
   ''')
+
 
 @st.cache_data
 def GET_LOGS_DESPESAS():
@@ -64,8 +68,16 @@ def GET_LOGS_DESPESAS():
     SELECT
 			tlogdr.ID AS 'ID Despesa',
 			tlogdr.LOG_DATE as 'Data Alteração',
-			te.ID AS 'ID Casa',
-			te.NOME_FANTASIA AS 'Casa',
+      CASE
+        WHEN te.ID = 177 THEN 176    
+        WHEN te.ID IN (161, 162) THEN 149   
+        ELSE te.ID                                                           
+			END AS 'ID Casa',
+      CASE                   
+        WHEN te.ID = 177 THEN 'The Cavern'   
+        WHEN te.ID IN (161, 162) THEN 'Priceless'   
+        ELSE te.NOME_FANTASIA           
+			END AS 'Casa',
 			au.FULL_NAME as 'Nome Usuário',
 			au.EMAIL as 'Email Usuário',
 			STR_TO_DATE(tlogdr.COMPETENCIA, '%Y-%m-%d') AS 'Data Competência',
@@ -81,7 +93,10 @@ def GET_LOGS_DESPESAS():
       tsad.DESCRICAO AS 'Status Aprovação Diretoria',
       tsao.DESCRICAO AS 'Status Aprovação Operação',
       tdmr.MOTIVO_DESCRICAO AS 'Motivo Reprovação',
-      trp.DESCRICAO AS 'Real/Provisão',
+      CASE
+        WHEN tlogdr.FK_REAL_PROVISAO = 100 THEN 'Provisão'
+        ELSE 'Real'                                                   
+      END AS 'Real/Provisão',
       tlogdr.BIT_CANCELADA AS 'Bit Cancelada'                                                                                                                                                                   
 		FROM ZLOG_T_DESPESA_RAPIDA tlogdr 
 			LEFT JOIN ADMIN_USERS au ON (tlogdr.LOG_USER = au.ID)
@@ -99,26 +114,26 @@ def GET_LOGS_DESPESAS():
   ''')
 
 
-@st.cache_data
-def GET_IDS_APROVACAO_OPERACAO_ALTERADOS():
-   return dataframe_query('''
-    SELECT DISTINCT ID AS 'ID Despesa'
-    FROM (
-        SELECT
-            ID, 
-            LOG_DATE,
-            FK_APROVACAO_OPERACAO,
-            LAG(FK_APROVACAO_OPERACAO) OVER (
-                PARTITION BY ID
-                ORDER BY LOG_DATE
-            ) AS status_anterior
-        FROM ZLOG_T_DESPESA_RAPIDA
-    ) t
-    WHERE FK_APROVACAO_OPERACAO = 102 # Depois: reprovado
-    AND status_anterior = 101         # Antes: aprovado
-    AND YEAR(LOG_DATE) = 2026
-    ORDER BY ID, LOG_DATE;                      
-  ''')
+# @st.cache_data
+# def GET_IDS_APROVACAO_OPERACAO_ALTERADOS():
+#    return dataframe_query('''
+#     SELECT DISTINCT ID AS 'ID Despesa'
+#     FROM (
+#         SELECT
+#             ID, 
+#             LOG_DATE,
+#             FK_APROVACAO_OPERACAO,
+#             LAG(FK_APROVACAO_OPERACAO) OVER (
+#                 PARTITION BY ID
+#                 ORDER BY LOG_DATE
+#             ) AS status_anterior
+#         FROM ZLOG_T_DESPESA_RAPIDA
+#     ) t
+#     WHERE FK_APROVACAO_OPERACAO = 102 # Depois: reprovado
+#     AND status_anterior = 101         # Antes: aprovado
+#     AND YEAR(LOG_DATE) = 2026
+#     ORDER BY ID, LOG_DATE;                      
+#   ''')
 
 
 @st.cache_data

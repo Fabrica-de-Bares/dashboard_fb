@@ -28,9 +28,9 @@ def destacar_alteracoes(df, colunas_comparar):
     return df.style.apply(lambda _: df.groupby('ID Despesa', group_keys=False).apply(highlight_group), axis=None)
 
 
-def filtragem_inicial_despesas(df_log_despesas_inicial, lista_ids_casas_selecionadas, data_limite):
+def filtragem_inicial_despesas(df_log_despesas_inicial, id_casa, data_limite):
     df_log_despesas_filtrado = df_log_despesas_inicial[ # Filtragem por casa e data
-        (df_log_despesas_inicial['ID Casa'].isin(lista_ids_casas_selecionadas)) &
+        (df_log_despesas_inicial['ID Casa'] == id_casa) &
         (df_log_despesas_inicial['Data Alteração'] >= data_limite)
     ]
 
@@ -49,32 +49,55 @@ def filtragem_inicial_despesas(df_log_despesas_inicial, lista_ids_casas_selecion
     return df_log_despesas_filtrado
 
 
-def filtragem_classificacao_contabil(df_log_despesas_filtrado, lista_class_cont_1_selecionadas, lista_class_cont_2_selecionadas):
-    if not lista_class_cont_1_selecionadas and not lista_class_cont_2_selecionadas: # Filtragens por class. cont.
-        df_log_despesas_filtrado = df_log_despesas_filtrado.copy()
-    elif not lista_class_cont_1_selecionadas and lista_class_cont_2_selecionadas: 
-        df_log_despesas_filtrado = df_log_despesas_filtrado[df_log_despesas_filtrado['Class. Cont. 2'].isin(lista_class_cont_2_selecionadas)]
-    elif lista_class_cont_1_selecionadas and not lista_class_cont_2_selecionadas:
-        df_log_despesas_filtrado = df_log_despesas_filtrado[df_log_despesas_filtrado['Class. Cont. 1'].isin(lista_class_cont_1_selecionadas)]
-    elif lista_class_cont_1_selecionadas and lista_class_cont_2_selecionadas:
-        df_log_despesas_filtrado = df_log_despesas_filtrado[
-            (df_log_despesas_filtrado['Class. Cont. 1'].isin(lista_class_cont_1_selecionadas)) &
-            (df_log_despesas_filtrado['Class. Cont. 2'].isin(lista_class_cont_2_selecionadas))
-        ]
+def filtragem_classificacao_contabil(df_log_despesas, lista_class_cont_1_selecionadas, lista_class_cont_2_selecionadas, tipo_alteracao=None):
+    if tipo_alteracao == 'Class. Cont.':
+        df_log_despesas_filtrado = df_log_despesas.copy()
+        if lista_class_cont_1_selecionadas or lista_class_cont_2_selecionadas:
+            df_log_despesas_alteradas = df_log_despesas_filtrado[ # Despesas alteradas para a class. cont. selecionada
+                (df_log_despesas_filtrado['Class. Cont. 1'].isin(lista_class_cont_1_selecionadas)) |
+                (df_log_despesas_filtrado['Class. Cont. 2'].isin(lista_class_cont_2_selecionadas))
+            ].copy()
+            lista_ids_alteracao_classif_selecionada = df_log_despesas_alteradas['ID Despesa'].tolist()
+            df_log_despesas_filtrado = df_log_despesas_filtrado[df_log_despesas_filtrado['ID Despesa'].isin(lista_ids_alteracao_classif_selecionada)]
 
+    else:
+        df_log_despesas_filtrado = df_log_despesas.copy()
+        if not lista_class_cont_1_selecionadas and lista_class_cont_2_selecionadas: 
+            df_log_despesas_filtrado = df_log_despesas_filtrado[df_log_despesas_filtrado['Class. Cont. 2'].isin(lista_class_cont_2_selecionadas)]
+        elif lista_class_cont_1_selecionadas and not lista_class_cont_2_selecionadas:
+            df_log_despesas_filtrado = df_log_despesas_filtrado[df_log_despesas_filtrado['Class. Cont. 1'].isin(lista_class_cont_1_selecionadas)]
+        elif lista_class_cont_1_selecionadas and lista_class_cont_2_selecionadas:
+            df_log_despesas_filtrado = df_log_despesas_filtrado[
+                (df_log_despesas_filtrado['Class. Cont. 1'].isin(lista_class_cont_1_selecionadas)) &
+                (df_log_despesas_filtrado['Class. Cont. 2'].isin(lista_class_cont_2_selecionadas))
+            ]
     return df_log_despesas_filtrado
 
 
-def filtragem_mes_ano_competencia(df, mes_competencia_selecionado, ano_competencia_selecionado):
-    df_filtrado = df[
-        (df['Data Competência'].dt.month == int(mes_competencia_selecionado)) &
-        (df['Data Competência'].dt.year == ano_competencia_selecionado)
-    ]
+def filtragem_mes_ano_competencia(df, mes_competencia_selecionado, ano_competencia_selecionado, tipo_alteracao):
+    df_filtrado = df.copy()
+    df_filtrado['Data Competência'] = pd.to_datetime(df_filtrado['Data Competência'], errors='coerce')
+    df_filtrado['Data Vencimento'] = pd.to_datetime(df_filtrado['Data Vencimento'], errors='coerce')
+    
+    if tipo_alteracao == 'Criadas':
+        df_filtrado = df_filtrado[
+            (df_filtrado['Data Competência'].dt.month == int(mes_competencia_selecionado)) &
+            (df_filtrado['Data Competência'].dt.year == ano_competencia_selecionado)
+        ].copy()
+
+    else:
+        df_despesas_alteradas = df_filtrado[ # Despesas alteradas para mes/ano selecionados
+            (df_filtrado['Data Competência'].dt.month == mes_competencia_selecionado) &
+            (df_filtrado['Data Competência'].dt.year == ano_competencia_selecionado)
+        ].copy()
+        lista_ids_alteracao_mes_selecionado = df_despesas_alteradas['ID Despesa'].tolist()
+        df_filtrado = df_filtrado[df_filtrado['ID Despesa'].isin(lista_ids_alteracao_mes_selecionado)]
+
     return df_filtrado
 
 
-def ocorrencia_despesas(df_log_despesas):
-    df_log_despesas_contagem = df_log_despesas.copy()
+def ocorrencia_despesas(df_log_despesas_inicial, df_log_despesas_filtrado, data_fechamento):
+    df_log_despesas_contagem = df_log_despesas_filtrado.copy()
     df_contador = df_log_despesas_contagem.groupby('ID Despesa').size().reset_index(name='Contagem')
     df_log_despesas_contagem = pd.merge(df_log_despesas_contagem, df_contador, how='left', on='ID Despesa') 
 
@@ -83,10 +106,16 @@ def ocorrencia_despesas(df_log_despesas):
     df_log_despesas_alteradas.drop(columns=['Contagem'], inplace=True)
 
     # Cria df com despesas criadas depois da data limite
-    df_log_despesas_criadas = df_log_despesas_contagem[df_log_despesas_contagem['Contagem'] == 1] 
-    df_log_despesas_criadas.drop(columns=['Contagem'], inplace=True)
+    # df_log_despesas_criadas = df_log_despesas_contagem[df_log_despesas_contagem['Contagem'] == 1] 
+    # df_log_despesas_criadas.drop(columns=['Contagem'], inplace=True)
+    df_log_despesas_criadas = df_log_despesas_inicial[
+        df_log_despesas_inicial.groupby('ID Despesa')['Data Alteração']
+        .transform('min') > data_fechamento # data do primeiro log é maior que a data de fechamento
+    ].copy()
+    
     df_log_despesas_criadas = df_log_despesas_criadas[df_log_despesas_criadas['Bit Cancelada'] == 0]
-
+    df_log_despesas_criadas.drop_duplicates(subset=['ID Despesa'], keep='first', inplace=True) # mantém apenas o primeiro registro da despesa (criação)
+    
     return df_log_despesas_alteradas, df_log_despesas_criadas
 
 
@@ -104,6 +133,8 @@ def despesas_alteradas_por_campo(df_log_despesas, colunas_comparar):
         df_alteracao = df_alteracao[['Casa', 'ID Despesa', 'Data Alteração', 'Nome Usuário', 'Email Usuário', 'Real/Provisão', 'Data Competência', 'Data Vencimento', 'Valor Original', 'Valor Liquido', 'Status Pagamento', 'Class. Cont. 1', 'Class. Cont. 2', 'Bit Cancelada']]
     elif colunas_comparar == ['Bit Cancelada']:
         df_alteracao = df_alteracao[['Casa', 'ID Despesa', 'Data Alteração', 'Nome Usuário', 'Email Usuário', 'Bit Cancelada', 'Data Competência', 'Data Vencimento', 'Valor Original', 'Valor Liquido', 'Status Pagamento', 'Class. Cont. 1', 'Class. Cont. 2']]
+    elif colunas_comparar == ['Casa']:
+        df_alteracao = df_alteracao[['ID Casa', 'Casa', 'ID Despesa', 'Data Alteração', 'Nome Usuário', 'Email Usuário', 'Data Competência', 'Data Vencimento', 'Valor Original', 'Valor Liquido', 'Status Pagamento', 'Class. Cont. 1', 'Class. Cont. 2', 'Bit Cancelada']]
 
     ids_com_alteracao = (
         df_alteracao
@@ -123,7 +154,11 @@ def despesas_alteradas_por_campo(df_log_despesas, colunas_comparar):
     else:
         colunas_verificar_duplicatas = [col for col in df_alteracao if (col not in ['Data Alteração', 'Nome Usuário', 'Email Usuário'])]
     
-    df_alteracao = df_alteracao.drop_duplicates(subset=colunas_verificar_duplicatas, keep='last') # mantém a versão mais recente da despesa
+    if 'Casa' not in colunas_comparar:
+        df_alteracao = df_alteracao.drop_duplicates(subset=colunas_verificar_duplicatas, keep='first') # mantém a versão mais recente da despesa
+    else: 
+        df_alteracao = df_alteracao.drop_duplicates(subset=colunas_verificar_duplicatas, keep='first') # mantém a versão da despesa logo quando ela foi passada de casa
+    
     if colunas_comparar != ['Bit Cancelada']: # Não considerar alteração de despesas canceladas
         ids_com_cancelamento = ( 
             df_alteracao.groupby('ID Despesa')['Bit Cancelada']
@@ -137,13 +172,13 @@ def despesas_alteradas_por_campo(df_log_despesas, colunas_comparar):
     return df_alteracao
 
 
-def exibe_contagem_ids_alterados(df):
+def exibe_contagem_despesas(df):
     lista_ids_despesas = df['ID Despesa'].unique().tolist()
     contagem_ids = len(lista_ids_despesas)
     if contagem_ids == 0:
         st.success('Sem despesas alteradas!')
     else:
-        st.write(f'**Total de despesas com alteração:** {contagem_ids}')
+        st.write(f'**Quantidade:** {contagem_ids}')
 
 
 def exibe_legenda():
