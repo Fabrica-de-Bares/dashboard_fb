@@ -83,7 +83,7 @@ def calcular_comissao_gerente_priceless(df_recebimentos_total_mes, id_responsave
     return df_recebimentos_total_mes
 
 
-def calcular_comissao_gerente_blue_note(df_recebimentos_total_mes, vendedor, id_casa):
+def calcular_comissao_blue_note(df_recebimentos_total_mes, vendedor, id_casa):
     if id_casa in [110, -1]:
         df_recebimentos_total_mes = df_recebimentos_total_mes[df_recebimentos_total_mes['ID Casa'] == 110].copy()
 
@@ -105,8 +105,12 @@ def calcular_comissao_gerente_blue_note(df_recebimentos_total_mes, vendedor, id_
 
             # Calcula a comissão para cada recebimento
             df_recebimentos_total_mes['Comissão'] = ((df_recebimentos_total_mes['Valor da Parcela'] - df_recebimentos_total_mes['Dedução Imposto']) * df_recebimentos_total_mes['% Comissão'] / 100)
+            
+            # Filtra apenas eventos do vendedor
+            df_recebimentos_total_mes = df_recebimentos_total_mes[df_recebimentos_total_mes['ID - Responsavel'] == vendedor]
 
-            df_recebimentos_total_mes.drop(columns=['ID - Responsavel', 'Cargo', 'Comissão Com Meta Atingida', 'Comissão Sem Meta Atingida', 'Ano Recebimento', 'Mês Recebimento'], inplace=True)
+            # Remove colunas desnecessárias
+            df_recebimentos_total_mes.drop(columns=['ID - Responsavel', 'Cargo', 'Comissão Com Meta Atingida', 'Comissão Sem Meta Atingida', 'Ano Recebimento', 'Mês Recebimento'], inplace=True)          
 
             # Ordem das colunas
             df_recebimentos_total_mes = df_recebimentos_total_mes[['ID Casa', 'Casa', 'ID Evento', 'Nome Evento', 'Data Vencimento', 'Data Recebimento', 'ID Parcela', 'Categoria Parcela', 'Valor da Parcela', 'Dedução Imposto', 'Valor Líquido', 'Comissão', '% Comissão']]
