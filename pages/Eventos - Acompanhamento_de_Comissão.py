@@ -264,8 +264,8 @@ def main():
                         df_vendedor = pd.concat([df_vendedor, df_recebimentos_gerente_priceless], ignore_index=True)
 
                     if 110 in ids_casas_vendedor:
-                        df_recebimentos_total_mes_outros_vendedores = df_recebimentos_total_mes[df_recebimentos_total_mes['ID Casa'] == 110].copy()
-                        df_recebimentos_gerente_blue_note = calcular_comissao_gerente_blue_note(df_recebimentos_total_mes, vendedor, id_casa)
+                        df_recebimentos_total_mes_outros_vendedores = df_recebimentos_total_mes[(df_recebimentos_total_mes['ID Casa'] == 110)].copy()
+                        df_recebimentos_gerente_blue_note = calcular_comissao_blue_note(df_recebimentos_total_mes, vendedor, id_casa)
                         df_vendedor = pd.concat([df_vendedor, df_recebimentos_gerente_blue_note], ignore_index=True)
 
                     df_vendedor['Valor Líquido'] = df_vendedor['Valor da Parcela'] - df_vendedor['Dedução Imposto']
