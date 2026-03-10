@@ -6,6 +6,7 @@ from utils.functions.produtos_relatorio_vendas import *
 from utils.functions.general_functions import *
 from utils.components import *
 from utils.user import logout
+from datetime import time
 
 st.set_page_config(
   layout = 'wide',
@@ -96,7 +97,23 @@ def grafico_linhas_faturamento_tipos(df, coluna_soma: str, key):
     # Renderizar no Streamlit
     return st_echarts(options=options, height="400px", key=key)
 
+def classificacao_momento_consumo(row):
+  if pd.notna(row['Data da Venda']):
+    hora_venda = pd.to_datetime(row['Data da Venda']).time()
 
+    if hora_venda <= time(6, 0):
+      return 'Madrugada'
+    elif hora_venda <= time(11, 0):
+      return 'Manhã'
+    elif hora_venda <= time(15, 0):
+      return 'Almoço'
+    elif hora_venda <= time(19, 0):
+      return 'Happy Hour'
+    else:
+      return 'Jantar'
+  return None
+  
+    
 
 def main():
   config_sidebar()
@@ -134,9 +151,10 @@ def main():
     data_inicio = pd.to_datetime(data_inicio)
     data_fim = pd.to_datetime(data_fim)
   st.divider()
-
-  if data_fim - data_inicio > pd.Timedelta(days=31):
-    st.error('O intervalo de datas deve ser menor ou igual a 31 dias para esta análise.')
+  
+  max_dias = 31*4
+  if data_fim - data_inicio > pd.Timedelta(days=max_dias):
+    st.error(f'O intervalo de datas deve ser menor ou igual a {max_dias} dias para esta análise.')
     st.stop()
 
   OrcamentoFaturamento = config_orcamento_faturamento(lojas_selecionadas, data_inicio, data_fim) 
@@ -184,11 +202,34 @@ def main():
     col1, col2 = st.columns([4, 1], vertical_alignment = "center")
     with col1:
         st.markdown('### Itens Vendidos Detalhado por Transação')
+    FaturamentoZigClasse['Momento Consumo'] = FaturamentoZigClasse.apply(
+      classificacao_momento_consumo, axis=1
+    )
     with col2:
         button_download(FaturamentoZigClasse, f'itens', f'download_itens')
     FaturamentoZigClasse = format_columns_brazilian(FaturamentoZigClasse, ['Valor Bruto Venda', 'Valor Líquido Venda', 'Preço Unitário'])
-    st.dataframe(FaturamentoZigClasse, width='stretch', hide_index=True)
-
+    st.dataframe(FaturamentoZigClasse[['ID Venda', 'Loja', 'Data da Venda', 'Data_Evento', 'Momento Consumo', 'ID Produto', 'Nome Produto', 'Preço Unitário', 'Quantia comprada', 'Desconto', 'Categoria', 'Tipo', 'Valor Bruto Venda', 'Valor Líquido Venda']], width='stretch', hide_index=True)
+    with st.container(border=True):
+      momentos = [
+          ("🌅", "Manhã", "6h–11h"),
+          ("☀️", "Almoço", "11h–15h"),
+          ("🍹", "Happy Hour", "15h–19h"),
+          ("🌙", "Jantar", "19h–00h"),
+          ("🌃", "Madrugada", "00h–06h"),
+      ]
+      items_html = "".join([
+          f'<div style="display:flex; align-items:center; gap:6px; white-space:nowrap;">'
+          f'<span>{emoji}</span>'
+          f'<span style="font-weight:600; font-size:0.82rem;">{titulo}</span>'
+          f'<span style="font-size:0.78rem; color:#999;">{horario}</span>'
+          f'</div>'
+          for emoji, titulo, horario in momentos
+      ])
+      st.markdown(f"""
+          <div style="display:flex; flex-wrap:wrap; gap:16px 24px; align-items:center; justify-content:center; padding: 4px 0;">
+              {items_html}
+          </div>
+      """, unsafe_allow_html=True)
 
     col1, col2 = st.columns([4, 1], vertical_alignment = "center")
     with col1:
