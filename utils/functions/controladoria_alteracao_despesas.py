@@ -29,10 +29,7 @@ def destacar_alteracoes(df, colunas_comparar):
 
 
 def filtragem_inicial_despesas(df_log_despesas_inicial, id_casa, data_limite):
-    df_log_despesas_filtrado = df_log_despesas_inicial[ # Filtragem por casa e data
-        (df_log_despesas_inicial['ID Casa'] == id_casa) &
-        (df_log_despesas_inicial['Data Alteração'] >= data_limite)
-    ]
+    df_log_despesas_filtrado = df_log_despesas_inicial[df_log_despesas_inicial['ID Casa'] == id_casa] 
 
     df_log_despesas_filtrado.sort_values(by=['ID Despesa', 'Data Alteração'], inplace=True)
 
@@ -74,7 +71,7 @@ def filtragem_classificacao_contabil(df_log_despesas, lista_class_cont_1_selecio
     return df_log_despesas_filtrado
 
 
-def filtragem_mes_ano_competencia(df, mes_competencia_selecionado, ano_competencia_selecionado, tipo_alteracao):
+def filtragem_mes_ano_competencia(df, mes_competencia_selecionado, ano_competencia_selecionado, tipo_alteracao, data_fechamento):
     df_filtrado = df.copy()
     df_filtrado['Data Competência'] = pd.to_datetime(df_filtrado['Data Competência'], errors='coerce')
     df_filtrado['Data Vencimento'] = pd.to_datetime(df_filtrado['Data Vencimento'], errors='coerce')
@@ -86,37 +83,33 @@ def filtragem_mes_ano_competencia(df, mes_competencia_selecionado, ano_competenc
         ].copy()
 
     else:
-        df_despesas_alteradas = df_filtrado[ # Despesas alteradas para mes/ano selecionados
+        df_despesas_alteradas = df_filtrado[ # Despesas com data de competência selecionada
             (df_filtrado['Data Competência'].dt.month == mes_competencia_selecionado) &
             (df_filtrado['Data Competência'].dt.year == ano_competencia_selecionado)
         ].copy()
         lista_ids_alteracao_mes_selecionado = df_despesas_alteradas['ID Despesa'].tolist()
         df_filtrado = df_filtrado[df_filtrado['ID Despesa'].isin(lista_ids_alteracao_mes_selecionado)]
 
+        df_despesas_alteracao = df_filtrado[ # Despesas com data de alteração >= data de fechamento
+            df_filtrado['Data Alteração'] >= data_fechamento
+        ].copy()
+        lista_ids_alteracao = df_despesas_alteracao['ID Despesa'].tolist()
+        df_filtrado = df_filtrado[df_filtrado['ID Despesa'].isin(lista_ids_alteracao)]
+
     return df_filtrado
 
 
-def ocorrencia_despesas(df_log_despesas_inicial, df_log_despesas_filtrado, data_fechamento):
-    df_log_despesas_contagem = df_log_despesas_filtrado.copy()
-    df_contador = df_log_despesas_contagem.groupby('ID Despesa').size().reset_index(name='Contagem')
-    df_log_despesas_contagem = pd.merge(df_log_despesas_contagem, df_contador, how='left', on='ID Despesa') 
-
-    # Cria df com despesas alteradas depois da data limite
-    df_log_despesas_alteradas = df_log_despesas_contagem[df_log_despesas_contagem['Contagem'] > 1] 
-    df_log_despesas_alteradas.drop(columns=['Contagem'], inplace=True)
-
+def ocorrencia_despesas(df_log_despesas_inicial, id_casa, data_fechamento):
     # Cria df com despesas criadas depois da data limite
-    # df_log_despesas_criadas = df_log_despesas_contagem[df_log_despesas_contagem['Contagem'] == 1] 
-    # df_log_despesas_criadas.drop(columns=['Contagem'], inplace=True)
     df_log_despesas_criadas = df_log_despesas_inicial[
         df_log_despesas_inicial.groupby('ID Despesa')['Data Alteração']
-        .transform('min') > data_fechamento # data do primeiro log é maior que a data de fechamento
+        .transform('min') >= data_fechamento # data do primeiro log é maior que a data de fechamento
     ].copy()
     
-    df_log_despesas_criadas = df_log_despesas_criadas[df_log_despesas_criadas['Bit Cancelada'] == 0]
+    df_log_despesas_criadas = df_log_despesas_criadas[(df_log_despesas_criadas['Bit Cancelada'] == 0) & (df_log_despesas_criadas['ID Casa'] == id_casa)]
     df_log_despesas_criadas.drop_duplicates(subset=['ID Despesa'], keep='first', inplace=True) # mantém apenas o primeiro registro da despesa (criação)
     
-    return df_log_despesas_alteradas, df_log_despesas_criadas
+    return df_log_despesas_criadas
 
 
 def despesas_alteradas_por_campo(df_log_despesas, colunas_comparar):
@@ -154,10 +147,7 @@ def despesas_alteradas_por_campo(df_log_despesas, colunas_comparar):
     else:
         colunas_verificar_duplicatas = [col for col in df_alteracao if (col not in ['Data Alteração', 'Nome Usuário', 'Email Usuário'])]
     
-    if 'Casa' not in colunas_comparar:
-        df_alteracao = df_alteracao.drop_duplicates(subset=colunas_verificar_duplicatas, keep='first') # mantém a versão mais recente da despesa
-    else: 
-        df_alteracao = df_alteracao.drop_duplicates(subset=colunas_verificar_duplicatas, keep='first') # mantém a versão da despesa logo quando ela foi passada de casa
+    df_alteracao = df_alteracao.drop_duplicates(subset=colunas_verificar_duplicatas, keep='first') # mantém o primeiro registro da alteração (para ver se ele foi depois do fechamento)
     
     if colunas_comparar != ['Bit Cancelada']: # Não considerar alteração de despesas canceladas
         ids_com_cancelamento = ( 
@@ -176,7 +166,7 @@ def exibe_contagem_despesas(df):
     lista_ids_despesas = df['ID Despesa'].unique().tolist()
     contagem_ids = len(lista_ids_despesas)
     if contagem_ids == 0:
-        st.success('Sem despesas alteradas!')
+        st.success('Sem registros!')
     else:
         st.write(f'**Quantidade:** {contagem_ids}')
 

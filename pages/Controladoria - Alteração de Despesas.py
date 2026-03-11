@@ -85,14 +85,12 @@ else:
 df_log_despesas_filtrado = filtragem_inicial_despesas(df_log_despesas_inicial, id_casa, data_fechamento_mes_selecionado)
 df_log_despesas_filtrado = filtragem_classificacao_contabil(df_log_despesas_filtrado, lista_class_cont_1_selecionadas, lista_class_cont_2_selecionadas)
 
-# Contabiliza a ocorrência de cada despesa
-df_log_despesas_alteradas, df_log_despesas_criadas = ocorrencia_despesas(df_log_despesas_inicial, df_log_despesas_filtrado, data_fechamento_mes_selecionado)
 
 # Despesas criadas após data de fechamento
 st.subheader('Despesas criadas após data de fechamento')
+df_log_despesas_criadas = ocorrencia_despesas(df_log_despesas_inicial, id_casa, data_fechamento_mes_selecionado)
 df_log_despesas_criadas = filtragem_classificacao_contabil(df_log_despesas_criadas, lista_class_cont_1_selecionadas, lista_class_cont_2_selecionadas, 'Criadas')
-df_log_despesas_criadas = filtragem_mes_ano_competencia(df_log_despesas_criadas, mes_competencia_selecionado, ano_competencia_selecionado, 'Criadas')
-df_log_despesas_criadas = df_log_despesas_criadas[df_log_despesas_criadas['ID Casa'] == id_casa].copy()
+df_log_despesas_criadas = filtragem_mes_ano_competencia(df_log_despesas_criadas, mes_competencia_selecionado, ano_competencia_selecionado, 'Criadas', data_fechamento_mes_selecionado)
 df_log_despesas_criadas.rename(columns={'Data Alteração': 'Data Criação'}, inplace=True)
 
 if not df_log_despesas_criadas.empty:
@@ -103,7 +101,6 @@ exibe_contagem_despesas(df_log_despesas_criadas)
 st.divider()
 
 
-#### TESTE ####
 tipos_alteracao = [
     {
         "titulo": "Alteração em Data de Competência",
@@ -115,11 +112,11 @@ tipos_alteracao = [
         "campo_filtro": "Data Vencimento",
         "colunas_comparar": ["Data Vencimento"]
     },
-    # {
-    #     "titulo": "Alteração em Valor",
-    #     "campo_filtro": "Valor",
-    #     "colunas_comparar": ["Valor Original", "Valor Liquido"]
-    # },
+    {
+        "titulo": "Alteração em Valor",
+        "campo_filtro": "Valor",
+        "colunas_comparar": ["Valor Original", "Valor Liquido"]
+    },
     {
         "titulo": "Alteração em Classificação Contábil",
         "campo_filtro": "Class. Cont.",
@@ -135,9 +132,9 @@ tipos_alteracao = [
 for tipo in tipos_alteracao:
     st.subheader(tipo["titulo"])
 
-    # df = filtragem_classificacao_contabil(df_log_despesas_filtrado, lista_class_cont_1_selecionadas, lista_class_cont_2_selecionadas, tipo["campo_filtro"])
     df = despesas_alteradas_por_campo(df_log_despesas_filtrado, tipo["colunas_comparar"])
-    df = filtragem_mes_ano_competencia(df, mes_competencia_selecionado, ano_competencia_selecionado, tipo["campo_filtro"])
+    df = filtragem_classificacao_contabil(df, lista_class_cont_1_selecionadas, lista_class_cont_2_selecionadas, tipo["campo_filtro"])
+    df = filtragem_mes_ano_competencia(df, mes_competencia_selecionado, ano_competencia_selecionado, tipo["campo_filtro"], data_fechamento_mes_selecionado)
 
     if not df.empty:
         df_styled = format_columns_brazilian(df, ['Valor Original', 'Valor Liquido'])
@@ -148,90 +145,29 @@ for tipo in tipos_alteracao:
     exibe_contagem_despesas(df)
     st.divider()
 
-# # Exibe alterações em data de competência
-# st.subheader('Alteração em Data de Competência')
-# # df_alteracao_data_competencia = filtragem_classificacao_contabil(df_log_despesas_filtrado, lista_class_cont_1_selecionadas, lista_class_cont_2_selecionadas, 'Data Competência')
-# df_alteracao_data_competencia = despesas_alteradas_por_campo(df_log_despesas_filtrado, ['Data Competência'])
-# df_alteracao_data_competencia = filtragem_mes_ano_competencia(df_alteracao_data_competencia, mes_competencia_selecionado, ano_competencia_selecionado, 'Data Competência')
 
-# if not df_alteracao_data_competencia.empty:
-#     df_alteracao_data_styled = format_columns_brazilian(df_alteracao_data_competencia, ['Valor Original', 'Valor Liquido'])
-#     df_alteracao_data_styled = destacar_alteracoes(df_alteracao_data_styled, ['Data Competência'])
-#     st.dataframe(df_alteracao_data_styled, hide_index=True, width='stretch')
+# Antes - Exemplo #
+# # Exibe alterações em campos de valor
+# st.subheader('Alteração em Valor')
+# df_alteracao_valor = despesas_alteradas_por_campo(df_log_despesas_filtrado, ['Valor Original', 'Valor Liquido'])
+# df_alteracao_valor = filtragem_classificacao_contabil(df_alteracao_valor, lista_class_cont_1_selecionadas, lista_class_cont_2_selecionadas, 'Valor')
+# df_alteracao_valor = filtragem_mes_ano_competencia(df_alteracao_valor, mes_competencia_selecionado, ano_competencia_selecionado, 'Valor', data_fechamento_mes_selecionado)
+
+# # df_despesas_alteracao = df_alteracao_valor[ # Despesas alteradas para a mes/ano selecionados
+# #     (df_alteracao_valor['Casa'] == casa) &
+# #     (df_alteracao_valor['Data Alteração'] >= data_fechamento_mes_selecionado)
+# # ].copy()
+# # lista_ids_alteracao_mes_selecionado = df_despesas_alteracao['ID Despesa'].tolist()
+# # df_alteracao_valor = df_alteracao_valor[df_alteracao_valor['ID Despesa'].isin(lista_ids_alteracao_mes_selecionado)]
+# # df_alteracao_valor.sort_values(by=['ID Despesa', 'Data Alteração'], inplace=True)
+
+# if not df_alteracao_valor.empty:
+#     df_alteracao_valor_styled = format_columns_brazilian(df_alteracao_valor, ['Valor Original', 'Valor Liquido'])
+#     df_alteracao_valor_styled = destacar_alteracoes(df_alteracao_valor_styled, ['Valor Original', 'Valor Liquido'])
+#     st.dataframe(df_alteracao_valor_styled, hide_index=True, width='stretch')
 #     exibe_legenda()
 
-# exibe_contagem_despesas(df_alteracao_data_competencia)
-# st.divider()
-
-# # Exibe alterações em data de vencimento
-# st.subheader('Alteração em Data de Vencimento')
-# # df_alteracao_data_vencimento = filtragem_classificacao_contabil(df_log_despesas_filtrado, lista_class_cont_1_selecionadas, lista_class_cont_2_selecionadas, 'Data Vencimento')
-# df_alteracao_data_vencimento = despesas_alteradas_por_campo(df_log_despesas_filtrado, ['Data Vencimento'])
-# df_alteracao_data_vencimento = filtragem_mes_ano_competencia(df_alteracao_data_vencimento, mes_competencia_selecionado, ano_competencia_selecionado, 'Data Vencimento')
-
-# if not df_alteracao_data_vencimento.empty:
-#     df_alteracao_data_styled = format_columns_brazilian(df_alteracao_data_vencimento, ['Valor Original', 'Valor Liquido'])
-#     df_alteracao_data_styled = destacar_alteracoes(df_alteracao_data_styled, ['Data Vencimento'])
-#     st.dataframe(df_alteracao_data_styled, hide_index=True, width='stretch')
-#     exibe_legenda()
-
-# exibe_contagem_despesas(df_alteracao_data_vencimento)
-# st.divider()
-
-
-# Exibe alterações em campos de valor
-st.subheader('Alteração em Valor')
-df_alteracao_valor = despesas_alteradas_por_campo(df_log_despesas_inicial, ['Valor Original', 'Valor Liquido'])
-df_alteracao_valor = filtragem_classificacao_contabil(df_alteracao_valor, lista_class_cont_1_selecionadas, lista_class_cont_2_selecionadas, 'Valor')
-df_alteracao_valor = filtragem_mes_ano_competencia(df_alteracao_valor, mes_competencia_selecionado, ano_competencia_selecionado, 'Valor')
-
-df_despesas_alteracao = df_alteracao_valor[ # Despesas alteradas para a mes/ano selecionados
-    (df_alteracao_valor['Casa'] == casa) &
-    (df_alteracao_valor['Data Alteração'] >= data_fechamento_mes_selecionado)
-].copy()
-lista_ids_alteracao_mes_selecionado = df_despesas_alteracao['ID Despesa'].tolist()
-df_alteracao_valor = df_alteracao_valor[df_alteracao_valor['ID Despesa'].isin(lista_ids_alteracao_mes_selecionado)]
-df_alteracao_valor.sort_values(by=['ID Despesa', 'Data Alteração'], inplace=True)
-
-if not df_alteracao_valor.empty:
-    df_alteracao_valor_styled = format_columns_brazilian(df_alteracao_valor, ['Valor Original', 'Valor Liquido'])
-    df_alteracao_valor_styled = destacar_alteracoes(df_alteracao_valor_styled, ['Valor Original', 'Valor Liquido'])
-    st.dataframe(df_alteracao_valor_styled, hide_index=True, width='stretch')
-    exibe_legenda()
-
-exibe_contagem_despesas(df_alteracao_valor)
-st.divider()
-
-
-# # Exibe alterações em campos de classificação cont.
-# st.subheader('Alteração em Classificação Contábil')
-# df_alteracao_classif = filtragem_classificacao_contabil(df_log_despesas_filtrado, lista_class_cont_1_selecionadas, lista_class_cont_2_selecionadas, tipo_alteracao='Class. Cont.')
-# df_alteracao_classif = despesas_alteradas_por_campo(df_alteracao_classif, ['Class. Cont. 1', 'Class. Cont. 2'])
-# df_alteracao_classif = filtragem_mes_ano_competencia(df_alteracao_classif, mes_competencia_selecionado, ano_competencia_selecionado, 'Class. Cont.')
-
-# if not df_alteracao_classif.empty:
-#     df_alteracao_classif_styled = format_columns_brazilian(df_alteracao_classif, ['Valor Original', 'Valor Liquido'])
-#     df_alteracao_classif_styled = destacar_alteracoes(df_alteracao_classif_styled, ['Class. Cont. 1', 'Class. Cont. 2'])
-#     st.dataframe(df_alteracao_classif_styled, hide_index=True, width='stretch')
-#     exibe_legenda()
-
-# exibe_contagem_despesas(df_alteracao_classif)
-# st.divider()
-
-
-# # Despesas canceladas após data
-# st.subheader('Despesas Canceladas após data de fechamento')
-# # df_despesas_canceladas = filtragem_classificacao_contabil(df_log_despesas_filtrado, lista_class_cont_1_selecionadas, lista_class_cont_2_selecionadas, 'Canceladas')
-# df_despesas_canceladas = despesas_alteradas_por_campo(df_log_despesas_filtrado, ['Bit Cancelada'])
-# df_despesas_canceladas = filtragem_mes_ano_competencia(df_despesas_canceladas, mes_competencia_selecionado, ano_competencia_selecionado, 'Canceladas')
-
-# if not df_despesas_canceladas.empty:
-#     df_despesas_canceladas_styled = format_columns_brazilian(df_despesas_canceladas, ['Valor Original', 'Valor Liquido'])
-#     df_despesas_canceladas_styled = destacar_alteracoes(df_despesas_canceladas_styled, ['Bit Cancelada'])
-#     st.dataframe(df_despesas_canceladas_styled, hide_index=True, width='stretch')
-#     exibe_legenda()
-
-# exibe_contagem_despesas(df_despesas_canceladas)
+# exibe_contagem_despesas(df_alteracao_valor)
 # st.divider()
 
 
@@ -239,7 +175,7 @@ st.divider()
 st.subheader('Despesas com casa alterada')
 df_despesas_alteracao_casa = despesas_alteradas_por_campo(df_log_despesas_inicial, ['Casa'])
 df_despesas_alteracao_casa = filtragem_classificacao_contabil(df_despesas_alteracao_casa, lista_class_cont_1_selecionadas, lista_class_cont_2_selecionadas, 'Casa')
-df_despesas_alteracao_casa = filtragem_mes_ano_competencia(df_despesas_alteracao_casa, mes_competencia_selecionado, ano_competencia_selecionado, 'Casa')
+df_despesas_alteracao_casa = filtragem_mes_ano_competencia(df_despesas_alteracao_casa, mes_competencia_selecionado, ano_competencia_selecionado, 'Casa', data_fechamento_mes_selecionado)
 
 df_despesas_alteracao = df_despesas_alteracao_casa[ # Despesas alteradas para a mes/ano selecionados
     (df_despesas_alteracao_casa['ID Casa'] == id_casa) &
@@ -258,7 +194,5 @@ if not df_despesas_alteracao_casa.empty:
 
 exibe_contagem_despesas(df_despesas_alteracao_casa)
 st.divider()
-
-
 
 
