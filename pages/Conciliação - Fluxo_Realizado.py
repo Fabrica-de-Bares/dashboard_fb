@@ -12,7 +12,7 @@ from utils.components import dataframe_aggrid, input_multiselecao_casas
 
 st.set_page_config(
     page_title="Fluxo Realizado",
-    page_icon=":material/currency_exchange:",
+    page_icon="🪙",
     layout="wide",
     initial_sidebar_state="collapsed"
 )
@@ -26,7 +26,7 @@ config_sidebar()
 
 col1, col2 = st.columns([5, 1], vertical_alignment='center')
 with col1:
-    st.title(":material/currency_exchange: Fluxo Realizado")
+    st.title("🪙 Fluxo Realizado")
 with col2:
     st.button(label='Atualizar', key='atualizar', on_click=st.cache_data.clear)
 st.divider()

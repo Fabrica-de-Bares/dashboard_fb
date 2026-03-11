@@ -16,7 +16,7 @@ c = conn.cursor(buffered=True)
 
 st.set_page_config(
     page_title="Subir Colunas - DRE",
-    page_icon=":material/list:",
+    page_icon="⬆️",
     layout="wide",
     initial_sidebar_state="collapsed"
 )
@@ -28,7 +28,7 @@ if 'loggedIn' not in st.session_state or not st.session_state['loggedIn']:
 # Personaliza menu lateral
 config_sidebar()
 
-st.title(":material/list: Subir Colunas - DRE")
+st.title("⬆️ Subir Colunas - DRE")
 st.write("Aba que formata a planilha de Orçamento Operacional anual e as colunas de 'Real' para inserção automática no EPM.")
 st.divider()
 

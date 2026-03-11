@@ -9,7 +9,7 @@ from utils.queries_conciliacao import *
 
 st.set_page_config(
   page_title="Conciliação FB - Ajustes",
-  page_icon=":material/instant_mix:",
+  page_icon="🛠️",
   layout="wide",
   initial_sidebar_state="collapsed"
 )
@@ -23,7 +23,7 @@ config_sidebar()
 
 col1, col2 = st.columns([5, 1], vertical_alignment='center')
 with col1:
-  st.title(":material/instant_mix: Ajustes")
+  st.title("🛠️ Ajustes")
 with col2:
   st.button(label='Atualizar dados', key='atualizar_forecast', on_click=st.cache_data.clear)
 st.divider()
@@ -34,7 +34,7 @@ col1, col2 = st.columns(2)
 
 # Seletor de casa
 with col1: 
-  lista_retirar_casas = ['Bar Léo - Vila Madalena', 'Todas as Casas', 'Blue Note SP (Sala 2)']
+  lista_retirar_casas = ['Todas as Casas', 'Bar Léo - Vila Madalena', 'Blue Note SP (Sala 2)', 'The Cavern - Almoço']
   id_casa, nome_casa, id_zigpay = input_selecao_casas(lista_retirar_casas, key='faturamento_bruto')
   
 # Seletor de ano

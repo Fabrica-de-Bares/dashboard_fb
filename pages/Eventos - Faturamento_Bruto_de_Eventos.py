@@ -14,7 +14,7 @@ warnings.filterwarnings("ignore", category=FutureWarning)
 
 st.set_page_config(
 	page_title="Faturamento Bruto de Eventos",
-	page_icon=":moneybag:",
+	page_icon="💰",
 	layout="wide",
 	initial_sidebar_state="collapsed"
 )
@@ -30,7 +30,7 @@ def main():
 	# Header
 	col1, col2, col3 = st.columns([6, 1, 1])
 	with col1:
-		st.title(":moneybag: Faturamento Bruto de Eventos")
+		st.title("💰 Faturamento Bruto de Eventos")
 	with col2:
 		st.button(label='Atualizar', key='atualizar_faturamento', on_click=st.cache_data.clear)
 	st.divider()

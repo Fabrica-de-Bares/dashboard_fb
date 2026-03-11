@@ -15,7 +15,7 @@ casas_validas = [casa for casa in casas_validas if casa != 'Blue Note SP (Sala 2
 
 st.set_page_config(
     page_title="Conciliação FB - Farol",
-    page_icon=":material/finance:",
+    page_icon="📊",
     layout="wide",
     initial_sidebar_state="collapsed"
 )
@@ -29,7 +29,7 @@ config_sidebar()
 
 col1, col2 = st.columns([5, 1], vertical_alignment='center')
 with col1:
-    st.title(":material/finance: Farol de conciliação")
+    st.title("📊 Farol de conciliação")
 with col2:
     st.button(label='Atualizar dados', key='atualizar_forecast', on_click=st.cache_data.clear)
 st.divider()

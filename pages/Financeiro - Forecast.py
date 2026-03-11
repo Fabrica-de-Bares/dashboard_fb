@@ -9,7 +9,7 @@ from utils.queries_forecast import *
 
 st.set_page_config(
     page_title="Forecast",
-    page_icon=":material/event_upcoming:",
+    page_icon="📈",
     layout="wide",
     initial_sidebar_state="collapsed"
 )
@@ -23,7 +23,7 @@ config_sidebar()
 
 col1, col2 = st.columns([5, 1], vertical_alignment='center')
 with col1:
-    st.title(":material/event_upcoming: Forecast")
+    st.title("📈 Forecast")
 with col2:
     st.button(label='Atualizar dados', key='atualizar_forecast', on_click=st.cache_data.clear)
 st.divider()

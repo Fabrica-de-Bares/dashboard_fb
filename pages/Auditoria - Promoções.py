@@ -23,7 +23,7 @@ RGB.__set__ = __rgb_set_fixed__
 
 st.set_page_config(
     page_title="Formatar - Promoções",
-    page_icon=":material/list:",
+    page_icon="📝",
     layout="wide",
     initial_sidebar_state="collapsed"
 )
@@ -35,7 +35,7 @@ if 'loggedIn' not in st.session_state or not st.session_state['loggedIn']:
 # Personaliza menu lateral
 config_sidebar()
 
-st.title(":material/list: Formatar - Promoções")
+st.title("📝 Formatar - Promoções")
 st.write('Aba que formata a planilha de Promoções ZigPay para inserção automática no EPM.')
 st.divider()
 

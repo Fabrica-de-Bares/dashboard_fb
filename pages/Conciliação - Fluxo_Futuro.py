@@ -10,7 +10,7 @@ from utils.queries_conciliacao import *
 
 st.set_page_config(
     page_title="Fluxo Futuro",
-    page_icon=":material/event_upcoming:",
+    page_icon="🔮",
     layout="wide",
     initial_sidebar_state="collapsed"
 )
@@ -24,7 +24,7 @@ config_sidebar()
 
 col1, col2 = st.columns([5, 1], vertical_alignment='center')
 with col1:
-    st.title(":material/event_upcoming: Fluxo Futuro")
+    st.title("🔮 Fluxo Futuro")
 with col2:
     st.button(label='Atualizar', key='atualizar', on_click=st.cache_data.clear)
 st.divider()

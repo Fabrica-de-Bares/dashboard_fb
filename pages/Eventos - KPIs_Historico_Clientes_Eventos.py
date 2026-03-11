@@ -8,7 +8,7 @@ from utils.user import *
 from utils.functions.kpis_clientes_eventos import *
 
 st.set_page_config(
-	page_icon=":busts_in_silhouette:",
+	page_icon="👥",
 	page_title="KPI's de Vendas - Histórico e Recorrência de Clientes",
 	layout="wide",
 	initial_sidebar_state="collapsed"
@@ -27,7 +27,7 @@ def main():
     st.markdown("<div style='margin-top: 30px'></div>", unsafe_allow_html=True)
     col1, col2, col3 = st.columns([6, 1, 1])
     with col1:
-        st.title(":busts_in_silhouette: KPI's de Vendas - Histórico e Recorrência de Clientes")
+        st.title("👥 KPI's de Vendas - Histórico e Recorrência de Clientes")
     with col2:
         st.button(label='Atualizar', key='atualizar_historico_clientes_eventos', on_click=st.cache_data.clear)
     st.divider()

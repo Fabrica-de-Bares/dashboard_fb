@@ -11,7 +11,7 @@ pd.set_option('future.no_silent_downcasting', True)
 
 st.set_page_config(
     page_title="Descontos - DRE",
-    page_icon=":material/percent_discount:",
+    page_icon="🏷️",
     layout="wide",
     initial_sidebar_state="collapsed"
 )
@@ -25,7 +25,7 @@ config_sidebar()
 
 col1, col2 = st.columns([5, 1], vertical_alignment='center')
 with col1:
-    st.title(":material/percent_discount: Descontos - DRE")
+    st.title("🏷️ Descontos - DRE")
     st.write("Aba que replica a aba de 'Descontos' da planilha de DRE para inserção automática no EPM.")
 with col2:
     st.button(label='Atualizar dados', key='atualizar_forecast', on_click=st.cache_data.clear)

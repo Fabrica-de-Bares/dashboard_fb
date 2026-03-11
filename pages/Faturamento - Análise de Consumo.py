@@ -11,7 +11,7 @@ from utils.queries_produto import *
 st.set_page_config(
 	layout="wide",
 	page_title="Análise de Consumo",
-	page_icon=":material/restaurant:",
+	page_icon="🍴",
 	initial_sidebar_state="collapsed"
 )
 pd.set_option("future.no_silent_downcasting", True)
@@ -24,7 +24,7 @@ config_sidebar()
 
 col, col2, col3 = st.columns([6, 1, 1])
 with col:
-	st.title(":material/restaurant: Análise de Consumo")
+	st.title("🍴 Análise de Consumo")
 with col2:
 	st.button(label="Atualizar", on_click=st.cache_data.clear)
 

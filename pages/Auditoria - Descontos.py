@@ -22,7 +22,7 @@ RGB.__set__ = __rgb_set_fixed__
 
 st.set_page_config(
     page_title="Categorização - Descontos",
-    page_icon=":material/list:",
+    page_icon="📝",
     layout="wide",
     initial_sidebar_state="collapsed"
 )
@@ -34,7 +34,7 @@ if 'loggedIn' not in st.session_state or not st.session_state['loggedIn']:
 # Personaliza menu lateral
 config_sidebar()
 
-st.title(":material/list: Categorização - Descontos")
+st.title("📝 Categorização - Descontos")
 st.write('Aba que categoriza e formata planilhas de Descontos ZigPay para inserção automática no EPM.')
 st.divider()
 

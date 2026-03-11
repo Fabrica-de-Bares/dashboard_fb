@@ -8,7 +8,7 @@ from utils.components import *
 st.set_page_config(
   layout = 'wide',
   page_title = 'Análise de Preços',
-  page_icon=':heavy_dollar_sign:',
+  page_icon='💲',
   initial_sidebar_state="collapsed"
 )
 
@@ -24,7 +24,7 @@ def main ():
     """
   st.markdown(streamlit_style, unsafe_allow_html=True)
 
-  st.title(':heavy_dollar_sign: Análise de Preços')
+  st.title('💲 Análise de Preços')
 
   dfComparativo = GET_COMPRAS_PRODUTOS_QUANTIA_NOME_COMPRA()
 

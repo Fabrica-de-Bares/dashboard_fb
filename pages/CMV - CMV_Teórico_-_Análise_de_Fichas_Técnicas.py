@@ -7,7 +7,7 @@ from utils.functions.cmv_teorico import *
 from utils.queries_cmv import *
 
 st.set_page_config(
-    page_icon=":material/rubric:",
+    page_icon="📋",
     page_title="CMV Teórico - Análise de Fichas Técnicas",
     layout="wide",
     initial_sidebar_state="collapsed"
@@ -27,7 +27,7 @@ def main():
     # Header
     col1, col2 = st.columns([6, 2], vertical_alignment="center")
     with col1:
-        st.title(":material/rubric: CMV Teórico - Análise de Fichas Técnicas")
+        st.title("📋 CMV Teórico - Análise de Fichas Técnicas")
     with col2:
         st.button(label='Atualizar', key='atualizar', on_click=st.cache_data.clear, icon='🔄', width='stretch')
     st.divider()

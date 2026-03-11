@@ -13,7 +13,7 @@ from utils.user import *
 warnings.filterwarnings("ignore", category=FutureWarning)
 
 st.set_page_config(
-	page_icon=":receipt:",
+	page_icon="🧾",
 	page_title="Auditoria de Eventos - Preenchimento dos Lançamentos",
 	layout="wide",
 	initial_sidebar_state="collapsed"
@@ -75,7 +75,7 @@ def main():
 
 	col1, col2, col3 = st.columns([6, 1, 1])
 	with col1:
-		st.header(":receipt: Auditoria de Eventos - Preenchimento dos Lançamentos")
+		st.header("🧾 Auditoria de Eventos - Preenchimento dos Lançamentos")
 	with col2:
 		st.button(label='Atualizar', key='atualizar_informacoes_eventos', on_click=st.cache_data.clear)
 	st.divider()

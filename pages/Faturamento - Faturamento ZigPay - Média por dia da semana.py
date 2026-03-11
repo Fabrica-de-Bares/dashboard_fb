@@ -10,7 +10,7 @@ from utils.user import logout
 
 st.set_page_config(
     page_title="Faturamento ZigPay - Média por dia da semana",
-    page_icon=":moneybag:",
+    page_icon="💰",
     layout="wide",
     initial_sidebar_state="collapsed"
 )
@@ -24,7 +24,7 @@ config_sidebar()
 
 col1, col2, col3 = st.columns([6, 1, 1], vertical_alignment='center')
 with col1:
-    st.title(":moneybag: Faturamento ZigPay - Dias da semana")
+    st.title("💰 Faturamento ZigPay - Dias da semana")
 with col2:
     st.button(label="Atualizar dados", on_click=st.cache_data.clear)
 st.divider()

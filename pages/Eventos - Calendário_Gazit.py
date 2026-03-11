@@ -9,7 +9,7 @@ from utils.user import *
 from utils.functions.calendario_de_eventos import *
 
 st.set_page_config(
-	page_icon=":calendar:",
+	page_icon="📆",
 	page_title="Calendário de Eventos - Gazit",
 	layout="wide",
 	initial_sidebar_state="collapsed"

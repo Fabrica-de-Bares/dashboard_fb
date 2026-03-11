@@ -9,7 +9,7 @@ from utils.user import logout
 st.set_page_config(
   layout = 'wide',
   page_title = 'Faturamento - Outras Receitas',  
-  page_icon=':dollar:',
+  page_icon='💵',
   initial_sidebar_state="collapsed"
 )
 
@@ -19,7 +19,7 @@ if 'loggedIn' not in st.session_state or not st.session_state['loggedIn']:
 config_sidebar()
 col, col2, col3 = st.columns([6, 1, 1])
 with col:
-  st.title(':dollar: Faturamento - Outras Receitas')
+  st.title('💵 Faturamento - Outras Receitas')
 with col2:
   st.button(label="Atualizar", on_click = st.cache_data.clear)
 

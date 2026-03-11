@@ -14,7 +14,7 @@ from utils.user import *
 warnings.filterwarnings("ignore", category=FutureWarning)
 
 st.set_page_config(
-	page_icon=":no_entry_sign:",
+	page_icon="🚫",
 	page_title="Auditoria de Eventos - Preenchimento dos Lançamentos",
 	layout="wide",
 	initial_sidebar_state="collapsed"
@@ -32,7 +32,7 @@ def main():
 
 	col1, col2, col3 = st.columns([6, 1, 1])
 	with col1:
-		st.header(":no_entry_sign: Auditoria de Eventos - Alteração de Confirmados")
+		st.header("🚫 Auditoria de Eventos - Alteração de Confirmados")
 	with col2:
 		st.button(label='Atualizar', key='atualizar', on_click=st.cache_data.clear)
 	st.divider()

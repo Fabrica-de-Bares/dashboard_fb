@@ -13,7 +13,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 
 st.set_page_config(
-    page_icon=":bar_chart:",
+    page_icon="📊",
     page_title="Painel de CMV",
     layout="wide",
     initial_sidebar_state="collapsed"
@@ -33,7 +33,7 @@ def main():
     # Header
     col1, col2, col3 = st.columns([6, 1, 1], vertical_alignment="center")
     with col1:
-        st.title(":bar_chart: Painel de CMV")
+        st.title("📊 Painel de CMV")
     with col2:
         st.button(label='Atualizar', key='atualizar', on_click=st.cache_data.clear)
     st.divider()

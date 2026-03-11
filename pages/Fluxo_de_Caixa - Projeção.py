@@ -9,7 +9,7 @@ from utils.components import button_download
 
 st.set_page_config(
     page_title="Projeção - Despesas", 
-    page_icon=":material/chart_data:", 
+    page_icon="🧾", 
     layout="wide",
     initial_sidebar_state="collapsed"
 )
@@ -21,7 +21,7 @@ config_sidebar()
 
 col1, col2, col3 = st.columns([6, 1, 1], vertical_alignment='center')
 with col1:
-    st.title(":material/chart_data: Projeção - Despesas")
+    st.title("🧾 Projeção - Despesas")
 with col2:
     st.button(label="Atualizar dados", on_click=st.cache_data.clear)
     
