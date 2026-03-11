@@ -48,7 +48,7 @@ ABAS = {
     134: {'nome_aba': '📝 Formatar - Promoções', 'page_link': 'pages/Auditoria - Promoções.py'},
     135: {'nome_aba': '⬆️ Colunas - DRE (Orçamentos / Real)', 'page_link': 'pages/Controladoria - Colunas_DRE.py'},
     136: {'nome_aba': '🏷️ Descontos - DRE', 'page_link': 'pages/Controladoria - Descontos_DRE.py'},
-    #137: {'nome_aba': '🪙 Cálculo de Gorjeta', 'page_link': 'pages/Operacional - Cálculo_Gorjeta.py'}
+    137: {'nome_aba': '🪙 Cálculo de Gorjeta', 'page_link': 'pages/Operacional - Cálculo_Gorjeta.py'}
 }
 
 def main():
