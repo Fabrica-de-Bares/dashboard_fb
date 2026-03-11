@@ -494,6 +494,11 @@ def format_date_column(df, col, fmt="%d/%m/%Y"):
         df[col] = pd.to_datetime(df[col], errors="coerce").dt.strftime(fmt)
     return df
 
+def format_datetime_column(df, col, fmt="%d/%m/%Y %H:%M:%S"):
+    if col in df.columns:
+        df[col] = pd.to_datetime(df[col], errors="coerce").dt.strftime(fmt)
+    return df
+
 
 def get_cellstyle_code(style=None):
     """Código JS para colorir valores positivos/negativos."""
@@ -573,7 +578,7 @@ def apply_master_detail(df, df_details, coluns_merge_details, coluns_name_detail
 
 
 def dataframe_aggrid(df, name, num_columns=None, percent_columns=None,
-                     date_columns=None, df_details=None, coluns_merge_details=None,
+                     date_columns=None, datetime_columns=None, df_details=None, coluns_merge_details=None,
                      coluns_name_details=None, key="default", highlight_rows=None,
                      fit_columns=None, fit_columns_on_grid_load=None, height=None, num_cel_style=None, num_columns_style=None):
     '''
@@ -587,6 +592,7 @@ def dataframe_aggrid(df, name, num_columns=None, percent_columns=None,
     num_columns = num_columns or []
     percent_columns = percent_columns or []
     date_columns = date_columns or []
+    datetime_columns = datetime_columns or []
     highlight_rows = highlight_rows or []
     fit_columns = fit_columns or ColumnsAutoSizeMode.FIT_CONTENTS
     fit_columns_on_grid_load = fit_columns_on_grid_load or False
@@ -599,6 +605,8 @@ def dataframe_aggrid(df, name, num_columns=None, percent_columns=None,
         df = format_percent_column(df, col)
     for col in date_columns:
         df = format_date_column(df, col)
+    for col in datetime_columns:
+        df = format_datetime_column(df, col)
 
     # 2. CellStyle para colunas numéricas
     if num_cel_style == 'monetary' or num_cel_style == 'monetary inverse':
