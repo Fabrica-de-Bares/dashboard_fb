@@ -3,20 +3,6 @@ import streamlit as st
 import pymysql
 
 
-# def mysql_connection_write():
-#     mysql_config = st.secrets["mysql_write"]
-
-#     conn_write = pymysql.connect(
-#         host=mysql_config['host'],
-#         port=mysql_config['port'],
-#         database=mysql_config['database'],
-#         user=mysql_config['username'],
-#         password=mysql_config['password']
-#     )
-    
-#     return conn_write
-
-
 # Descontos - DRE #
 def mapeamento_centro_custo(df):
     regras_globais_centro_custo = {
@@ -314,44 +300,4 @@ def limpeza_linhas(df, casa):
     df_transformado['Classificacao 2'] = df_transformado['Unnamed: 0']
     return df_transformado
 
-
-# Função para inserir no banco os valores reais de cada ano de DRE
-# def inserir_df_no_banco(df, conn, id_casa, mes_formatado, casa, ano):
-#     c = conn.cursor()
-#     query_insercao = """
-#         INSERT INTO T_VALORES_REAIS_DRE
-#         (FK_EMPRESA, MES, CATEGORIA, VALOR)
-#         VALUES (%s, %s, %s, %s)
-#     """
-
-#     query_verifica_ja_existe = """
-#         SELECT tvrdre.ID
-#         FROM T_VALORES_REAIS_DRE tvrdre
-#         WHERE tvrdre.FK_EMPRESA = %s -- varia de acordo com a casa
-#         AND tvrdre.MES = %s -- varia de acordo com o mês
-#     """
-
-#     # garante tipos corretos
-#     df = df.copy()
-#     df['VALOR'] = df['VALOR'].astype(float)
-
-#     dados = df[
-#         [
-#             'FK_EMPRESA',
-#             'MES',
-#             'CATEGORIA',
-#             'VALOR'
-#         ]
-#     ].values.tolist()
-
-#     # Verifica se, para a casa e mês selecionados, os dados já foram inseridos
-#     c.execute(query_verifica_ja_existe, (id_casa, mes_formatado))
-#     dados_encontrados = c.fetchall()
-#     if not dados_encontrados: 
-#         c.executemany(query_insercao, dados) # Insere os dados atuais
-#         st.success("Dados inseridos com sucesso na tabela 'T_VALORES_REAIS_DRE'")
-#     else:
-#         st.warning(f'Dados já inseridos para {casa} - {ano}')
-    
-#     conn.commit()
 

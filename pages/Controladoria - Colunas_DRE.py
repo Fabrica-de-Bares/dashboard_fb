@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import pymysql
 from utils.functions.general_functions import config_sidebar, mysql_connection_fb
-from utils.functions.controladoria import *
+from utils.functions.controladoria_descontos_dre import *
 from utils.queries_conciliacao import GET_CASAS
 from utils.components import button_download, seletor_ano
 
