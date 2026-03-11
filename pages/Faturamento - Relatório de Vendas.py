@@ -210,8 +210,13 @@ def main():
       )
       with col2:
           button_download(FaturamentoZigClasse, f'itens', f'download_itens')
+      dias_map = {
+          'Monday': 'Segunda-feira', 'Tuesday': 'Terça-feira', 'Wednesday': 'Quarta-feira',
+          'Thursday': 'Quinta-feira', 'Friday': 'Sexta-feira', 'Saturday': 'Sábado', 'Sunday': 'Domingo'
+      }
       FaturamentoZigClasse['Data da Venda'] = pd.to_datetime(FaturamentoZigClasse['Data da Venda'])
-      FaturamentoZigClasse['Dia da Semana'] = FaturamentoZigClasse['Data da Venda'].copy().dt.day_name(locale='pt_BR')
+      FaturamentoZigClasse['Dia da Semana'] = FaturamentoZigClasse['Data da Venda'].dt.day_name().map(dias_map)
+
       FaturamentoZigClasseFormatado = FaturamentoZigClasse.copy()
       FaturamentoZigClasseFormatado['Data da Venda'] = pd.to_datetime(
       FaturamentoZigClasse['Data da Venda'], 
@@ -254,7 +259,7 @@ def main():
         classificacao_momento_consumo, axis=1
       )
       FaturamentoZigClasseMomentoConsumoDia['Data_Evento'] = pd.to_datetime(FaturamentoZigClasseMomentoConsumoDia['Data_Evento'])
-      FaturamentoZigClasseMomentoConsumoDia['Dia da Semana'] = FaturamentoZigClasseMomentoConsumoDia['Data_Evento'].dt.day_name(locale='pt_BR').copy()
+      FaturamentoZigClasseMomentoConsumoDia['Dia da Semana'] = FaturamentoZigClasseMomentoConsumoDia['Data_Evento'].dt.day_name().map(dias_map)
       FaturamentoZigClasseMomentoConsumoDia['Mes-Ano'] = FaturamentoZigClasseMomentoConsumoDia['Data_Evento'].dt.strftime('%m/%Y')
       df_por_dia = FaturamentoZigClasseMomentoConsumoDia.groupby(
           ['Data_Evento', 'Dia da Semana', 'Mes-Ano', 'Momento Consumo']
