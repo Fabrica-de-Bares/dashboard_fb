@@ -3,11 +3,12 @@ import pandas as pd
 import numpy as np
 import calendar
 from datetime import timedelta
+from utils.functions.general_functions import format_brazilian
 from utils.functions.general_functions_conciliacao import formata_df, traduz_semana_mes
 from utils.functions.cmv_teorico_fichas_tecnicas import function_format_number_columns
 from utils.queries_cmv import GET_INSUMOS_AGRUPADOS_BLUE_ME_POR_CATEG_SEM_PEDIDO, GET_TRANSF_ESTOQUE, GET_PERDAS_E_CONSUMO_AGRUPADOS
 from utils.queries_forecast import GET_VALORACAO_ESTOQUE, GET_VALORACAO_PRODUCAO, GET_EVENTOS_CMV, GET_AUT_BLUE_ME_COM_PEDIDO
-from utils.components import dataframe_aggrid
+from utils.components import dataframe_aggrid, seletor_ano, seletor_mes
 from st_aggrid import ColumnsAutoSizeMode
 
 pd.set_option('future.no_silent_downcasting', True)
@@ -480,39 +481,65 @@ def exibe_categoria_faturamento_prox_meses(categoria, df_meses_futuros, ano_atua
         st.divider()
 
 
+def calcula_total_categoria(df, col_faturamento):
+    df_agrupado = df.groupby(['Mês', 'Ano'], as_index=False)[col_faturamento].sum()
+    valor_total = df_agrupado[col_faturamento].iloc[0]
+    return valor_total
+
+
 # Exibe meses anteriores - para comparação projeção/real
 def exibe_faturamento_meses_anteriores(df_faturamento_meses_futuros, ano_atual, mes_atual):
-    if mes_atual == 1:   
-        df_faturamento_meses_anteriores = df_faturamento_meses_futuros[
-            (df_faturamento_meses_futuros['Ano'] == ano_atual - 1) &
-            (df_faturamento_meses_futuros['Categoria'] != 'Serviço')
-        ]
-        ano_exibido = ano_atual - 1
-    else:
-        df_faturamento_meses_anteriores = df_faturamento_meses_futuros[
-        (df_faturamento_meses_futuros['Ano'] == ano_atual) &
-        (df_faturamento_meses_futuros['Mês'] < mes_atual) &
+    # ANTES #
+    # if mes_atual == 1:   
+    #     df_faturamento_meses_anteriores = df_faturamento_meses_futuros[
+    #         (df_faturamento_meses_futuros['Ano'] == ano_atual - 1) &
+    #         (df_faturamento_meses_futuros['Categoria'] != 'Serviço')
+    #     ]
+    #     ano_exibido = ano_atual - 1
+    # else:
+    #     df_faturamento_meses_anteriores = df_faturamento_meses_futuros[
+    #         (df_faturamento_meses_futuros['Ano'] == ano_atual) &
+    #         (df_faturamento_meses_futuros['Mês'] < mes_atual) &
+    #         (df_faturamento_meses_futuros['Categoria'] != 'Serviço')
+    #     ]
+    #     ano_exibido = ano_atual
+
+    # df_faturamento_meses_anteriores = df_faturamento_meses_anteriores[['Categoria', 'Mês', 'Orçamento', 'Valor Bruto', 'Atingimento Real', 'Projeção Atingimento', 'Valor Projetado']]
+    # df_faturamento_meses_anteriores = df_faturamento_meses_anteriores.rename(columns={'Valor Projetado':'Faturamento Projetado'})
+    # df_faturamento_meses_anteriores = df_faturamento_meses_anteriores.sort_values(by=['Categoria', 'Mês'])
+
+    # AGORA #
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.markdown(f'''
+                <h4>Resultados anteriores</h4>
+                <h5>Comparação Faturamento: Atingimento Projetado e Atingimento Real</h5>
+        ''', unsafe_allow_html=True)
+    with col2:
+        mes = int(seletor_mes('Selecionar mês', 'mes_forecast_anteriores'))
+    with col3:
+        ano = seletor_ano(2025, 2026, 'ano_forecast_anteriores', label='Selecionar ano', help=None)
+
+    df_faturamento_meses_anteriores = df_faturamento_meses_futuros[ # Filtra
+        (df_faturamento_meses_futuros['Ano'] == ano) &
+        (df_faturamento_meses_futuros['Mês'] == mes) &
         (df_faturamento_meses_futuros['Categoria'] != 'Serviço')
     ]
-        ano_exibido = ano_atual
 
-    df_faturamento_meses_anteriores = df_faturamento_meses_anteriores[['Categoria', 'Mês', 'Orçamento', 'Valor Bruto', 'Atingimento Real', 'Projeção Atingimento', 'Valor Projetado']]
+    faturamento_total = calcula_total_categoria(df_faturamento_meses_anteriores, 'Valor Bruto') ##
+    df_faturamento_meses_anteriores = df_faturamento_meses_anteriores[['Categoria', 'Mês', 'Ano', 'Orçamento', 'Valor Bruto', 'Atingimento Real', 'Projeção Atingimento', 'Valor Projetado']]
     df_faturamento_meses_anteriores = df_faturamento_meses_anteriores.rename(columns={'Valor Projetado':'Faturamento Projetado'})
-    df_faturamento_meses_anteriores = df_faturamento_meses_anteriores.sort_values(by=['Categoria', 'Mês'])
-
-    st.markdown(f'''
-            <h4>Meses anteriores - {ano_exibido}</h4>
-            <h5>Comparação Faturamento: Atingimento Projetado e Atingimento Real</h5>
-        ''', unsafe_allow_html=True)
-
     df_faturamento_meses_anteriores = df_faturamento_meses_anteriores.rename(columns={'Valor Bruto':'Faturamento Real'})
     df_faturamento_meses_anteriores_exibe = function_format_number_columns(df_faturamento_meses_anteriores, columns_money=['Orçamento', 'Faturamento Real', 'Faturamento Projetado'], columns_percent=['Atingimento Real', 'Projeção Atingimento'])
+    
     dataframe_aggrid(
         df=df_faturamento_meses_anteriores_exibe,
         name=f"Projeção - Faturamento Meses Anteriores",
         fit_columns=ColumnsAutoSizeMode.FIT_ALL_COLUMNS_TO_VIEW,
         fit_columns_on_grid_load=True,
     )
+    st.write(f'**Total:** R$ {format_brazilian(faturamento_total)}') ##
+
     
 ############################################ PROJEÇÃO CMV - PRÓXIMOS MESES ############################################
 
@@ -876,7 +903,7 @@ def calcula_cmv_proximos_meses(df_faturamento_meses_futuros, df_calculo_cmv, ano
     return df_merge_meses_anteriores_seguintes
 
 
-def exibe_cmv_meses_anteriores_e_seguintes(df_cmv_meses_anteriores_seguintes, tipo, mes_atual, ano_atual):
+def exibe_cmv_meses_anteriores_e_seguintes(df_cmv_meses_anteriores_seguintes, tipo, mes_atual, ano_atual, mes=None, ano=None):
     df_cmv = df_cmv_meses_anteriores_seguintes.copy()
     df_cmv = df_cmv.fillna(0)
     df_cmv = df_cmv.rename(columns={
@@ -891,10 +918,16 @@ def exibe_cmv_meses_anteriores_e_seguintes(df_cmv_meses_anteriores_seguintes, ti
         colunas_percent_dataframe = ['CMV Percentual Projetado']
 
     if tipo == 'meses anteriores':
-        if mes_atual == 1:
-            df_cmv = df_cmv[df_cmv['Ano'] == ano_atual - 1]
-        else:
-            df_cmv = df_cmv[(df_cmv['Mês'] < mes_atual) & (df_cmv['Ano'] == ano_atual)]
+        # ANTES #
+        # if mes_atual == 1:
+        #     df_cmv = df_cmv[df_cmv['Ano'] == ano_atual - 1]
+        # else:
+        #     df_cmv = df_cmv[(df_cmv['Mês'] < mes_atual) & (df_cmv['Ano'] == ano_atual)]
+        
+        # AGORA #
+        df_cmv = df_cmv[(df_cmv['Mês'] == mes) &(df_cmv['Ano'] == ano)]
+        cmv_total = calcula_total_categoria(df_cmv, 'CMV Real') ##
+        
         colunas = ['Mês', 'Ano', 'Faturamento AB Real', 'CMV Real', 'CMV Real Percentual', 'Faturamento AB Projetado', 'CMV Percentual Projetado', 'CMV Projetado']
         colunas_num_dataframe = ['Faturamento AB Real', 'CMV Real', 'Faturamento AB Projetado', 'CMV Projetado']
         colunas_percent_dataframe = ['CMV Real Percentual', 'CMV Percentual Projetado']
@@ -912,6 +945,7 @@ def exibe_cmv_meses_anteriores_e_seguintes(df_cmv_meses_anteriores_seguintes, ti
         fit_columns=ColumnsAutoSizeMode.FIT_ALL_COLUMNS_TO_VIEW,
         fit_columns_on_grid_load=True   
     )
+    if tipo == 'meses anteriores': st.write(f'**CMV Total**: {format_brazilian(cmv_total)}') ## 
     st.divider()
 
 ############################################ PROJEÇÃO DESPESAS - PRÓXIMOS MESES ############################################
@@ -1227,7 +1261,7 @@ def projecao_custos_proximos_meses(df_merge_custos_faturamentos_mensais, class_c
     return df_merge_custos_faturamentos_mensais
 
 
-def exibe_custos_meses_anteriores_e_seguintes(df_projecao_custos_meses_anteriores_seguintes, titulo, tipo, ano_atual, mes_atual, igual_mes_anterior=False):
+def exibe_custos_meses_anteriores_e_seguintes(df_projecao_custos_meses_anteriores_seguintes, titulo, tipo, ano_atual, mes_atual, igual_mes_anterior=False, mes=None, ano=None):
     df_projecao_custos = df_projecao_custos_meses_anteriores_seguintes.copy()
 
     df_projecao_custos = df_projecao_custos.rename(columns={
@@ -1249,12 +1283,18 @@ def exibe_custos_meses_anteriores_e_seguintes(df_projecao_custos_meses_anteriore
 
     # Prepara colunas para exibir projeção meses anteriores
     if tipo == 'meses anteriores':
-        if mes_atual == 1:
-            df_projecao_custos = df_projecao_custos[df_projecao_custos['Ano'] == ano_atual - 1]
-        else:
-            df_projecao_custos = df_projecao_custos[(df_projecao_custos['Mês'] < mes_atual) & (df_projecao_custos['Ano'] == ano_atual)]
+        # ANTES #
+        # if mes_atual == 1:
+        #     df_projecao_custos = df_projecao_custos[df_projecao_custos['Ano'] == ano_atual - 1]
+        # else:
+        #     df_projecao_custos = df_projecao_custos[(df_projecao_custos['Mês'] < mes_atual) & (df_projecao_custos['Ano'] == ano_atual)]
+        
+        # AGORA #
+        df_projecao_custos = df_projecao_custos[(df_projecao_custos['Mês'] == mes) & (df_projecao_custos['Ano'] == ano)] ##
+        
         colunas = ['Class. Contábil 2', 'Mês', 'Ano', 'Faturamento Real Mês', 'Custo Percentual Projetado', 'Custo Projetado', 'Custo Real']
         colunas_num_dataframe = ['Faturamento Real Mês', 'Custo Projetado', 'Custo Real']
+        
         if igual_mes_anterior == False:
             colunas = ['Class. Contábil 2', 'Mês', 'Ano', 'Faturamento Real Mês', 'Custo Percentual Projetado', 'Custo Projetado', 'Custo Real']
             colunas_percent_dataframe = ['Custo Percentual Projetado']
@@ -1265,7 +1305,8 @@ def exibe_custos_meses_anteriores_e_seguintes(df_projecao_custos_meses_anteriore
     df_projecao_custos = df_projecao_custos[colunas]
     df_projecao_custos['Custo Real'] = df_projecao_custos['Custo Real'].fillna(0)
     df_projecao_custos['Custo Projetado'] = df_projecao_custos['Custo Projetado'].fillna(0)
-    
+    custo_total = calcula_total_categoria(df_projecao_custos, 'Custo Real') ##
+
     st.markdown(f'''
             <h4 style="color: #1f77b4;">{titulo}</h4>
         ''', unsafe_allow_html=True)
@@ -1277,4 +1318,5 @@ def exibe_custos_meses_anteriores_e_seguintes(df_projecao_custos_meses_anteriore
         fit_columns=ColumnsAutoSizeMode.FIT_ALL_COLUMNS_TO_VIEW,
         fit_columns_on_grid_load=True,
     )
+    if tipo == 'meses anteriores': st.write(f'**Custo Total:** {format_brazilian(custo_total)}') ##
     st.divider()

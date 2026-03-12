@@ -3,8 +3,8 @@ from utils.components import input_selecao_casas
 from utils.functions.forecast import *
 from utils.functions.general_functions import config_sidebar
 from utils.functions.general_functions_conciliacao import *
-from utils.queries_conciliacao import GET_CASAS
 from utils.queries_forecast import *
+from utils.components import seletor_ano, seletor_mes
 
 
 st.set_page_config(
@@ -263,65 +263,71 @@ with tab3:
 
     # Prepara para exibir a projeção de custos dos meses anteriores - comparação
     with st.container(border=True):
-        st.markdown(f'''
-                <h4>Meses anteriores - Comparação: Custos Projetados e Custos Reais</h4>
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.markdown(f'''
+                    <h4>Meses anteriores - Comparação: Custos Projetados e Custos Reais</h4>
             ''', unsafe_allow_html=True)
+        with col2:
+            mes = int(seletor_mes('Selecionar mês', 'mes_despesas_anteriores'))
+        with col3:
+            ano = seletor_ano(2025, 2026, 'ano_despesas_anteriores', 'Selecionar ano')
         
         # CMV
-        exibe_cmv_meses_anteriores_e_seguintes(df_cmv_meses_anteriores_seguintes, 'meses anteriores', datas['mes_atual'], datas['ano_atual'])
+        exibe_cmv_meses_anteriores_e_seguintes(df_cmv_meses_anteriores_seguintes, 'meses anteriores', datas['mes_atual'], datas['ano_atual'], mes=mes, ano=ano)
         
         # Desconto sobre Venda
-        exibe_custos_meses_anteriores_e_seguintes(df_projecao_descontos_meses_anteriores_seguintes, 'Desconto sobre Venda', 'meses anteriores', datas['ano_atual'], datas['mes_atual'])
+        exibe_custos_meses_anteriores_e_seguintes(df_projecao_descontos_meses_anteriores_seguintes, 'Desconto sobre Venda', 'meses anteriores', datas['ano_atual'], datas['mes_atual'], mes=mes, ano=ano)
 
         # Custos Artístico Geral
-        exibe_custos_meses_anteriores_e_seguintes(df_projecao_custos_artistico_meses_anteriores_seguintes, 'Custos Artístico Geral', 'meses anteriores', datas['ano_atual'], datas['mes_atual'])
+        exibe_custos_meses_anteriores_e_seguintes(df_projecao_custos_artistico_meses_anteriores_seguintes, 'Custos Artístico Geral', 'meses anteriores', datas['ano_atual'], datas['mes_atual'], mes=mes, ano=ano)
 
         # Custos Eventos
-        exibe_custos_meses_anteriores_e_seguintes(df_projecao_custos_eventos_meses_anteriores_seguintes, 'Custos de Eventos', 'meses anteriores', datas['ano_atual'], datas['mes_atual'])
+        exibe_custos_meses_anteriores_e_seguintes(df_projecao_custos_eventos_meses_anteriores_seguintes, 'Custos de Eventos', 'meses anteriores', datas['ano_atual'], datas['mes_atual'], mes=mes, ano=ano)
 
         # Dedução da Gorjeta
-        exibe_custos_meses_anteriores_e_seguintes(df_projecao_deducao_gorjeta_meses_anteriores_seguintes, 'Dedução da Gorjeta', 'meses anteriores', datas['ano_atual'], datas['mes_atual'])
+        exibe_custos_meses_anteriores_e_seguintes(df_projecao_deducao_gorjeta_meses_anteriores_seguintes, 'Dedução da Gorjeta', 'meses anteriores', datas['ano_atual'], datas['mes_atual'], mes=mes, ano=ano)
 
         # Deduções sobre Venda
-        exibe_custos_meses_anteriores_e_seguintes(df_projecao_deducoes_venda_meses_anteriores_seguintes, 'Deduções sobre Venda', 'meses anteriores', datas['ano_atual'], datas['mes_atual'])
+        exibe_custos_meses_anteriores_e_seguintes(df_projecao_deducoes_venda_meses_anteriores_seguintes, 'Deduções sobre Venda', 'meses anteriores', datas['ano_atual'], datas['mes_atual'], mes=mes, ano=ano)
 
         # PJ
-        exibe_custos_meses_anteriores_e_seguintes(df_projecao_custos_pj_meses_anteriores_seguintes, 'Mão de Obra - PJ', 'meses anteriores', datas['ano_atual'], datas['mes_atual'], igual_mes_anterior=True)
+        exibe_custos_meses_anteriores_e_seguintes(df_projecao_custos_pj_meses_anteriores_seguintes, 'Mão de Obra - PJ', 'meses anteriores', datas['ano_atual'], datas['mes_atual'], igual_mes_anterior=True, mes=mes, ano=ano)
 
         # Salários
-        exibe_custos_meses_anteriores_e_seguintes(df_projecao_custos_salarios_meses_anteriores_seguintes, 'Mão de Obra - Salários', 'meses anteriores', datas['ano_atual'], datas['mes_atual'], igual_mes_anterior=True)
+        exibe_custos_meses_anteriores_e_seguintes(df_projecao_custos_salarios_meses_anteriores_seguintes, 'Mão de Obra - Salários', 'meses anteriores', datas['ano_atual'], datas['mes_atual'], igual_mes_anterior=True, mes=mes, ano=ano)
 
         # E-Staff
-        exibe_custos_meses_anteriores_e_seguintes(df_projecao_custos_estaff_meses_anteriores_seguintes, 'E-Staff', 'meses anteriores', datas['ano_atual'], datas['mes_atual'])
+        exibe_custos_meses_anteriores_e_seguintes(df_projecao_custos_estaff_meses_anteriores_seguintes, 'E-Staff', 'meses anteriores', datas['ano_atual'], datas['mes_atual'], mes=mes, ano=ano)
         
         # Encargos e Provisões
-        exibe_custos_meses_anteriores_e_seguintes(df_projecao_custos_encarg_prov_meses_anteriores_seguintes, 'Encargos e Provisões', 'meses anteriores', datas['ano_atual'], datas['mes_atual'])
+        exibe_custos_meses_anteriores_e_seguintes(df_projecao_custos_encarg_prov_meses_anteriores_seguintes, 'Encargos e Provisões', 'meses anteriores', datas['ano_atual'], datas['mes_atual'], mes=mes, ano=ano)
         
         # Benefícios
-        exibe_custos_meses_anteriores_e_seguintes(df_projecao_custos_beneficios_meses_anteriores_seguintes, 'Benefícios', 'meses anteriores', datas['ano_atual'], datas['mes_atual'])
+        exibe_custos_meses_anteriores_e_seguintes(df_projecao_custos_beneficios_meses_anteriores_seguintes, 'Benefícios', 'meses anteriores', datas['ano_atual'], datas['mes_atual'], mes=mes, ano=ano)
         
         # Custo de Ocupação
-        exibe_custos_meses_anteriores_e_seguintes(df_projecao_custos_ocupacao_meses_anteriores_seguintes, 'Custo de Ocupação', 'meses anteriores', datas['ano_atual'], datas['mes_atual'], igual_mes_anterior=True)
+        exibe_custos_meses_anteriores_e_seguintes(df_projecao_custos_ocupacao_meses_anteriores_seguintes, 'Custo de Ocupação', 'meses anteriores', datas['ano_atual'], datas['mes_atual'], igual_mes_anterior=True, mes=mes, ano=ano)
 
         # Utilidades
-        exibe_custos_meses_anteriores_e_seguintes(df_projecao_custos_utilidades_meses_anteriores_seguintes, 'Utilidades', 'meses anteriores', datas['ano_atual'], datas['mes_atual'])
+        exibe_custos_meses_anteriores_e_seguintes(df_projecao_custos_utilidades_meses_anteriores_seguintes, 'Utilidades', 'meses anteriores', datas['ano_atual'], datas['mes_atual'], mes=mes, ano=ano)
 
         # Salários
-        exibe_custos_meses_anteriores_e_seguintes(df_projecao_custos_informatica_meses_anteriores_seguintes, 'Informática e TI', 'meses anteriores', datas['ano_atual'], datas['mes_atual'], igual_mes_anterior=True)
+        exibe_custos_meses_anteriores_e_seguintes(df_projecao_custos_informatica_meses_anteriores_seguintes, 'Informática e TI', 'meses anteriores', datas['ano_atual'], datas['mes_atual'], igual_mes_anterior=True, mes=mes, ano=ano)
 
         # Despesas Gerais (Manutenção)
-        exibe_custos_meses_anteriores_e_seguintes(df_projecao_custos_manutencao_meses_anteriores_seguintes, 'Despesas Gerais (Manutenção)', 'meses anteriores', datas['ano_atual'], datas['mes_atual'])
+        exibe_custos_meses_anteriores_e_seguintes(df_projecao_custos_manutencao_meses_anteriores_seguintes, 'Despesas Gerais (Manutenção)', 'meses anteriores', datas['ano_atual'], datas['mes_atual'], mes=mes, ano=ano)
 
         # Marketing
-        exibe_custos_meses_anteriores_e_seguintes(df_projecao_custos_marketing_meses_anteriores_seguintes, 'Marketing', 'meses anteriores', datas['ano_atual'], datas['mes_atual'])
+        exibe_custos_meses_anteriores_e_seguintes(df_projecao_custos_marketing_meses_anteriores_seguintes, 'Marketing', 'meses anteriores', datas['ano_atual'], datas['mes_atual'], mes=mes, ano=ano)
 
         # Serviços de Terceiros
-        exibe_custos_meses_anteriores_e_seguintes(df_projecao_custos_terceiros_meses_anteriores_seguintes, 'Serviços de Terceiros', 'meses anteriores', datas['ano_atual'], datas['mes_atual'], igual_mes_anterior=True)
+        exibe_custos_meses_anteriores_e_seguintes(df_projecao_custos_terceiros_meses_anteriores_seguintes, 'Serviços de Terceiros', 'meses anteriores', datas['ano_atual'], datas['mes_atual'], igual_mes_anterior=True, mes=mes, ano=ano)
 
         # Locação de Equipamentos
-        exibe_custos_meses_anteriores_e_seguintes(df_projecao_custos_equipamentos_meses_anteriores_seguintes, 'Locação de Equipamentos', 'meses anteriores', datas['ano_atual'], datas['mes_atual'], igual_mes_anterior=True)
+        exibe_custos_meses_anteriores_e_seguintes(df_projecao_custos_equipamentos_meses_anteriores_seguintes, 'Locação de Equipamentos', 'meses anteriores', datas['ano_atual'], datas['mes_atual'], igual_mes_anterior=True, mes=mes, ano=ano)
 
         # Sistema de Franquias
         if casa == 'Blue Note - São Paulo':
-            exibe_custos_meses_anteriores_e_seguintes(df_projecao_custos_franquias_meses_anteriores_seguintes, 'Sistema de Franquias', 'meses anteriores', datas['ano_atual'], datas['mes_atual'], igual_mes_anterior=True)
+            exibe_custos_meses_anteriores_e_seguintes(df_projecao_custos_franquias_meses_anteriores_seguintes, 'Sistema de Franquias', 'meses anteriores', datas['ano_atual'], datas['mes_atual'], igual_mes_anterior=True, mes=mes, ano=ano)
 
