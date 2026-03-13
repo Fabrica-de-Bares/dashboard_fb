@@ -4,7 +4,7 @@ from utils.functions.general_functions import config_sidebar
 from utils.functions.controladoria_alteracao_despesas import *
 from utils.functions.general_functions import *
 from utils.queries_controladoria import *
-from utils.components import button_download, seletor_mes, seletor_ano, input_multiselecao_casas, input_selecao_casas
+from utils.components import seletor_mes, seletor_ano, input_multiselecao_casas, input_selecao_casas
 
 pd.set_option('future.no_silent_downcasting', True)
 
@@ -85,6 +85,7 @@ else:
 df_log_despesas_filtrado = filtragem_inicial_despesas(df_log_despesas_inicial, id_casa, data_fechamento_mes_selecionado)
 df_log_despesas_filtrado = filtragem_classificacao_contabil(df_log_despesas_filtrado, lista_class_cont_1_selecionadas, lista_class_cont_2_selecionadas)
 
+dfs_exportar = {} # Lista de dataframes para excel
 
 # Despesas criadas após data de fechamento
 st.subheader('Despesas criadas após data de fechamento')
@@ -98,6 +99,7 @@ if not df_log_despesas_criadas.empty:
     st.dataframe(df_log_despesas_criadas_styled, hide_index=True, width='stretch')
 
 exibe_contagem_despesas(df_log_despesas_criadas)
+dfs_exportar["Despesas Criadas"] = df_log_despesas_criadas # adiciona para exportação
 st.divider()
 
 
@@ -105,27 +107,32 @@ tipos_alteracao = [
     {
         "titulo": "Alteração em Data de Competência",
         "campo_filtro": "Data Competência",
-        "colunas_comparar": ["Data Competência"]
+        "colunas_comparar": ["Data Competência"],
+        "titulo_excel": "Data de Competência"
     },
     {
         "titulo": "Alteração em Data de Vencimento",
         "campo_filtro": "Data Vencimento",
-        "colunas_comparar": ["Data Vencimento"]
+        "colunas_comparar": ["Data Vencimento"],
+        "titulo_excel": "Data de Vencimento"
     },
     {
         "titulo": "Alteração em Valor",
         "campo_filtro": "Valor",
-        "colunas_comparar": ["Valor Original", "Valor Liquido"]
+        "colunas_comparar": ["Valor Original", "Valor Liquido"],
+        "titulo_excel": "Valor Original"
     },
     {
         "titulo": "Alteração em Classificação Contábil",
         "campo_filtro": "Class. Cont.",
-        "colunas_comparar": ["Class. Cont. 1", "Class. Cont. 2"]
+        "colunas_comparar": ["Class. Cont. 1", "Class. Cont. 2"],
+        "titulo_excel": "Classificação Contábil"
     },
     {
-        "titulo": "Despesas Canceladas após data de fechamento",
+        "titulo": "Despesas Canceladas",
         "campo_filtro": "Canceladas",
-        "colunas_comparar": ["Bit Cancelada"]
+        "colunas_comparar": ["Bit Cancelada"],
+        "titulo_excel": "Despesas Canceladas"
     }
 ]
 
@@ -143,6 +150,7 @@ for tipo in tipos_alteracao:
         exibe_legenda()
 
     exibe_contagem_despesas(df)
+    dfs_exportar[tipo["titulo_excel"]] = df
     st.divider()
 
 
@@ -193,6 +201,13 @@ if not df_despesas_alteracao_casa.empty:
     exibe_legenda()
 
 exibe_contagem_despesas(df_despesas_alteracao_casa)
+dfs_exportar["Despesas Casa Alterada"] = df_despesas_alteracao_casa
 st.divider()
+
+
+# Botão para exportar Excel
+col1, col2, col3 = st.columns([3, 1, 3])
+with col2:
+    button_download(dfs_exportar)
 
 
