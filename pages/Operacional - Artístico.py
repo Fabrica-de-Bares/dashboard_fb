@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-from utils.queries_operacional import *
+from utils.queries_artistico import *
 from utils.functions.general_functions import *
 from utils.components import *
 from datetime import date, datetime
