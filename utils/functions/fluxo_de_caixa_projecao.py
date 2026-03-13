@@ -148,6 +148,7 @@ def filtra_categoria_despesas(df_despesas_aprovadas_previstas, seletor_status_de
       (df_despesas_aprovadas_previstas['Status_Diretoria'] == 103) |
       (df_despesas_aprovadas_previstas['Status_Diretoria'] == 100) |
       (df_despesas_aprovadas_previstas['Status_Diretoria'] == 105) |
+      (df_despesas_aprovadas_previstas['Status_Diretoria'] == 108) |
       (df_despesas_aprovadas_previstas['Status_Diretoria'].isna())
     ].copy()
     
@@ -188,6 +189,7 @@ def filtra_detalhes_despesas(seletor_status_despesa, despesas_pendentes_pagas, d
             (despesas_pendentes_pagas['FK_Aprovacao_Diretoria'] == 103) |
             (despesas_pendentes_pagas['FK_Aprovacao_Diretoria'] == 100) |
             (despesas_pendentes_pagas['FK_Aprovacao_Diretoria'] == 105) |
+            (despesas_pendentes_pagas['FK_Aprovacao_Diretoria'] == 108) |
             (despesas_pendentes_pagas['FK_Aprovacao_Diretoria'].isna())
         ].copy()
 
