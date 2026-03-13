@@ -363,11 +363,6 @@ WHERE tdp.ID IS NOT NULL
 
 @st.cache_data
 def GET_DETALHES_DESPESAS_PENDENTES():
-  # Formatando as datas para o formato de string com aspas simples
-  # dataStr = f"'{dataInicio.strftime('%Y-%m-%d %H:%M:%S')}'"
-  # datafimstr = f"'{dataFim.strftime('%Y-%m-%d %H:%M:%S')}'"
-
-  ######### NA PARTE DAS DESPESAS PARCELADAS, HÁ NA VIEW DO GABS UMA APROVAÇÃO DA DIRETORIA QUE PODE DAR DIFERENÇA #########
   return dataframe_query(f'''
   SELECT
     DATE_FORMAT(tc.DATA, '%Y-%m-%d') as 'Previsao_Pgto',
@@ -455,3 +450,101 @@ def GET_FATURAMENTO_REAL():
 	INNER JOIN T_EMPRESAS te ON (tzf.FK_LOJA = te.ID)
 	GROUP BY te.ID, tzf.DATA
 ''')
+
+
+@st.cache_data
+def GET_DESPESAS_PROVISIONADAS_MENSAIS():
+  return dataframe_query(f'''
+    SELECT 
+      te.ID AS 'ID Casa',
+      te.NOME_FANTASIA AS 'Casa',
+      tf.CORPORATE_NAME AS 'Fornecedor',
+      tfpag.DESCRICAO AS 'Forma Pagamento',
+      tpp.DESCRICAO AS 'Descrição',
+      tpp.DATA_COMPETENCIA AS 'Data Competência',
+      tpp.DATA_VENCIMENTO AS 'Data Vencimento',
+      tccg1.DESCRICAO AS 'Classificação Contábil 1',
+      tccg2.DESCRICAO AS 'Classificação Contábil 2',
+      tpp.VALOR AS 'Valor',
+      tfp.FREQUENCIA AS 'Frequência'
+    FROM T_PROVISOES_PADRAO AS tpp
+    LEFT JOIN T_EMPRESAS AS te ON (tpp.FK_EMPRESA = te.ID)  
+    LEFT JOIN T_FORNECEDOR AS tf ON (tpp.FK_FORNECEDOR = tf.ID)
+    LEFT JOIN T_FORMAS_DE_PAGAMENTO AS tfpag ON (tpp.FK_FORMA_PAGAMENTO = tfpag.ID)
+    LEFT JOIN T_CLASSIFICACAO_CONTABIL_GRUPO_1 AS tccg1 ON (tpp.FK_CLASSIFICACAO_CONT_GRUPO_1 = tccg1.ID)
+    LEFT JOIN T_CLASSIFICACAO_CONTABIL_GRUPO_2 AS tccg2 ON (tpp.FK_CLASSIFICACAO_CONT_GRUPO_2 = tccg2.ID)
+    LEFT JOIN T_FREQUENCIA_PROVISOES AS tfp ON (tpp.FK_FREQUENCIA = tfp.ID)
+    WHERE tpp.FK_FREQUENCIA = 101 # Mensal                                   
+''')
+
+
+@st.cache_data
+def GET_DESPESAS_RAPIDAS_PREVISTAS():
+  return dataframe_query('''
+    SELECT
+      tdr.ID AS 'ID_Despesa',
+      tc.DATA as 'Previsao_Pgto',
+      tdr.COMPETENCIA AS 'Data_Competencia',
+      DATE_ADD(STR_TO_DATE(tdr.VENCIMENTO, '%Y-%m-%d'), INTERVAL 30 SECOND) as 'Data_Vencimento',
+      te.ID AS 'ID Casa',                   
+      te.NOME_FANTASIA as 'Casa',
+      tdr.FK_APROVACAO_DIRETORIA as 'Status_Diretoria',
+      tdr.VALOR_LIQUIDO as 'Valor_Liquido',
+      CASE
+        WHEN tdr.FK_STATUS_PGTO = 103 THEN 'Pago'
+        ELSE 'Pendente'
+      END as 'Status_Pgto',
+      tf.CORPORATE_NAME AS 'Fornecedor',                   
+      tccg1.DESCRICAO AS 'Class_Cont_1',
+      tccg2.DESCRICAO AS 'Class_Cont_2',
+      trp.DESCRICAO AS 'Real/Provisão'                   
+    FROM T_DESPESA_RAPIDA tdr 
+    INNER JOIN T_EMPRESAS te ON (tdr.FK_LOJA = te.ID)
+    LEFT JOIN T_CALENDARIO tc ON (tdr.PREVISAO_PAGAMENTO = tc.ID)
+    LEFT JOIN T_DEPESA_PARCELAS tdp ON (tdp.FK_DESPESA = tdr.ID)
+    LEFT JOIN T_STATUS_APROVACAO_DIRETORIA tsad ON (tdr.FK_APROVACAO_DIRETORIA = tsad.ID)
+    LEFT JOIN T_STATUS_PAGAMENTO tsp ON (tdr.FK_STATUS_PGTO = tsp.ID)
+    LEFT JOIN T_FORNECEDOR AS tf ON (tdr.FK_FORNECEDOR = tf.ID)                     
+    LEFT JOIN T_CLASSIFICACAO_CONTABIL_GRUPO_1 AS tccg1 ON (tdr.FK_CLASSIFICACAO_CONTABIL_GRUPO_1 = tccg1.ID)
+    LEFT JOIN T_CLASSIFICACAO_CONTABIL_GRUPO_2 AS tccg2 ON (tdr.FK_CLASSIFICACAO_CONTABIL_GRUPO_2 = tccg2.ID)
+    LEFT JOIN T_REAL_PROVISAO AS trp ON (tdr.FK_REAL_PROVISAO = trp.ID)                     
+    WHERE tdp.ID IS NULL
+      AND DATE_ADD(STR_TO_DATE(tdr.VENCIMENTO, '%Y-%m-%d'), INTERVAL 30 SECOND) >= '2025-01-01 00:00:00'
+      AND te.FK_GRUPO_EMPRESA = 100
+      AND tdr.BIT_CANCELADA = 0
+      AND (tdr.FK_APROVACAO_DIRETORIA IS NULL OR tdr.FK_APROVACAO_DIRETORIA IN (100, 101, 103, 105, 108))
+    --   AND (tdr.FK_STATUS_PGTO = 103)
+    UNION ALL
+    SELECT
+      tdr.ID AS 'ID_Despesa',
+      tc.DATA as 'Previsao_Pgto',
+      tdr.COMPETENCIA AS 'Data_Competencia',
+      DATE_ADD(tdp.DATA, INTERVAL 30 SECOND) as 'Data_Vencimento',
+      te.ID AS 'ID Casa',                   
+      te.NOME_FANTASIA as 'Casa',
+      tdr.FK_APROVACAO_DIRETORIA as 'Status_Diretoria',
+      tdp.VALOR as 'Valor_Liquido',
+      CASE
+          WHEN tdp.PARCELA_PAGA = 1 THEN 'Pago'
+          ELSE 'Pendente'
+      END as 'Status_Pgto',
+      tf.CORPORATE_NAME AS 'Fornecedor',                   
+      tccg1.DESCRICAO AS 'Class_Cont_1',
+      tccg2.DESCRICAO AS 'Class_Cont_2',
+      trp.DESCRICAO AS 'Real/Provisão'                        
+    FROM T_DESPESA_RAPIDA tdr 
+    INNER JOIN T_EMPRESAS te ON (tdr.FK_LOJA = te.ID)
+    LEFT JOIN T_DEPESA_PARCELAS tdp ON (tdp.FK_DESPESA = tdr.ID)
+    LEFT JOIN T_CALENDARIO tc ON (tdp.FK_PREVISAO_PGTO = tc.ID)
+    LEFT JOIN T_STATUS_APROVACAO_DIRETORIA tsad ON (tdr.FK_APROVACAO_DIRETORIA = tsad.ID)
+    LEFT JOIN T_FORNECEDOR AS tf ON (tdr.FK_FORNECEDOR = tf.ID)                     
+    LEFT JOIN T_CLASSIFICACAO_CONTABIL_GRUPO_1 AS tccg1 ON (tdr.FK_CLASSIFICACAO_CONTABIL_GRUPO_1 = tccg1.ID)
+    LEFT JOIN T_CLASSIFICACAO_CONTABIL_GRUPO_2 AS tccg2 ON (tdr.FK_CLASSIFICACAO_CONTABIL_GRUPO_2 = tccg2.ID)
+    LEFT JOIN T_REAL_PROVISAO AS trp ON (tdr.FK_REAL_PROVISAO = trp.ID)                                          
+    WHERE tdp.ID IS NOT NULL
+      AND DATE_ADD(tdp.DATA, INTERVAL 30 SECOND) >= '2025-01-01 00:00:00'
+      AND te.FK_GRUPO_EMPRESA = 100
+      AND tdr.BIT_CANCELADA = 0
+      AND (tdr.FK_APROVACAO_DIRETORIA IS NULL OR tdr.FK_APROVACAO_DIRETORIA IN (100, 101, 103, 105, 108))
+    --   AND (tdp.PARCELA_PAGA = 1)
+  ''')

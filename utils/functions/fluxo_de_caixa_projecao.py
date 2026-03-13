@@ -63,34 +63,54 @@ def prolongar_projecao(df_projecao_zig, dias_prolongados=7):
 
 
 
-def config_projecao_bares(df_saldos_bancarios, df_valor_liquido, df_projecao_zig, df_receitas_extraord_proj, df_receitas_eventos_proj, df_despesas_aprovadas, df_despesas_pagas):
+def config_projecao_bares(seletor_status_despesa, df_saldos_bancarios, df_valor_liquido, df_projecao_zig, df_receitas_extraord_proj, df_receitas_eventos_proj, df_despesas_aprovadas, df_despesas_pagas, df_despesas_provisionadas):
   # Acresenta mais uma semana de dados
   df_projecao_zig = prolongar_projecao(df_projecao_zig, dias_prolongados=7)
   
   # Converter colunas de data
-  dfs = [df_saldos_bancarios, df_valor_liquido, df_projecao_zig, df_receitas_extraord_proj, df_receitas_eventos_proj, df_despesas_aprovadas, df_despesas_pagas]
+  dfs = [df_saldos_bancarios, 
+         df_valor_liquido, 
+         df_projecao_zig, 
+         df_receitas_extraord_proj, 
+         df_receitas_eventos_proj, 
+         df_despesas_aprovadas, 
+         df_despesas_pagas
+        ]
+  if seletor_status_despesa == 'Todas Previstas':
+    dfs = dfs + [df_despesas_provisionadas]
+  
   for df in dfs:
     if df is not None and not df.empty:
         df = convert_to_datetime(df, ['Data'])
 
   # Merge dataframes
-  merged_df = df_saldos_bancarios
-  for df in [df_valor_liquido, df_projecao_zig, df_receitas_extraord_proj, df_receitas_eventos_proj, df_despesas_aprovadas, df_despesas_pagas]:
-    merged_df = pd.merge(merged_df, df, on=['Data', 'Empresa'], how='outer')
-  
+  # manter apenas dfs válidos
+  dfs_validos = [df for df in dfs if df is not None and not df.empty]
+
+  # merge progressivo
+  merged_df = dfs_validos[0]
+  for df in dfs_validos[1:]:
+      merged_df = pd.merge(
+          merged_df,
+          df,
+          on=['Data', 'Empresa'],
+          how='outer'
+      )
   # Preenchendo valores nulos com 0 e renomeando colunas
   merged_df = merged_df.fillna(0)
   merged_df = merged_df.rename(columns={'Valor_Projetado': 'Valor_Projetado_Zig'})
  
   # Ajustando formatação
   cols = ['Saldo_Inicio_Dia', 'Valor_Liquido_Recebido', 'Valor_Projetado_Zig', 'Receita_Projetada_Extraord', 'Receita_Projetada_Eventos', 'Despesas_Aprovadas_Pendentes', 'Despesas_Pagas']
+  if seletor_status_despesa == 'Todas Previstas':
+    cols = cols + ['Despesas_Provisionadas']
   merged_df[cols] = merged_df[cols].astype(float).round(2)
 
   return merged_df
 
 
 # Função que filtra por data, aplica o multiplicador e faz a soma do 'Total' nos df
-def filtra_soma_saldo_final(merged_df, data_fim, multiplicador):
+def filtra_soma_saldo_final(seletor_status_despesa, merged_df, data_fim, multiplicador):
   # Filtrando por data de fim
   merged_df_filtrado = filtrar_data_fim(merged_df, data_fim, 'Data')
   merged_df_filtrado = merged_df_filtrado.copy()
@@ -99,7 +119,21 @@ def filtra_soma_saldo_final(merged_df, data_fim, multiplicador):
   merged_df_filtrado.loc[:, 'Valor_Projetado_Zig'] = merged_df_filtrado.apply(lambda row: 0 if row['Valor_Liquido_Recebido'] > 0 else row['Valor_Projetado_Zig'], axis=1)
   merged_df_filtrado.loc[:, 'Valor_Projetado_Zig'] = merged_df_filtrado['Valor_Projetado_Zig'] * multiplicador
 
-  merged_df_filtrado.loc[:, 'Saldo_Final'] = merged_df_filtrado['Saldo_Inicio_Dia'] + merged_df_filtrado['Valor_Liquido_Recebido'] + merged_df_filtrado['Valor_Projetado_Zig'] + merged_df_filtrado['Receita_Projetada_Extraord'] + merged_df_filtrado['Receita_Projetada_Eventos'] - merged_df_filtrado['Despesas_Aprovadas_Pendentes'] - merged_df_filtrado['Despesas_Pagas']
+  merged_df_filtrado.loc[:, 'Saldo_Final'] = (
+     merged_df_filtrado['Saldo_Inicio_Dia'] + 
+     merged_df_filtrado['Valor_Liquido_Recebido'] + 
+     merged_df_filtrado['Valor_Projetado_Zig'] + 
+     merged_df_filtrado['Receita_Projetada_Extraord'] + 
+     merged_df_filtrado['Receita_Projetada_Eventos'] - 
+     merged_df_filtrado['Despesas_Aprovadas_Pendentes'] - 
+     merged_df_filtrado['Despesas_Pagas']
+    )
+  
+  if seletor_status_despesa == 'Todas Previstas':
+    merged_df_filtrado.loc[:, 'Saldo_Final'] = (
+     merged_df_filtrado['Saldo_Final'] - 
+     merged_df_filtrado['Despesas_Provisionadas']
+    )
   merged_df_filtrado = df_format_date_brazilian(merged_df_filtrado, 'Data')
 
   return merged_df_filtrado
@@ -139,7 +173,6 @@ def filtra_categoria_despesas(df_despesas_aprovadas_previstas, seletor_status_de
       (df_despesas_aprovadas_previstas['Status_Diretoria'] == 101) |
       (df_despesas_aprovadas_previstas['Status_Diretoria'] == 103)
     ].copy()
-    # df_categoria_agrupado = df_categoria.groupby(['Empresa', 'Previsao_Pgto'], as_index=False)['Valor_Liquido'].sum()
 
   # 2) Filtra pelas despesas previstas (aprovadas, pendentes, travados, e nulas)
   if seletor_status_despesa == 'Todas Previstas':
@@ -152,9 +185,6 @@ def filtra_categoria_despesas(df_despesas_aprovadas_previstas, seletor_status_de
       (df_despesas_aprovadas_previstas['Status_Diretoria'].isna())
     ].copy()
     
-    # PROBLEMA (15/12) - Aplicando apenas para 'Todas Previstas'
-    # df_categoria['Previsao_Pgto'] = df_categoria['Previsao_Pgto'].fillna(df_categoria['Data_Vencimento'])
-  
   df_categoria_agrupado = df_categoria.groupby(['Empresa', 'Previsao_Pgto'], as_index=False)['Valor_Liquido'].sum()
 
   # Filtra pela data de hoje até duas semanans a frente
@@ -193,9 +223,6 @@ def filtra_detalhes_despesas(seletor_status_despesa, despesas_pendentes_pagas, d
             (despesas_pendentes_pagas['FK_Aprovacao_Diretoria'].isna())
         ].copy()
 
-        # PROBLEMA (15/12) - Aplicando apenas para 'Todas Previstas'
-        # df_despesas_pendentes_pagas['Previsao_Pgto'] = df_despesas_pendentes_pagas['Previsao_Pgto'].fillna(df_despesas_pendentes_pagas['Data_Vencimento'])
-        
     # Filtra pelas datas de início e fim
     df_despesas_pendentes_pagas['Previsao_Pgto'] = pd.to_datetime(df_despesas_pendentes_pagas['Previsao_Pgto'], errors='coerce')
     df_despesas_pendentes_pagas = df_despesas_pendentes_pagas[
@@ -204,6 +231,117 @@ def filtra_detalhes_despesas(seletor_status_despesa, despesas_pendentes_pagas, d
     ]
 
     return df_despesas_pendentes_pagas
+
+
+# Função que determina despesas proviões padrão não lançadas na T_DESPESA_RAPIDA
+def despesas_provisionadas_lancadas(df_despesas_provisionadas, df_despesas_rapidas):
+  df_despesas_provisionadas['Data Competência'] = pd.to_datetime(df_despesas_provisionadas['Data Competência'], errors='coerce')
+  df_despesas_provisionadas['Data Vencimento'] = pd.to_datetime(df_despesas_provisionadas['Data Vencimento'], errors='coerce')
+  df_despesas_provisionadas['Mes Competencia'] = df_despesas_provisionadas['Data Competência'].dt.month
+
+  df_despesas_rapidas['Data_Competencia'] = pd.to_datetime(df_despesas_rapidas['Data_Competencia'], errors='coerce')
+  df_despesas_rapidas['Data_Vencimento'] = pd.to_datetime(df_despesas_rapidas['Data_Vencimento'], errors='coerce')
+  df_despesas_rapidas['Mes Competencia'] = df_despesas_rapidas['Data_Competencia'].dt.month
+
+  df_merge = pd.merge( # Match entre T_PROVISOES_PADRAO e T_DESPESA_RAPIDA (casa, fornecedor, mês competência e class. cont.)
+    df_despesas_provisionadas,
+    df_despesas_rapidas,
+    left_on=['ID Casa', 'Casa', 'Mes Competencia', 'Fornecedor', 'Classificação Contábil 1', 'Classificação Contábil 2'],
+    right_on=['ID Casa', 'Casa', 'Mes Competencia', 'Fornecedor', 'Class_Cont_1', 'Class_Cont_2'],
+    how='left'
+  )
+
+  df_provisionadas_nao_lancadas = df_merge[df_merge['ID_Despesa'].isna()] # Provisões não lançadas na T_DESPESA_RAPIDA
+  # Nesse caso, Data Vencimento = Data Previsão
+  df_valor_provisionadas_nao_lancadas = df_provisionadas_nao_lancadas.groupby(['Casa', 'Data Vencimento'], as_index=False)['Valor'].sum()
+  df_valor_provisionadas_nao_lancadas.rename(columns={'Casa': 'Empresa', 'Data Vencimento': 'Data', 'Valor': 'Despesas_Provisionadas'}, inplace=True)
+  
+  # Prepara despesas não lançadas para exibição
+  df_provisionadas_nao_lancadas = df_provisionadas_nao_lancadas[['ID Casa', 'Casa', 'Data Competência', 'Data Vencimento', 'Valor', 'Fornecedor', 'Descrição', 'Forma Pagamento', 'Classificação Contábil 1', 'Classificação Contábil 2']]
+  
+  return df_provisionadas_nao_lancadas, df_valor_provisionadas_nao_lancadas
+
+
+# Função que organiza ordem e nomes das colunas dos dfs
+def organiza_colunas(df, tipo, seletor_status_despesa=None):
+  if tipo == 'bares agrupados' or tipo == 'projeção casa a casa':
+    colunas = [  # colunas base
+        "Data",
+        "Saldo_Inicio_Dia",
+        "Valor_Liquido_Recebido",
+        "Valor_Projetado_Zig",
+        "Receita_Projetada_Extraord",
+        "Receita_Projetada_Eventos",
+        "Despesas_Aprovadas_Pendentes",
+        "Despesas_Pagas",
+        "Saldo_Final",
+    ]
+
+    # adicionar provisionadas se necessário
+    if seletor_status_despesa == "Todas Previstas":
+        colunas.insert(-1, "Despesas_Provisionadas")
+    
+    # a casa importa nesse caso
+    if tipo == 'projeção casa a casa':
+      colunas.insert(0, "Empresa")
+
+    df_organizado = df[colunas]
+
+    # colunas para formatação (todas menos Data)
+    colunas_formatar = [c for c in colunas if c != "Data"]
+
+    df_organizado = format_columns_brazilian(
+      df_organizado,
+      colunas_formatar
+    )
+
+    # rename único
+    df_organizado = df_organizado.rename(columns={
+      "Empresa": "Casa",
+      "Saldo_Inicio_Dia": "Saldo Início Dia",
+      "Valor_Liquido_Recebido": "Valor Líquido Recebido",
+      "Valor_Projetado_Zig": "Valor Zig Projetado",
+      "Receita_Projetada_Extraord": "Receitas Extr Projetadas",
+      "Receita_Projetada_Eventos": "Receitas Eventos Projetadas",
+      "Despesas_Aprovadas_Pendentes": "Despesas Pendentes",
+      "Despesas_Pagas": "Despesas Pagas",
+      "Despesas_Provisionadas": "Despesas Provisionadas",
+      "Saldo_Final": "Saldo Final"
+    })
+  
+  elif tipo =='despesas do dia':
+    df_organizado = df[['Loja', 'Previsao_Pgto', 'Data_Vencimento', 'ID_Despesa', 'Status_Aprovacao_Diretoria', 'Parcelamento', 'ID_Parcela', 'Valor', 'Status_Pgto', 'Fornecedor']]
+    df_organizado = df_organizado.rename(columns={
+        "Loja": "Casa",
+        "Previsao_Pgto": "Previsão Pgto",
+        "Data_Vencimento": "Data Vencimento",
+        "ID_Despesa": "ID Despesa",
+        "Status_Aprovacao_Diretoria": "Status Aprovação Diretoria",
+        "ID_Parcela": "ID Parcela",        
+        "Status_Pgto": "Status Pgto",
+    })
+
+  elif tipo == 'receitas extraordinárias':
+    df_organizado = df[['Empresa', 'ID_Receita_Extraordinária', 'Data_Vencimento_Parcela', 'Valor_Parcela', 'Classificação', 'Nome_Cliente', 'Observações']]
+    df_organizado = df_organizado.rename(columns={
+        "Empresa": "Casa",
+        "ID_Receita_Extraordinária": "ID Receita Extraodinária",
+        "Data_Vencimento_Parcela": "Data Vencimento Parcela",
+        "Valor_Parcela": "Valor Parcela", 
+        "Nome_Cliente": "Nome Cliente"       
+    })
+
+  elif tipo == 'receitas de eventos':
+    df_organizado = df[['Empresa', 'ID_Evento', 'Data_Vencimento_Parcela', 'Valor_Parcela', 'Classificação', 'Nome_Cliente', 'Observações']]
+    df_organizado = df_organizado.rename(columns={
+        "Empresa": "Casa",
+        "ID_Evento": "ID Evento",
+        "Data_Vencimento_Parcela": "Data Vencimento Parcela",
+        "Valor_Parcela": "Valor Parcela",     
+        "Nome_Cliente": "Nome Cliente"   
+    })
+
+  return df_organizado
 
 
 def config_feriados():
