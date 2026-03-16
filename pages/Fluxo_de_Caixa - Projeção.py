@@ -60,7 +60,6 @@ lojasComDados = sorted(lojasComDados)
 if 'Arcos' in lojasComDados: # Para não ficar 'All bar' como default nos seletors
     lojasComDados.remove('Arcos')
     lojasComDados.insert(0, 'Arcos')
-# lojasComDados = ['Todas as casas'] + lojasComDados
 
 # Recuperando dados
 df_saldos_bancarios = GET_SALDOS_BANCARIOS()                    # saldo inicio do dia atual de cada casa
@@ -69,14 +68,21 @@ df_projecao_zig = GET_PROJECAO_ZIG()                            # projecao fatur
 df_receitas_extraord_proj = GET_RECEITAS_EXTRAORD_FLUXO_CAIXA() # receit. extr. lançadas de cada casa para duas semanas
 df_receitas_eventos_proj = GET_EVENTOS_FLUXO_CAIXA()            # eventos lançados de cada casa para duas semanas
 
+# Despesas Pendentes e Pagas
 df_despesas_aprovadas_previstas_pendentes = GET_DESPESAS_PENDENTES() # despesas pendentes (aprovadas ou não)
 df_despesas_pagas_previstas_pendentes = GET_DESPESAS_PAGAS()         # despesas pagas (aprovadas ou não)
+
+# Dados para despesas provisionadas
+df_despesas_provisionadas_padrao = GET_DESPESAS_PROVISIONADAS_MENSAIS()
+df_despesas_rapidas_para_provisao = GET_DESPESAS_RAPIDAS_PREVISTAS()
+df_provisoes_nao_lancadas, df_valor_provisionadas_nao_lancadas = despesas_provisionadas_lancadas(df_despesas_provisionadas_padrao, df_despesas_rapidas_para_provisao)
 
 # Filtra de acordo com o seletor (aprovadas/previstas)
 df_categoria_despesas_pendentes = filtra_categoria_despesas(df_despesas_aprovadas_previstas_pendentes, seletor_status_despesa, 'pendentes')
 df_categoria_despesas_pagas = filtra_categoria_despesas(df_despesas_pagas_previstas_pendentes, seletor_status_despesa, 'pagas')
 
 df_projecao_bares_geral = config_projecao_bares(
+    seletor_status_despesa,
     df_saldos_bancarios, 
     df_valor_liquido, 
     df_projecao_zig, 
@@ -84,8 +90,8 @@ df_projecao_bares_geral = config_projecao_bares(
     df_receitas_eventos_proj,  
     df_categoria_despesas_pendentes, 
     df_categoria_despesas_pagas,
+    df_valor_provisionadas_nao_lancadas
 )
-
 
 # Projeção Agrupada
 with st.container(border=True):
@@ -100,49 +106,36 @@ with st.container(border=True):
     lista_bares_agrupados = sorted(lojasAgrupadas)
     texto = ", ".join(lista_bares_agrupados)
     st.markdown(f"{texto}")
-
     df_projecao_bares = df_projecao_bares_geral
 
     # Aplica data e multiplicador selecionados
-    df_projecao_bares = filtra_soma_saldo_final(df_projecao_bares, data_fim2, multiplicador2)
+    df_projecao_bares = filtra_soma_saldo_final(seletor_status_despesa, df_projecao_bares, data_fim2, multiplicador2)
     
     # Aplica as casas agrupadas
     df_projecao_grouped = config_grouped_projecao(df_projecao_bares, lojasAgrupadas)
     df_projecao_grouped_com_soma = somar_total(df_projecao_grouped)
 
     # Organiza colunas
-    df_projecao_grouped_com_soma = df_projecao_grouped_com_soma[["Data", "Saldo_Inicio_Dia", "Valor_Liquido_Recebido", "Valor_Projetado_Zig", "Receita_Projetada_Extraord", "Receita_Projetada_Eventos", "Despesas_Aprovadas_Pendentes", "Despesas_Pagas", "Saldo_Final"]]
-
-    df_projecao_grouped_com_soma = format_columns_brazilian(
-        df_projecao_grouped_com_soma,
-        [
-            "Saldo_Inicio_Dia",
-            "Valor_Liquido_Recebido",
-            "Valor_Projetado_Zig",
-            "Receita_Projetada_Extraord",
-            "Receita_Projetada_Eventos",
-            "Despesas_Aprovadas_Pendentes",
-            "Despesas_Pagas",
-            "Saldo_Final",
-        ],
-    )
-
-    df_projecao_grouped_com_soma = df_projecao_grouped_com_soma.rename(columns={
-        "Saldo_Inicio_Dia": "Saldo Início Dia",
-        "Valor_Liquido_Recebido": "Valor Líquido Recebido",
-        "Valor_Projetado_Zig": "Valor Zig Projetado",
-        "Receita_Projetada_Extraord": "Receitas Extr Projetadas",
-        "Receita_Projetada_Eventos": "Receitas Eventos Projetadas",
-        "Despesas_Aprovadas_Pendentes": "Despesas Pendentes",
-        "Despesas_Pagas": "Despesas Pagas",
-        "Saldo_Final": "Saldo Final"
-    })
+    df_projecao_grouped_com_soma = organiza_colunas(df_projecao_grouped_com_soma, 'bares agrupados', seletor_status_despesa=seletor_status_despesa)
 
     # Ordena por data
     df_projecao_grouped_com_soma = ordena_por_data(df_projecao_grouped_com_soma)
     df_projecao_grouped_styled = df_projecao_grouped_com_soma.style.apply(highlight_total_row, axis=1)
     st.dataframe(df_projecao_grouped_styled, width='stretch', hide_index=True)
     button_download(df_projecao_grouped_com_soma, f"Projeção de bares agrupados", f"Projeção de bares agrupados")
+
+    if seletor_status_despesa == 'Todas Previstas':
+        with st.expander('Visualizar provisões não lançadas'):
+            df_provisoes_nao_lancadas_filtrado = df_provisoes_nao_lancadas[
+                (df_provisoes_nao_lancadas['Casa'].isin(lojasAgrupadas)) &
+                (df_provisoes_nao_lancadas['Data Vencimento'].dt.date <= data_fim2)
+            ]
+            valor_total = df_provisoes_nao_lancadas_filtrado['Valor'].sum()
+
+            df_provisoes_nao_lancadas_filtrado = format_columns_brazilian(df_provisoes_nao_lancadas_filtrado, ['Valor'])
+            df_provisoes_nao_lancadas_filtrado.sort_values(by=['Casa', 'Data Vencimento'], inplace=True)
+            st.dataframe(df_provisoes_nao_lancadas_filtrado, hide_index=True, width='stretch')
+            st.write(f'**Total**: {format_brazilian(valor_total)}')
 
 st.divider()
 
@@ -174,7 +167,7 @@ with st.container(border=True):
     df_projecao_bares = df_projecao_bares_geral
 
     # Aplica data e multiplicador selecionados
-    df_projecao_bares = filtra_soma_saldo_final(df_projecao_bares, data_fim, multiplicador)
+    df_projecao_bares = filtra_soma_saldo_final(seletor_status_despesa, df_projecao_bares, data_fim, multiplicador)
     
     # Filtra para as casas selecionadas
     if 'Todas as casas' in bares_selecionados:
@@ -183,60 +176,53 @@ with st.container(border=True):
         df_projecao_bar = filtrar_por_classe_selecionada(df_projecao_bares, "Empresa", bares_selecionados)
 
     if checkbox_agrupa: # Agrupa casas selecionadas se checkbox ativo
-        df_projecao_bar_agrupados = df_projecao_bar.groupby(['Data'], as_index=False).agg({
-            'Saldo_Inicio_Dia': 'sum',
-            'Valor_Liquido_Recebido': 'sum',
-            'Valor_Projetado_Zig': 'sum',
-            'Receita_Projetada_Extraord': 'sum',
-            'Receita_Projetada_Eventos': 'sum',
-            'Despesas_Aprovadas_Pendentes': 'sum',
-            'Despesas_Pagas': 'sum',
-            'Saldo_Final': 'sum'
-        })
+        colunas = [
+            'Saldo_Inicio_Dia',
+            'Valor_Liquido_Recebido',
+            'Valor_Projetado_Zig',
+            'Receita_Projetada_Extraord',
+            'Receita_Projetada_Eventos',
+            'Despesas_Aprovadas_Pendentes',
+            'Despesas_Pagas',
+            'Saldo_Final'
+        ]
+
+        if seletor_status_despesa == 'Todas Previstas':
+            colunas.insert(-1, 'Despesas_Provisionadas')
+
+        agg_dict = {col: 'sum' for col in colunas}
+        df_projecao_bar_agrupados = df_projecao_bar.groupby('Data', as_index=False).agg(agg_dict)
 
         nome_agrupado = "Agrupamento"
         df_projecao_bar_agrupados['Empresa'] = nome_agrupado
         df_projecao_exibida = df_projecao_bar_agrupados
     
-    else: # Se não, exibe cada uma individualmente
+    else: # Se não, exibe cada casa individualmente
         df_projecao_exibida = df_projecao_bar
 
     # Cria linha de Total
     df_projecao_bar_com_soma = somar_total(df_projecao_exibida)
    
     # Organiza colunas
-    df_projecao_bar_com_soma = df_projecao_bar_com_soma[["Empresa", "Data", "Saldo_Inicio_Dia", "Valor_Liquido_Recebido", "Valor_Projetado_Zig", "Receita_Projetada_Extraord", "Receita_Projetada_Eventos", "Despesas_Aprovadas_Pendentes", "Despesas_Pagas", "Saldo_Final"]]
-    
-    df_projecao_bar_com_soma = format_columns_brazilian(
-        df_projecao_bar_com_soma,
-        [
-            "Saldo_Inicio_Dia",
-            "Valor_Liquido_Recebido",
-            "Valor_Projetado_Zig",
-            "Receita_Projetada_Extraord",
-            "Receita_Projetada_Eventos",
-            "Despesas_Aprovadas_Pendentes",
-            "Despesas_Pagas",
-            "Saldo_Final"
-        ],
-    )
-
-    df_projecao_bar_com_soma = df_projecao_bar_com_soma.rename(columns={
-        "Empresa": "Casa",
-        "Saldo_Inicio_Dia": "Saldo Início Dia",
-        "Valor_Liquido_Recebido": "Valor Líquido Recebido",
-        "Valor_Projetado_Zig": "Valor Zig Projetado",
-        "Receita_Projetada_Extraord": "Receitas Extr Projetadas",
-        "Receita_Projetada_Eventos": "Receitas Eventos Projetadas",
-        "Despesas_Aprovadas_Pendentes": "Despesas Pendentes",
-        "Despesas_Pagas": "Despesas Pagas",
-        "Saldo_Final": "Saldo Final"
-    })
+    df_projecao_bar_com_soma = organiza_colunas(df_projecao_bar_com_soma, 'projeção casa a casa', seletor_status_despesa=seletor_status_despesa)
 
     df_projecao_bar_com_soma = ordena_por_data(df_projecao_bar_com_soma)
     df_projecao_bar_styled = df_projecao_bar_com_soma.style.apply(highlight_total_row, axis=1)
     st.dataframe(df_projecao_bar_styled, width='stretch', hide_index=True)
     button_download(df_projecao_bar_com_soma, f"Projeção casa a casa", f"Projeção casa a casa")
+
+    if seletor_status_despesa == 'Todas Previstas':
+        with st.expander('Visualizar provisões não lançadas'):
+            df_provisoes_nao_lancadas_filtrado = df_provisoes_nao_lancadas[
+                (df_provisoes_nao_lancadas['Casa'].isin(bares_selecionados)) &
+                (df_provisoes_nao_lancadas['Data Vencimento'].dt.date <= data_fim)
+            ]
+            valor_total = df_provisoes_nao_lancadas_filtrado['Valor'].sum()
+
+            df_provisoes_nao_lancadas_filtrado = format_columns_brazilian(df_provisoes_nao_lancadas_filtrado, ['Valor'])
+            df_provisoes_nao_lancadas_filtrado.sort_values(by=['Casa', 'Data Vencimento'], inplace=True)
+            st.dataframe(df_provisoes_nao_lancadas_filtrado, hide_index=True, width='stretch')
+            st.write(f'**Total**: {format_brazilian(valor_total)}')
 
 st.divider()
 
@@ -305,16 +291,7 @@ with st.container(border=True):
     df = df.sort_values(by=["Loja", "Previsao_Pgto"])
 
     # Organiza colunas
-    df = df[['Loja', 'Previsao_Pgto', 'Data_Vencimento', 'ID_Despesa', 'Status_Aprovacao_Diretoria', 'Parcelamento', 'ID_Parcela', 'Valor', 'Status_Pgto', 'Fornecedor']]
-    df = df.rename(columns={
-        "Loja": "Casa",
-        "Previsao_Pgto": "Previsão Pgto",
-        "Data_Vencimento": "Data Vencimento",
-        "ID_Despesa": "ID Despesa",
-        "Status_Aprovacao_Diretoria": "Status Aprovação Diretoria",
-        "ID_Parcela": "ID Parcela",        
-        "Status_Pgto": "Status Pgto",
-    })
+    df = organiza_colunas(df, 'despesas do dia')
 
     st.dataframe(df, width='stretch', hide_index=True)
     col1, col2 = st.columns([5, 2], vertical_alignment='center')
@@ -365,14 +342,7 @@ with st.container(border=True):
     df = df.sort_values(by=["Empresa"])
     
     # Organiza colunas
-    df = df[['Empresa', 'ID_Receita_Extraordinária', 'Data_Vencimento_Parcela', 'Valor_Parcela', 'Classificação', 'Nome_Cliente', 'Observações']]
-    df = df.rename(columns={
-        "Empresa": "Casa",
-        "ID_Receita_Extraordinária": "ID Receita Extraodinária",
-        "Data_Vencimento_Parcela": "Data Vencimento Parcela",
-        "Valor_Parcela": "Valor Parcela", 
-        "Nome_Cliente": "Nome Cliente"       
-    })
+    df = organiza_colunas(df, 'receitas extraordinárias')
 
     st.dataframe(df, width='stretch', hide_index=True)
     col1, col2 = st.columns([5, 2], vertical_alignment='center')
@@ -382,7 +352,6 @@ with st.container(border=True):
         button_download(df, f"Receitas Extraord do dia", f"Receitas Extraord do dia")
     
     
-
 with st.container(border=True):
     st.subheader("Receitas de Eventos do Dia")
     col1, col2, col3 = st.columns([5, 2, 3], vertical_alignment='bottom')
@@ -424,14 +393,7 @@ with st.container(border=True):
     df = df.sort_values(by=["Empresa"])
    
     # Organiza colunas
-    df = df[['Empresa', 'ID_Evento', 'Data_Vencimento_Parcela', 'Valor_Parcela', 'Classificação', 'Nome_Cliente', 'Observações']]
-    df = df.rename(columns={
-        "Empresa": "Casa",
-        "ID_Evento": "ID Evento",
-        "Data_Vencimento_Parcela": "Data Vencimento Parcela",
-        "Valor_Parcela": "Valor Parcela",     
-        "Nome_Cliente": "Nome Cliente"   
-    })
+    df = organiza_colunas(df, 'receitas de eventos')
 
     st.dataframe(df, width='stretch', hide_index=True)
     col1, col2 = st.columns([5, 2], vertical_alignment='center')
