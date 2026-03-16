@@ -235,12 +235,12 @@ def filtra_detalhes_despesas(seletor_status_despesa, despesas_pendentes_pagas, d
 
 # Função que determina despesas proviões padrão não lançadas na T_DESPESA_RAPIDA
 def despesas_provisionadas_lancadas(df_despesas_provisionadas, df_despesas_rapidas):
-  df_despesas_provisionadas['Data Competência'] = pd.to_datetime(df_despesas_provisionadas['Data Competência'], errors='coerce')
-  df_despesas_provisionadas['Data Vencimento'] = pd.to_datetime(df_despesas_provisionadas['Data Vencimento'], errors='coerce')
+  df_despesas_provisionadas['Data Competência'] = pd.to_datetime(df_despesas_provisionadas['Data Competência'], errors='coerce').dt.normalize()
+  df_despesas_provisionadas['Data Vencimento'] = pd.to_datetime(df_despesas_provisionadas['Data Vencimento'], errors='coerce').dt.normalize()
   df_despesas_provisionadas['Mes Competencia'] = df_despesas_provisionadas['Data Competência'].dt.month
 
-  df_despesas_rapidas['Data_Competencia'] = pd.to_datetime(df_despesas_rapidas['Data_Competencia'], errors='coerce')
-  df_despesas_rapidas['Data_Vencimento'] = pd.to_datetime(df_despesas_rapidas['Data_Vencimento'], errors='coerce')
+  df_despesas_rapidas['Data_Competencia'] = pd.to_datetime(df_despesas_rapidas['Data_Competencia'], errors='coerce').dt.normalize()
+  df_despesas_rapidas['Data_Vencimento'] = pd.to_datetime(df_despesas_rapidas['Data_Vencimento'], errors='coerce').dt.normalize()
   df_despesas_rapidas['Mes Competencia'] = df_despesas_rapidas['Data_Competencia'].dt.month
 
   df_merge = pd.merge( # Match entre T_PROVISOES_PADRAO e T_DESPESA_RAPIDA (casa, fornecedor, mês competência e class. cont.)

@@ -133,6 +133,7 @@ with st.container(border=True):
             valor_total = df_provisoes_nao_lancadas_filtrado['Valor'].sum()
 
             df_provisoes_nao_lancadas_filtrado = format_columns_brazilian(df_provisoes_nao_lancadas_filtrado, ['Valor'])
+            df_provisoes_nao_lancadas_filtrado.sort_values(by=['Casa', 'Data Vencimento'], inplace=True)
             st.dataframe(df_provisoes_nao_lancadas_filtrado, hide_index=True, width='stretch')
             st.write(f'**Total**: {format_brazilian(valor_total)}')
 
@@ -219,6 +220,7 @@ with st.container(border=True):
             valor_total = df_provisoes_nao_lancadas_filtrado['Valor'].sum()
 
             df_provisoes_nao_lancadas_filtrado = format_columns_brazilian(df_provisoes_nao_lancadas_filtrado, ['Valor'])
+            df_provisoes_nao_lancadas_filtrado.sort_values(by=['Casa', 'Data Vencimento'], inplace=True)
             st.dataframe(df_provisoes_nao_lancadas_filtrado, hide_index=True, width='stretch')
             st.write(f'**Total**: {format_brazilian(valor_total)}')
 
