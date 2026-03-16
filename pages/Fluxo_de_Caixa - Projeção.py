@@ -125,7 +125,7 @@ with st.container(border=True):
     button_download(df_projecao_grouped_com_soma, f"Projeção de bares agrupados", f"Projeção de bares agrupados")
 
     if seletor_status_despesa == 'Todas Previstas':
-        with st.expander('Visualizar provisões não lançadas'):
+        with st.expander('Visualizar provisões pendentes/não lançadas'):
             df_provisoes_nao_lancadas_filtrado = df_provisoes_nao_lancadas[
                 (df_provisoes_nao_lancadas['Casa'].isin(lojasAgrupadas)) &
                 (df_provisoes_nao_lancadas['Data Vencimento'].dt.date <= data_fim2)
@@ -188,7 +188,7 @@ with st.container(border=True):
         ]
 
         if seletor_status_despesa == 'Todas Previstas':
-            colunas.insert(-1, 'Despesas_Provisionadas')
+            colunas.insert(-1, 'Provisões Pendentes')
 
         agg_dict = {col: 'sum' for col in colunas}
         df_projecao_bar_agrupados = df_projecao_bar.groupby('Data', as_index=False).agg(agg_dict)
@@ -212,7 +212,7 @@ with st.container(border=True):
     button_download(df_projecao_bar_com_soma, f"Projeção casa a casa", f"Projeção casa a casa")
 
     if seletor_status_despesa == 'Todas Previstas':
-        with st.expander('Visualizar provisões não lançadas'):
+        with st.expander('Visualizar provisões pendentes/não lançadas'):
             df_provisoes_nao_lancadas_filtrado = df_provisoes_nao_lancadas[
                 (df_provisoes_nao_lancadas['Casa'].isin(bares_selecionados)) &
                 (df_provisoes_nao_lancadas['Data Vencimento'].dt.date <= data_fim)

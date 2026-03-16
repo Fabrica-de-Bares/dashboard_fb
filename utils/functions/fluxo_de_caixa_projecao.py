@@ -103,7 +103,7 @@ def config_projecao_bares(seletor_status_despesa, df_saldos_bancarios, df_valor_
   # Ajustando formatação
   cols = ['Saldo_Inicio_Dia', 'Valor_Liquido_Recebido', 'Valor_Projetado_Zig', 'Receita_Projetada_Extraord', 'Receita_Projetada_Eventos', 'Despesas_Aprovadas_Pendentes', 'Despesas_Pagas']
   if seletor_status_despesa == 'Todas Previstas':
-    cols = cols + ['Despesas_Provisionadas']
+    cols = cols + ['Provisões Pendentes']
   merged_df[cols] = merged_df[cols].astype(float).round(2)
 
   return merged_df
@@ -132,7 +132,7 @@ def filtra_soma_saldo_final(seletor_status_despesa, merged_df, data_fim, multipl
   if seletor_status_despesa == 'Todas Previstas':
     merged_df_filtrado.loc[:, 'Saldo_Final'] = (
      merged_df_filtrado['Saldo_Final'] - 
-     merged_df_filtrado['Despesas_Provisionadas']
+     merged_df_filtrado['Provisões Pendentes']
     )
   merged_df_filtrado = df_format_date_brazilian(merged_df_filtrado, 'Data')
 
@@ -254,7 +254,7 @@ def despesas_provisionadas_lancadas(df_despesas_provisionadas, df_despesas_rapid
   df_provisionadas_nao_lancadas = df_merge[df_merge['ID_Despesa'].isna()] # Provisões não lançadas na T_DESPESA_RAPIDA
   # Nesse caso, Data Vencimento = Data Previsão
   df_valor_provisionadas_nao_lancadas = df_provisionadas_nao_lancadas.groupby(['Casa', 'Data Vencimento'], as_index=False)['Valor'].sum()
-  df_valor_provisionadas_nao_lancadas.rename(columns={'Casa': 'Empresa', 'Data Vencimento': 'Data', 'Valor': 'Despesas_Provisionadas'}, inplace=True)
+  df_valor_provisionadas_nao_lancadas.rename(columns={'Casa': 'Empresa', 'Data Vencimento': 'Data', 'Valor': 'Provisões Pendentes'}, inplace=True)
   
   # Prepara despesas não lançadas para exibição
   df_provisionadas_nao_lancadas = df_provisionadas_nao_lancadas[['ID Casa', 'Casa', 'Data Competência', 'Data Vencimento', 'Valor', 'Fornecedor', 'Descrição', 'Forma Pagamento', 'Classificação Contábil 1', 'Classificação Contábil 2']]
@@ -279,7 +279,7 @@ def organiza_colunas(df, tipo, seletor_status_despesa=None):
 
     # adicionar provisionadas se necessário
     if seletor_status_despesa == "Todas Previstas":
-        colunas.insert(-1, "Despesas_Provisionadas")
+        colunas.insert(-1, "Provisões Pendentes")
     
     # a casa importa nesse caso
     if tipo == 'projeção casa a casa':
@@ -305,7 +305,6 @@ def organiza_colunas(df, tipo, seletor_status_despesa=None):
       "Receita_Projetada_Eventos": "Receitas Eventos Projetadas",
       "Despesas_Aprovadas_Pendentes": "Despesas Pendentes",
       "Despesas_Pagas": "Despesas Pagas",
-      "Despesas_Provisionadas": "Despesas Provisionadas",
       "Saldo_Final": "Saldo Final"
     })
   
