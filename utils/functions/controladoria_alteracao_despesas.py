@@ -1,5 +1,6 @@
 import pandas as pd
 import streamlit as st
+from io import BytesIO
 
 
 def destacar_alteracoes(df, colunas_comparar):
@@ -188,3 +189,33 @@ def exibe_legenda():
         unsafe_allow_html=True
     )
     st.write("")
+
+
+# Função que gera excel com cada df em uma aba
+def gerar_excel(dfs):
+    output = BytesIO()
+
+    with pd.ExcelWriter(output, engine="openpyxl") as writer:
+        for nome_aba, df in dfs.items():
+            df.to_excel(writer, sheet_name=nome_aba[:31], index=False)
+
+    output.seek(0)
+    return output
+
+
+def button_download(dfs_exportar):
+    output = BytesIO()
+    with pd.ExcelWriter(output, engine="openpyxl") as writer:
+        for nome_aba, df in dfs_exportar.items():
+            df.to_excel(writer, sheet_name=nome_aba[:31], index=False)
+    output.seek(0)
+
+    st.download_button(
+        label=":material/download: Download Excel",
+        data=output,
+        file_name=f"Despesas Alteradas.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        width=200,
+        type="primary",
+        use_container_width=True
+    )
