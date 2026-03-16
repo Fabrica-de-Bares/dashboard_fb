@@ -99,9 +99,9 @@ with st.container(border=True):
     with col1:
         st.subheader(f"Projeção de bares agrupados - {seletor_status_despesa}")
     with col2:
-        data_fim2 = seletor_data_fim_padrao(key='date_input2') # Data de fim padrão dos seletores: uma semana à frente do dia atual
+        data_fim = seletor_data_fim_padrao(key='date_input2') # Data de fim padrão dos seletores: uma semana à frente do dia atual
     with col3:
-        multiplicador2 = st.number_input("Selecione um multiplicador", value=1.0, key="multiplicador_input2")
+        multiplicador = st.number_input("Selecione um multiplicador", value=1.0, key="multiplicador_input2")
     
     lista_bares_agrupados = sorted(lojasAgrupadas)
     texto = ", ".join(lista_bares_agrupados)
@@ -109,7 +109,7 @@ with st.container(border=True):
     df_projecao_bares = df_projecao_bares_geral
 
     # Aplica data e multiplicador selecionados
-    df_projecao_bares = filtra_soma_saldo_final(seletor_status_despesa, df_projecao_bares, data_fim2, multiplicador2)
+    df_projecao_bares = filtra_soma_saldo_final(seletor_status_despesa, df_projecao_bares, data_fim, multiplicador)
     
     # Aplica as casas agrupadas
     df_projecao_grouped = config_grouped_projecao(df_projecao_bares, lojasAgrupadas)
@@ -125,17 +125,7 @@ with st.container(border=True):
     button_download(df_projecao_grouped_com_soma, f"Projeção de bares agrupados", f"Projeção de bares agrupados")
 
     if seletor_status_despesa == 'Todas Previstas':
-        with st.expander('Visualizar provisões pendentes/não lançadas'):
-            df_provisoes_nao_lancadas_filtrado = df_provisoes_nao_lancadas[
-                (df_provisoes_nao_lancadas['Casa'].isin(lojasAgrupadas)) &
-                (df_provisoes_nao_lancadas['Data Vencimento'].dt.date <= data_fim2)
-            ]
-            valor_total = df_provisoes_nao_lancadas_filtrado['Valor'].sum()
-
-            df_provisoes_nao_lancadas_filtrado = format_columns_brazilian(df_provisoes_nao_lancadas_filtrado, ['Valor'])
-            df_provisoes_nao_lancadas_filtrado.sort_values(by=['Casa', 'Data Vencimento'], inplace=True)
-            st.dataframe(df_provisoes_nao_lancadas_filtrado, hide_index=True, width='stretch')
-            st.write(f'**Total**: {format_brazilian(valor_total)}')
+        exibe_provisoes_pendentes(df_provisoes_nao_lancadas, data_fim, lojasAgrupadas)
 
 st.divider()
 
@@ -212,18 +202,7 @@ with st.container(border=True):
     button_download(df_projecao_bar_com_soma, f"Projeção casa a casa", f"Projeção casa a casa")
 
     if seletor_status_despesa == 'Todas Previstas':
-        with st.expander('Visualizar provisões pendentes/não lançadas'):
-            df_provisoes_nao_lancadas_filtrado = df_provisoes_nao_lancadas[
-                (df_provisoes_nao_lancadas['Casa'].isin(bares_selecionados)) &
-                (df_provisoes_nao_lancadas['Data Vencimento'].dt.date <= data_fim)
-            ]
-            valor_total = df_provisoes_nao_lancadas_filtrado['Valor'].sum()
-
-            df_provisoes_nao_lancadas_filtrado = format_columns_brazilian(df_provisoes_nao_lancadas_filtrado, ['Valor'])
-            df_provisoes_nao_lancadas_filtrado.sort_values(by=['Casa', 'Data Vencimento'], inplace=True)
-            st.dataframe(df_provisoes_nao_lancadas_filtrado, hide_index=True, width='stretch')
-            st.write(f'**Total**: {format_brazilian(valor_total)}')
-
+        exibe_provisoes_pendentes(df_provisoes_nao_lancadas, data_fim, bares_selecionados)
 st.divider()
 
 with st.container(border=True):

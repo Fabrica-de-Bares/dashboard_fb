@@ -104,6 +104,12 @@ def config_projecao_bares(seletor_status_despesa, df_saldos_bancarios, df_valor_
   cols = ['Saldo_Inicio_Dia', 'Valor_Liquido_Recebido', 'Valor_Projetado_Zig', 'Receita_Projetada_Extraord', 'Receita_Projetada_Eventos', 'Despesas_Aprovadas_Pendentes', 'Despesas_Pagas']
   if seletor_status_despesa == 'Todas Previstas':
     cols = cols + ['Provisões Pendentes']
+
+  # Caso T_PROVISOES_PADRAO esteja vazia
+  for col in cols:
+    if col not in merged_df.columns:
+      merged_df[col] = 0 # Zera a coluna de valor de Provisões Pendentes
+  
   merged_df[cols] = merged_df[cols].astype(float).round(2)
 
   return merged_df
@@ -341,6 +347,23 @@ def organiza_colunas(df, tipo, seletor_status_despesa=None):
     })
 
   return df_organizado
+
+
+def exibe_provisoes_pendentes(df_provisoes_nao_lancadas, data_fim, bares_selecionados):
+  with st.expander('Visualizar provisões pendentes/não lançadas'):
+    df_provisoes_nao_lancadas_filtrado = df_provisoes_nao_lancadas[
+      (df_provisoes_nao_lancadas['Casa'].isin(bares_selecionados)) &
+      (df_provisoes_nao_lancadas['Data Vencimento'].dt.date <= data_fim)
+    ].copy()
+
+    if not df_provisoes_nao_lancadas_filtrado.empty:
+        valor_total = df_provisoes_nao_lancadas_filtrado['Valor'].sum()
+        df_provisoes_nao_lancadas_filtrado = format_columns_brazilian(df_provisoes_nao_lancadas_filtrado, ['Valor'])
+        df_provisoes_nao_lancadas_filtrado.sort_values(by=['Casa', 'Data Vencimento'], inplace=True)
+        st.dataframe(df_provisoes_nao_lancadas_filtrado, hide_index=True, width='stretch')
+        st.write(f'**Total**: {format_brazilian(valor_total)}')
+    else:
+        st.success('Sem provisões pendentes!')
 
 
 def config_feriados():
