@@ -515,6 +515,11 @@ def GET_FATURAM_ZIG_ALIM_BEB_MENSAL(data_inicio, data_fim):
 
 @st.cache_data
 def GET_VALORACAO_ESTOQUE(loja, data_contagem):
+  # Condição dinâmica baseada no parâmetro 'loja'
+  if loja == 'Girondino - Agregado':
+    where_loja = "te.ID IN (156, 160)"
+  else:
+    where_loja = f"te.NOME_FANTASIA = '{loja}'"
   return dataframe_query(f'''
   SELECT 
   	te.ID AS 'ID_Loja',
@@ -538,7 +543,7 @@ def GET_VALORACAO_ESTOQUE(loja, data_contagem):
   LEFT JOIN T_UNIDADES_DE_MEDIDAS tudm ON tin5.FK_UNIDADE_MEDIDA = tudm.ID
   WHERE tci.QUANTIDADE_INSUMO != 0
     AND tci.DATA_CONTAGEM = '{data_contagem}'
-    AND te.NOME_FANTASIA = '{loja}'
+    AND {where_loja}
   ORDER BY DATA_CONTAGEM DESC
   ''')
 
