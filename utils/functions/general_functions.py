@@ -153,7 +153,7 @@ def GET_LOJAS_USER(login):
             te.ID_ZIGPAY AS 'ID Zigpay'
 		FROM
 			ADMIN_USERS au 
-			LEFT JOIN T_USUARIOS_EMPRESAS tue ON au.ID = tue.FK_USUARIO 
+			LEFT JOIN T_USUARIOS_EMPRESAS_DASH tue ON au.ID = tue.FK_USUARIO 
 			LEFT JOIN T_EMPRESAS te ON tue.FK_EMPRESA = te.ID
 			LEFT JOIN T_LOJAS tl ON te.ID = tl.ID
 		WHERE au.LOGIN = {loginStr}
