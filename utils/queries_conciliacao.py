@@ -566,42 +566,37 @@ def GET_ORCAMENTOS():
 def GET_FATURAMENTO_AGREGADO():
     df_faturamento_agregado = dataframe_query('''
     # Faturamento Agregado
-      WITH empresas_normalizadas AS (
-        SELECT
-          ID             AS original_id,
-          CASE 
-            WHEN ID IN (161, 162) THEN 149
-            WHEN ID = 178 THEN 110
-            WHEN te.ID = 177 THEN 176                                   
-            ELSE ID 
-          END            AS id_casa_normalizada
-        FROM T_EMPRESAS
-      )
-      SELECT
-        tfa.ID                     AS ID_Faturam_Agregado,
-        en.id_casa_normalizada     AS ID_Casa,
-        te2.NOME_FANTASIA          AS Casa,
-        tivc.DESCRICAO             AS Categoria,
-        tfa.ANO                    AS Ano,
-        tfa.MES                    AS Mes,
-        tfa.VALOR_BRUTO            AS Valor_Bruto,
-        tfa.DESCONTO               AS Desconto,
-        tfa.VALOR_LIQUIDO          AS Valor_Liquido
-      FROM T_FATURAMENTO_AGREGADO tfa
-      -- primeiro, linka ao CTE para saber a casa “normalizada”
-      LEFT JOIN empresas_normalizadas en
-        ON tfa.FK_EMPRESA = en.original_id
-      -- depois, puxa o nome da casa já normalizada
-      LEFT JOIN T_EMPRESAS te2
-        ON en.id_casa_normalizada = te2.ID
-      LEFT JOIN T_ITENS_VENDIDOS_CATEGORIAS tivc
-        ON tfa.FK_CATEGORIA = tivc.ID
-        
+      SELECT 
+        CASE
+          WHEN te.ID IN (161, 162) THEN 149 -- Priceless
+              WHEN te.ID = 131 THEN 110 -- Blue Note
+              WHEN te.ID = 177 THEN 176 -- The Cavern                                    
+              ELSE tivd.FK_CASA
+            END AS 'ID_Casa',
+          CASE
+              WHEN te.NOME_FANTASIA IN ('Terraço Notie', 'Notiê - Priceless') THEN 'Priceless'
+              WHEN te.NOME_FANTASIA = 'Blue Note SP (Novo)' THEN 'Blue Note - São Paulo'
+              WHEN te.NOME_FANTASIA = 'The Cavern - Almoço' THEN 'The Cavern'                                    
+              ELSE te.NOME_FANTASIA
+          END AS 'Casa',
+      tivc2.DESCRICAO AS 'Categoria',
+      YEAR(tivd.EVENT_DATE) AS 'Ano',
+      MONTH(tivd.EVENT_DATE) AS 'Mes',
+      SUM(COALESCE((tivd.VALOR_UNITARIO * tivd.QUANTIDADE), 0)) AS 'Valor_Bruto',
+      SUM(tivd.DESCONTO) AS 'Desconto',
+      SUM(COALESCE(((tivd.VALOR_UNITARIO * tivd.QUANTIDADE) - tivd.DESCONTO), 0)) AS 'Valor_Liquido'
+      FROM T_ITENS_VENDIDOS_DIA AS tivd
+      LEFT JOIN T_EMPRESAS AS te ON (tivd.FK_CASA = te.ID)
+      LEFT JOIN T_ITENS_VENDIDOS_CADASTROS tivc ON (tivc.ID_ZIGPAY = tivd.PRODUCT_ID)
+      LEFT JOIN T_ITENS_VENDIDOS_CATEGORIAS tivc2 ON (tivc2.ID = tivc.FK_CATEGORIA)
+      LEFT JOIN T_ITENS_VENDIDOS_TIPOS tivt ON tivc.FK_TIPO = tivt.ID
+      GROUP BY te.ID, tivc2.DESCRICAO, YEAR(tivd.EVENT_DATE), MONTH(tivd.EVENT_DATE)
+              
       UNION ALL
 
       # Receitas Extraordinárias
       SELECT 
-      trec2.ID as ID_Faturam_Agregado,
+      # trec2.ID as ID_Faturam_Agregado,
       te.ID as ID_Casa,
       te.NOME_FANTASIA as Casa,
       trec2.CLASSIFICACAO as Categoria,

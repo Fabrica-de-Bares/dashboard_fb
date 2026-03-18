@@ -784,7 +784,7 @@ def merge_e_calculo_para_cmv(df_faturamento_zig, df_compras, df_valoracao_estoqu
         df_cmv[['Casa', 'Mes_Ano', 'Compras Geral', 'Variacao_Estoque', 'Entradas Geral', 'Saídas Geral', 'Consumo Interno', 'Quebras e Perdas', 'Variacao_Producao']],
         df_merge_faturamento[['Casa', 'Mes_Ano', 'Faturamento_Geral']],
         on=['Casa', 'Mes_Ano'],
-        how='left'
+        how='right'
     )
 
     # Cálculo do cmv e porcentagem cmv
