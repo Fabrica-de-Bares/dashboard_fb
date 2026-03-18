@@ -244,16 +244,18 @@ def despesas_provisionadas_lancadas(df_despesas_provisionadas, df_despesas_rapid
   df_despesas_provisionadas['Data Competência'] = pd.to_datetime(df_despesas_provisionadas['Data Competência'], errors='coerce').dt.normalize()
   df_despesas_provisionadas['Data Vencimento'] = pd.to_datetime(df_despesas_provisionadas['Data Vencimento'], errors='coerce').dt.normalize()
   df_despesas_provisionadas['Mes Competencia'] = df_despesas_provisionadas['Data Competência'].dt.month
-
+  df_despesas_provisionadas['Ano Competencia'] = df_despesas_provisionadas['Data Competência'].dt.year
+  
   df_despesas_rapidas['Data_Competencia'] = pd.to_datetime(df_despesas_rapidas['Data_Competencia'], errors='coerce').dt.normalize()
   df_despesas_rapidas['Data_Vencimento'] = pd.to_datetime(df_despesas_rapidas['Data_Vencimento'], errors='coerce').dt.normalize()
   df_despesas_rapidas['Mes Competencia'] = df_despesas_rapidas['Data_Competencia'].dt.month
+  df_despesas_rapidas['Ano Competencia'] = df_despesas_rapidas['Data_Competencia'].dt.year
 
   df_merge = pd.merge( # Match entre T_PROVISOES_PADRAO e T_DESPESA_RAPIDA (casa, fornecedor, mês competência e class. cont.)
     df_despesas_provisionadas,
     df_despesas_rapidas,
-    left_on=['ID Casa', 'Casa', 'Mes Competencia', 'Fornecedor', 'Classificação Contábil 1', 'Classificação Contábil 2'],
-    right_on=['ID Casa', 'Casa', 'Mes Competencia', 'Fornecedor', 'Class_Cont_1', 'Class_Cont_2'],
+    left_on=['ID Casa', 'Casa', 'Mes Competencia', 'Ano Competencia', 'Fornecedor', 'Classificação Contábil 1', 'Classificação Contábil 2'],
+    right_on=['ID Casa', 'Casa', 'Mes Competencia', 'Ano Competencia', 'Fornecedor', 'Class_Cont_1', 'Class_Cont_2'],
     how='left'
   )
 
