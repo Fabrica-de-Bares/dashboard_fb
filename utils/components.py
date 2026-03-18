@@ -104,7 +104,7 @@ def input_selecao_casas_agregadas(lista_casas_retirar, key):
 
     return id_casa, casa, id_zigpay
 
-def input_multiselecao_casas(lista_casas_retirar, key):
+def input_multiselecao_casas(lista_casas_retirar, key, adicionar_delivery=None):
     # Dataframe com IDs e nomes das casas
     df_casas = get_casas_validas()
     # Remove casas da lista_casas_retirar
@@ -113,6 +113,19 @@ def input_multiselecao_casas(lista_casas_retirar, key):
     # Se o usuário não tem acesso a todas as casas, mostra apenas as casas que ele tem acesso
     df_permissao_casas = pd.DataFrame(st.session_state['casas_permitidas'], columns=["ID Loja"])
     lista_ids_casas_acesso = df_permissao_casas["ID Loja"].to_list()
+    
+    # Adiciona casas de Delivery nas abas que pedirem
+    if adicionar_delivery == True:
+        if 105 in lista_ids_casas_acesso: # Jacaré
+            lista_ids_casas_acesso.append(139)
+        if 114 in lista_ids_casas_acesso: # BBC
+            lista_ids_casas_acesso.append(118)
+        if 104 in lista_ids_casas_acesso: # Orfeu
+            lista_ids_casas_acesso.append(112)
+        if 148 in lista_ids_casas_acesso: # BBG
+            lista_ids_casas_acesso.append(169)
+        if 116 in lista_ids_casas_acesso: # Bar Léo
+            lista_ids_casas_acesso.append(103)
     
     df_casas = df_casas[df_casas["ID_Casa"].isin(lista_ids_casas_acesso)].sort_values(by="Casa").reset_index(drop=True)
     lista_casas_validas = df_casas["Casa"].to_list()

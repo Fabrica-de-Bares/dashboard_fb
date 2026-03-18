@@ -2,7 +2,7 @@ import streamlit as st
 from utils.components import seletor_ano, input_selecao_casas, input_multiselecao_casas
 from utils.functions.general_functions import config_sidebar
 from utils.queries_conciliacao import GET_CASAS
-from utils.queries_forecast import GET_ITENS_VENDIDOS_DIA
+from utils.queries_forecast import GET_ITENS_VENDIDOS_DIA_DA_SEMANA
 from utils.functions.faturamento_dia_semana import *
 from utils.functions.forecast import *
 from utils.user import logout
@@ -33,8 +33,8 @@ st.divider()
 col1, col2 = st.columns(2, vertical_alignment='center')
 
 with col1:
-    lista_retirar_casas = ['Bar Léo - Vila Madalena', 'Todas as Casas']
-    df_casas_selecionadas = input_multiselecao_casas(lista_retirar_casas, key='faturamento_bruto')
+    lista_retirar_casas = ['Todas as Casas']
+    df_casas_selecionadas = input_multiselecao_casas(lista_retirar_casas, key='faturamento_bruto', adicionar_delivery=True)
     lista_casas_selecionadas = df_casas_selecionadas['Casa'].tolist()
     lista_ids_casas_selecionadas = df_casas_selecionadas['ID_Casa'].tolist()
 with col2: 
@@ -46,7 +46,7 @@ if lista_casas_selecionadas == []:
   st.stop()
 
 # Query com todos os faturamentos da Zig
-df_faturamento_diario = GET_ITENS_VENDIDOS_DIA()
+df_faturamento_diario = GET_ITENS_VENDIDOS_DIA_DA_SEMANA()
 
 # Filtrando por casa e gerando coluna com dia da semana
 df_faturamento_diario_casa = prepara_dados_faturamento_casa(df_faturamento_diario, lista_casas_selecionadas)
@@ -80,7 +80,7 @@ if ano == datas['ano_atual']:
     df_estilizado = pivot_faturamento_geral.style.apply(destaca_mes_atual_seguintes, axis=1) # Pinta mês corrente (ainda não concluído)
     legenda = f"""
         <div style="display: flex; align-items: center; padding:10px; border:1px solid #ccc; border-radius:8px";>
-            <div style="width: 15px; height: 15px; background-color: #fff3b0; border: 1px solid #ccc; margin-right: 10px;"></div>
+            <div style="width: 15px; height: 15px; background-color: rgba(255,255,224); border: 1px solid #ccc; margin-right: 10px;"></div>
             <span style="font-size: 14px">Média de faturamento projetado (não real). Mês ainda não está concluído.</span>
         </div>
         """
@@ -120,17 +120,20 @@ if ano == datas['ano_atual']:
     df_estilizado = pivot_faturamento_categoria_dia_semana.style.apply(destaca_mes_atual_seguintes, axis=1) # Pinta mês corrente (ainda não concluído)
     legenda = f"""
         <div style="display: flex; align-items: center; padding:10px; border:1px solid #ccc; border-radius:8px";>
-            <div style="width: 15px; height: 15px; background-color: #fff3b0; border: 1px solid #ccc; margin-right: 10px;"></div>
+            <div style="width: 15px; height: 15px; background-color: rgba(255,255,224); border: 1px solid #ccc; margin-right: 10px;"></div>
             <span style="font-size: 14px">Média de faturamento projetado (não real). Mês ainda não está concluído.</span>
         </div>
         """
-else:
+elif ano > datas['ano_atual']:
     df_estilizado = pivot_faturamento_categoria_dia_semana
     legenda = f"""
         <div style="display: flex; align-items: center; padding:10px; border:1px solid #ccc; border-radius:8px";>
             <span style="font-size: 14px"><b>Observação:</b> Esses valores são a média de faturamento projetado (não real).</span>
         </div>
         """
+elif ano < datas['ano_atual']:
+    df_estilizado = pivot_faturamento_categoria_dia_semana
+    legenda = ""
 
 st.dataframe(df_estilizado, hide_index=True, height=458)
 st.markdown(legenda, unsafe_allow_html=True) # Exibe legenda

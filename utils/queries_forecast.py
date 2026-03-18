@@ -10,63 +10,44 @@ casas_str = "', '".join(casas_validas)  # vira: "Bar Brahma - Centro', 'Orfeu"
 casas_str = f"'{casas_str}'"  # adiciona aspas ao redor da lista toda
 
 
-# Faturamento da Zig por dia: alimentos, bebidas, delivery, couvert, etc
-# @st.cache_data
-# def GET_FATURAMENTO_AGREGADO_DIA():
-#     df_faturamento_agregado_diario = dataframe_query(f''' 
-#         SELECT
-#             CASE
-#                 WHEN te.ID IN (161, 162) THEN 149
-#                 WHEN te.ID = 131 THEN 110
-#                 ELSE te.ID    
-#             END AS ID_Casa,                                                                                                                      
-#             CASE
-#                 WHEN te.NOME_FANTASIA IN ('Abaru - Priceless', 'Notiê - Priceless') THEN 'Priceless'
-#                 WHEN te.NOME_FANTASIA = 'Blue Note SP (Novo)' THEN 'Blue Note - São Paulo'
-#                 ELSE te.NOME_FANTASIA    
-#             END AS Casa,  
-#             CASE 
-#                 WHEN te.ID IN (103, 112, 118, 139, 169) THEN 'Delivery'
-#                 ELSE tivc2.DESCRICAO 
-#             END AS Categoria,
-#             cast(tiv.EVENT_DATE as date) AS Data_Evento,
-#             SUM((tiv.UNIT_VALUE * tiv.COUNT)) AS Valor_Bruto,
-#             SUM(tiv.DISCOUNT_VALUE) AS Desconto,
-#             SUM((tiv.UNIT_VALUE * tiv.COUNT) - tiv.DISCOUNT_VALUE) AS Valor_Liquido
-#         FROM T_ITENS_VENDIDOS tiv
-#         LEFT JOIN T_ITENS_VENDIDOS_CADASTROS tivc ON tiv.PRODUCT_ID = tivc.ID_ZIGPAY
-#         LEFT JOIN T_ITENS_VENDIDOS_CATEGORIAS tivc2 ON tivc.FK_CATEGORIA = tivc2.ID
-#         LEFT JOIN T_ITENS_VENDIDOS_TIPOS tivt ON tivc.FK_TIPO = tivt.ID
-#         LEFT JOIN T_EMPRESAS te ON tiv.LOJA_ID = te.ID_ZIGPAY
-#         WHERE 
-#             YEAR(tiv.EVENT_DATE) > 2024 AND 
-#             (te.NOME_FANTASIA IN ({casas_str}) OR 
-#             te.NOME_FANTASIA LIKE '%Delivery%' OR
-#             te.NOME_FANTASIA LIKE '%Priceless%')
-#         GROUP BY 
-#             ID_Casa,
-#             Casa,
-#             Categoria,
-#             Data_Evento
-#     ''')
-
-#     # Mapeamento do Delivery
-#     mapeamento = {
-#     'Delivery Bar Leo Centro': ('Bar Léo - Centro', 116),
-#     'Delivery Orfeu': ('Orfeu', 104),
-#     'Delivery Fabrica de Bares': ('Bar Brahma - Centro', 114),
-#     'Delivery Brahma Granja Viana': ('Bar Brahma - Granja', 148),
-#     'Delivery Jacaré': ('Jacaré', 105)
-#     }
-
-#     for nome_antigo, (novo_nome, novo_id) in mapeamento.items():
-#         mask = df_faturamento_agregado_diario['Casa'] == nome_antigo
-#         df_faturamento_agregado_diario.loc[mask, ['Casa', 'ID_Casa']] = [novo_nome, novo_id]
-    
-#     return df_faturamento_agregado_diario
+# Faturamento da Zig por dia da semana: considerar casas de Delivery separadamente
+@st.cache_data
+def GET_ITENS_VENDIDOS_DIA_DA_SEMANA():
+    df_itens_vendidos_dia_da_semana = dataframe_query(f'''
+    SELECT 
+      CASE
+        WHEN tivd.FK_CASA = 117 THEN 118 -- Delivery BBC
+        WHEN te.ID IN (161, 162) THEN 149 -- Priceless
+        WHEN te.ID = 131 THEN 110 -- Blue Note
+        WHEN te.ID = 177 THEN 176 -- The Cavern                                    
+        ELSE tivd.FK_CASA
+      END AS 'ID_Casa',
+      CASE
+        WHEN te.NOME_FANTASIA = 'Hotel Maraba' THEN 'Delivery Brahma Centro'
+        WHEN te.NOME_FANTASIA IN ('Terraço Notie', 'Notiê - Priceless') THEN 'Priceless'
+        WHEN te.NOME_FANTASIA = 'Blue Note SP (Novo)' THEN 'Blue Note - São Paulo'
+        WHEN te.NOME_FANTASIA = 'The Cavern - Almoço' THEN 'The Cavern'                                    
+        ELSE te.NOME_FANTASIA
+      END AS 'Casa',
+          tivc2.DESCRICAO AS Categoria,
+          DATE(tivd.EVENT_DATE) AS 'Data Evento',
+          SUM(tivd.DESCONTO) AS 'Desconto',
+          SUM(COALESCE((tivd.VALOR_UNITARIO * tivd.QUANTIDADE), 0)) AS 'Valor Bruto',
+          SUM(COALESCE(((tivd.VALOR_UNITARIO * tivd.QUANTIDADE) - tivd.DESCONTO), 0)) AS 'Valor Liquido'
+        FROM T_ITENS_VENDIDOS_DIA tivd
+        LEFT JOIN T_EMPRESAS te ON tivd.LOJA_ID = te.ID_ZIGPAY
+        LEFT JOIN T_ITENS_VENDIDOS_CADASTROS tivc ON tivc.ID_ZIGPAY = tivd.PRODUCT_ID
+        LEFT JOIN T_ITENS_VENDIDOS_CATEGORIAS tivc2 ON tivc2.ID = tivc.FK_CATEGORIA 
+        LEFT JOIN T_ITENS_VENDIDOS_TIPOS tivt ON tivc.FK_TIPO = tivt.ID
+        GROUP BY te.ID, tivc2.DESCRICAO, DATE(tivd.EVENT_DATE)
+		ORDER BY tivd.EVENT_DATE DESC;                                                                     
+    '''
+    )
+    # Agrupa por casa e data
+    df_itens_vendidos_dia_da_semana = df_itens_vendidos_dia_da_semana.groupby(['ID_Casa', 'Casa', 'Categoria', 'Data Evento'], as_index=False)[['Valor Bruto', 'Desconto', 'Valor Liquido']].sum()
+    return df_itens_vendidos_dia_da_semana
 
 
-# Substitui a query acima -> utiliza T_ITENS_VENDIDOS_DIA
 @st.cache_data
 def GET_ITENS_VENDIDOS_DIA():
     df_itens_vendidos_dia = dataframe_query(f'''
@@ -81,7 +62,7 @@ def GET_ITENS_VENDIDOS_DIA():
         WHEN te.ID = 131 THEN 110 -- Blue Note
         WHEN te.ID = 177 THEN 176 -- The Cavern                                    
         ELSE tivd.FK_CASA
-      END AS `ID_Casa`,
+      END AS 'ID_Casa',
       CASE
         WHEN tivd.FK_CASA = 118 THEN 'Bar Brahma - Centro'
         WHEN tivd.FK_CASA = 103 THEN 'Bar Léo - Centro'

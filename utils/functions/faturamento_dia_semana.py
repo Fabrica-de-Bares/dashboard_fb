@@ -10,7 +10,7 @@ datas = calcular_datas()
 def destaca_mes_atual_seguintes(row):
     mes_atual = datas['inicio_mes_atual'].strftime('%m-%Y')
     if row['Mês-Ano'] >= mes_atual:
-        return ['background-color: #fff3b0'] * (len(row))
+        return ['background-color: rgba(255,255,224)'] * (len(row))
     return [''] * (len(row))
 
 
