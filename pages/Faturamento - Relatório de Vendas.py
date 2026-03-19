@@ -245,87 +245,87 @@ def main():
       FaturamentoZigClasseAgrupado = format_columns_brazilian(FaturamentoZigClasseAgrupado, ['Valor Bruto Venda', 'Valor Líquido Venda', 'Preço Unitário', 'Desconto'])
       st.dataframe(FaturamentoZigClasseAgrupado, width='stretch', hide_index=True)
 
-  with st.container(border=True):
-    col0, col1, col2 = st.columns([0.1, 2.6, 0.1])
-    with col1:
-      st.markdown('## Análise de Faturamento')
-      # Faturamento por Dia da Semana e Momento de Consumo
-      col1, col2 = st.columns([4, 1], vertical_alignment = "center")
-      with col1:
-          st.markdown('### Média por Dia da Semana e Momento de Consumo')
+  # with st.container(border=True):
+  #   col0, col1, col2 = st.columns([0.1, 2.6, 0.1])
+  #   with col1:
+  #     st.markdown('## Análise de Faturamento')
+  #     # Faturamento por Dia da Semana e Momento de Consumo
+  #     col1, col2 = st.columns([4, 1], vertical_alignment = "center")
+  #     with col1:
+  #         st.markdown('### Média por Dia da Semana e Momento de Consumo')
       
-      FaturamentoZigClasseMomentoConsumoDia = FaturamentoZig.copy()
-      FaturamentoZigClasseMomentoConsumoDia['Momento Consumo'] = FaturamentoZigClasseMomentoConsumoDia.apply(
-        classificacao_momento_consumo, axis=1
-      )
-      FaturamentoZigClasseMomentoConsumoDia['Data_Evento'] = pd.to_datetime(FaturamentoZigClasseMomentoConsumoDia['Data_Evento'])
-      FaturamentoZigClasseMomentoConsumoDia['Dia da Semana'] = FaturamentoZigClasseMomentoConsumoDia['Data_Evento'].dt.day_name().map(dias_map)
-      FaturamentoZigClasseMomentoConsumoDia['Mes-Ano'] = FaturamentoZigClasseMomentoConsumoDia['Data_Evento'].dt.strftime('%m/%Y')
-      df_por_dia = FaturamentoZigClasseMomentoConsumoDia.groupby(
-          ['Data_Evento', 'Dia da Semana', 'Mes-Ano', 'Momento Consumo']
-      ).agg({
-          'Quantia comprada': 'sum',
-          'Desconto': 'sum',
-          'Valor Bruto Venda': 'sum',
-          'Valor Líquido Venda': 'sum'
-      }).reset_index()
+  #     FaturamentoZigClasseMomentoConsumoDia = FaturamentoZig.copy()
+  #     FaturamentoZigClasseMomentoConsumoDia['Momento Consumo'] = FaturamentoZigClasseMomentoConsumoDia.apply(
+  #       classificacao_momento_consumo, axis=1
+  #     )
+  #     FaturamentoZigClasseMomentoConsumoDia['Data_Evento'] = pd.to_datetime(FaturamentoZigClasseMomentoConsumoDia['Data_Evento'])
+  #     FaturamentoZigClasseMomentoConsumoDia['Dia da Semana'] = FaturamentoZigClasseMomentoConsumoDia['Data_Evento'].dt.day_name().map(dias_map)
+  #     FaturamentoZigClasseMomentoConsumoDia['Mes-Ano'] = FaturamentoZigClasseMomentoConsumoDia['Data_Evento'].dt.strftime('%m/%Y')
+  #     df_por_dia = FaturamentoZigClasseMomentoConsumoDia.groupby(
+  #         ['Data_Evento', 'Dia da Semana', 'Mes-Ano', 'Momento Consumo']
+  #     ).agg({
+  #         'Quantia comprada': 'sum',
+  #         'Desconto': 'sum',
+  #         'Valor Bruto Venda': 'sum',
+  #         'Valor Líquido Venda': 'sum'
+  #     }).reset_index()
 
-      # Etapa 2: média por dia da semana + momento de consumo + mês
-      df_media_dia_semana = df_por_dia.groupby(
-          ['Mes-Ano', 'Dia da Semana', 'Momento Consumo']
-      ).agg({
-          'Quantia comprada': 'mean',
-          'Desconto': 'mean',
-          'Valor Bruto Venda': 'mean',
-          'Valor Líquido Venda': 'mean'
-      }).reset_index()
+  #     # Etapa 2: média por dia da semana + momento de consumo + mês
+  #     df_media_dia_semana = df_por_dia.groupby(
+  #         ['Mes-Ano', 'Dia da Semana', 'Momento Consumo']
+  #     ).agg({
+  #         'Quantia comprada': 'mean',
+  #         'Desconto': 'mean',
+  #         'Valor Bruto Venda': 'mean',
+  #         'Valor Líquido Venda': 'mean'
+  #     }).reset_index()
 
-      # Renomeia colunas
-      df_media_dia_semana.rename(columns={
-          'Quantia comprada': 'N° Médio de Itens Vendidos',
-          'Desconto': 'Valor Médio de Descontos',
-          'Valor Bruto Venda': 'Faturamento Bruto Médio',
-          'Valor Líquido Venda': 'Faturamento Líquido Médio'
-      }, inplace=True)
+  #     # Renomeia colunas
+  #     df_media_dia_semana.rename(columns={
+  #         'Quantia comprada': 'N° Médio de Itens Vendidos',
+  #         'Desconto': 'Valor Médio de Descontos',
+  #         'Valor Bruto Venda': 'Faturamento Bruto Médio',
+  #         'Valor Líquido Venda': 'Faturamento Líquido Médio'
+  #     }, inplace=True)
       
-      df_media_dia_semana_download = df_media_dia_semana.copy()
-      df_media_dia_semana = format_columns_brazilian(df_media_dia_semana, ['N° Médio de Itens Vendidos', 'Valor Médio de Descontos', 'Faturamento Bruto Médio', 'Faturamento Líquido Médio'])
+  #     df_media_dia_semana_download = df_media_dia_semana.copy()
+  #     df_media_dia_semana = format_columns_brazilian(df_media_dia_semana, ['N° Médio de Itens Vendidos', 'Valor Médio de Descontos', 'Faturamento Bruto Médio', 'Faturamento Líquido Médio'])
 
-      with col2:
-        button_download(df_media_dia_semana_download, f'media_dia_semana', f'download_media_dia_semana')
+  #     with col2:
+  #       button_download(df_media_dia_semana_download, f'media_dia_semana', f'download_media_dia_semana')
 
-      dataframe_aggrid(
-          df=df_media_dia_semana,
-          name="Média de Faturamento por Dia da Semana e Momento de Consumo",
-          num_columns=["N° Médio de Itens Vendidos", "Valor Médio de Descontos", "Faturamento Bruto Médio", "Faturamento Líquido Médio"],
-          date_columns=["Data_Evento"],
-          datetime_columns=["Data da Venda"],
-          height=500,
-          fit_columns=ColumnsAutoSizeMode.FIT_CONTENTS,
-          fit_columns_on_grid_load=True
-      )
+  #     dataframe_aggrid(
+  #         df=df_media_dia_semana,
+  #         name="Média de Faturamento por Dia da Semana e Momento de Consumo",
+  #         num_columns=["N° Médio de Itens Vendidos", "Valor Médio de Descontos", "Faturamento Bruto Médio", "Faturamento Líquido Médio"],
+  #         date_columns=["Data_Evento"],
+  #         datetime_columns=["Data da Venda"],
+  #         height=500,
+  #         fit_columns=ColumnsAutoSizeMode.FIT_CONTENTS,
+  #         fit_columns_on_grid_load=True
+  #     )
 
-      with st.container(border=True):
-        momentos = [
-            ("🌅", "Manhã", "6h–11h"),
-            ("☀️", "Almoço", "11h–15h"),
-            ("🍹", "Happy Hour", "15h–19h"),
-            ("🌙", "Jantar", "19h–00h"),
-            ("🌃", "Madrugada", "00h–06h"),
-        ]
-        items_html = "".join([
-            f'<div style="display:flex; align-items:center; gap:6px; white-space:nowrap;">'
-            f'<span>{emoji}</span>'
-            f'<span style="font-weight:600; font-size:0.82rem;">{titulo}</span>'
-            f'<span style="font-size:0.78rem; color:#999;">{horario}</span>'
-            f'</div>'
-            for emoji, titulo, horario in momentos
-        ])
-        st.markdown(f"""
-            <div style="display:flex; flex-wrap:wrap; gap:16px 24px; align-items:center; justify-content:center; padding: 4px 0;">
-                {items_html}
-            </div>
-        """, unsafe_allow_html=True)
+  #     with st.container(border=True):
+  #       momentos = [
+  #           ("🌅", "Manhã", "6h–11h"),
+  #           ("☀️", "Almoço", "11h–15h"),
+  #           ("🍹", "Happy Hour", "15h–19h"),
+  #           ("🌙", "Jantar", "19h–00h"),
+  #           ("🌃", "Madrugada", "00h–06h"),
+  #       ]
+  #       items_html = "".join([
+  #           f'<div style="display:flex; align-items:center; gap:6px; white-space:nowrap;">'
+  #           f'<span>{emoji}</span>'
+  #           f'<span style="font-weight:600; font-size:0.82rem;">{titulo}</span>'
+  #           f'<span style="font-size:0.78rem; color:#999;">{horario}</span>'
+  #           f'</div>'
+  #           for emoji, titulo, horario in momentos
+  #       ])
+  #       st.markdown(f"""
+  #           <div style="display:flex; flex-wrap:wrap; gap:16px 24px; align-items:center; justify-content:center; padding: 4px 0;">
+  #               {items_html}
+  #           </div>
+  #       """, unsafe_allow_html=True)
 
 
 
