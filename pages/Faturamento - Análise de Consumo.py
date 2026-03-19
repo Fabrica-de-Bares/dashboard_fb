@@ -35,7 +35,7 @@ with seletores_container:
 		# Seleção da casa
 		lista_retirar_casas = ['Bar Léo - Vila Madalena', 'Edificio Rolim', 'Priceless', 'Todas as Casas']
 		id_casa, casa, id_zigpay = input_selecao_casas(
-			lista_retirar_casas, key="seletor_casa_analise_consumo"
+			lista_retirar_casas, key="seletor_casa_analise_consumo", adicionar_delivery=True
         )
 	with col2:
 		# Seleção do mês

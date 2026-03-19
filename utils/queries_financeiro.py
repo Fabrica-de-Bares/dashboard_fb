@@ -84,12 +84,12 @@ def GET_FATURAM_ZIG(data_inicial, data_final):
 def GET_FATURAM_ZIG_AGREGADO(data_inicio, data_fim):
   return dataframe_query(f''' 
   SELECT
-    te.ID AS ID_Loja,
+    CASE
+        WHEN te.ID = 117 THEN 118 -- Delivery BBC                                
+        ELSE te.ID
+      END AS ID_Loja,
     te.NOME_FANTASIA AS Loja,
-    CASE 
-      WHEN te.ID IN (103, 112, 118, 139) THEN 'Delivery'
-      ELSE tivc2.DESCRICAO 
-    END AS Categoria,
+    tivc2.DESCRICAO AS Categoria,
     cast(date_format(cast(tiv.EVENT_DATE as date), '%Y-%m-01') as date) AS Primeiro_Dia_Mes,
     concat(year(cast(tiv.EVENT_DATE as date)), '-', month(cast(tiv.EVENT_DATE as date))) AS Ano_Mes,
     cast(tiv.EVENT_DATE as date) AS Data_Evento,

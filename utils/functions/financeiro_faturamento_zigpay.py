@@ -40,29 +40,29 @@ def config_orcamento_faturamento(lojas_selecionadas, data_inicio, data_fim):
 
   # Padronização de categorias (para não aparecer as categorias não desejadas)
   OrcamFaturam['Categoria'] = OrcamFaturam['Categoria'].str.replace('ç', 'c')
-  categorias_desejadas_orcamento = ['Alimentos', 'Bebidas', 'Couvert', 'Gifts', 'Delivery', 'Serviço']
+  categorias_desejadas_orcamento = ['Alimentos', 'Bebidas', 'Couvert', 'Gifts', 'Serviço']
   OrcamFaturam = OrcamFaturam[OrcamFaturam['Categoria'].isin(categorias_desejadas_orcamento)]
-  categorias_desejadas_faturamento = ['Alimentos', 'Bebidas', 'Couvert', 'Gifts', 'Serviço', 'Delivery']
+  categorias_desejadas_faturamento = ['Alimentos', 'Bebidas', 'Couvert', 'Gifts', 'Serviço']
   FaturamZigAgregado = FaturamZigAgregado[FaturamZigAgregado['Categoria'].isin(categorias_desejadas_faturamento)]
 
-  substituicoesIds = {
-    103: 116,
-    112: 104,
-    118: 114,
-    117: 114,
-    139: 105
-  }
+  # substituicoesIds = {
+  #   103: 116,
+  #   112: 104,
+  #   118: 114,
+  #   117: 114,
+  #   139: 105
+  # }
 
-  substituicoesNomes = {
-    'Delivery Fabrica de Bares': 'Bar Brahma - Centro',
-    'Hotel Maraba': 'Bar Brahma - Centro',
-    'Delivery Bar Leo Centro': 'Bar Léo - Centro',
-    'Delivery Orfeu': 'Orfeu',
-    'Delivery Jacaré': 'Jacaré'
-  }
+  # substituicoesNomes = {
+  #   'Delivery Fabrica de Bares': 'Bar Brahma - Centro',
+  #   'Hotel Maraba': 'Bar Brahma - Centro',
+  #   'Delivery Bar Leo Centro': 'Bar Léo - Centro',
+  #   'Delivery Orfeu': 'Orfeu',
+  #   'Delivery Jacaré': 'Jacaré'
+  # }
 
-  FaturamZigAgregado['Loja'] = FaturamZigAgregado['Loja'].replace(substituicoesNomes)
-  FaturamZigAgregado['ID_Loja'] = FaturamZigAgregado['ID_Loja'].apply(lambda x: substituicoesIds.get(x, x))
+  # FaturamZigAgregado['Loja'] = FaturamZigAgregado['Loja'].replace(substituicoesNomes)
+  # FaturamZigAgregado['ID_Loja'] = FaturamZigAgregado['ID_Loja'].apply(lambda x: substituicoesIds.get(x, x))
   FaturamZigAgregado = filtrar_por_classe_selecionada(FaturamZigAgregado, 'Loja', lojas_selecionadas)
   OrcamFaturam = filtrar_por_classe_selecionada(OrcamFaturam, 'Loja', lojas_selecionadas)
 

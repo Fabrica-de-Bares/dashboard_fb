@@ -31,7 +31,7 @@ def main():
   with col1:
      # Filtro de casa:
     lista_retirar_casas = ['Bar Léo - Vila Madalena', 'Edificio Rolim', 'Todas as Casas', 'Escritório Fabrica de Bares']
-    df_casas_selecionadas = input_multiselecao_casas(lista_retirar_casas, key='calendario')
+    df_casas_selecionadas = input_multiselecao_casas(lista_retirar_casas, key='calendario', adicionar_delivery=True)
     lojas_selecionadas = df_casas_selecionadas['Casa'].tolist()
   with col2:
     data_inicio = st.date_input(

@@ -130,7 +130,7 @@ def main():
   with col1:
      # Filtro de casa:
     lista_retirar_casas = ['Bar Léo - Vila Madalena', 'Edificio Rolim', 'Priceless', 'Todas as Casas']
-    id_casa, casa, id_zigpay = input_selecao_casas(lista_retirar_casas, key='calendario')
+    id_casa, casa, id_zigpay = input_selecao_casas(lista_retirar_casas, key='calendario', adicionar_delivery=True)
     lojas_selecionadas = [casa]
   with col2:
     data_inicio = st.date_input(

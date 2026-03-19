@@ -10,19 +10,35 @@ from streamlit_echarts import st_echarts
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 from utils.queries_cmv import *
 
-def input_selecao_casas(lista_casas_retirar, key):
-
+def input_selecao_casas(lista_casas_retirar, key, adicionar_delivery=None):
     # Mostra apenas as casas que o usuário tem acesso
     df_permissao_casas = pd.DataFrame(st.session_state['casas_permitidas'], columns=["ID Loja", "Loja", 'ID Zigpay'])
     
     # Remove casas da lista_casas_retirar
     df_permissao_casas = df_permissao_casas[~df_permissao_casas["Loja"].isin(lista_casas_retirar)].sort_values(by="Loja").reset_index(drop=True)
-    lista_casas_validas = df_permissao_casas["Loja"].to_list()
 
+    lista_ids_casas_permissao = df_permissao_casas["ID Loja"].unique().tolist()
+    
+    # Adiciona casas de Delivery nas abas que pedirem
+    if adicionar_delivery == True:
+        df_casas_delivery = get_casas_delivery()
+        if 114 in lista_ids_casas_permissao: # BBC
+            df_permissao_casas = pd.concat([df_permissao_casas, df_casas_delivery[df_casas_delivery['ID Loja'] == 118]])
+        if 148 in lista_ids_casas_permissao: # BBG
+            df_permissao_casas = pd.concat([df_permissao_casas, df_casas_delivery[df_casas_delivery['ID Loja'] == 169]])
+        if 116 in lista_ids_casas_permissao: # Bar Léo
+            df_permissao_casas = pd.concat([df_permissao_casas, df_casas_delivery[df_casas_delivery['ID Loja'] == 103]])
+        if 104 in lista_ids_casas_permissao: # Orfeu
+            df_permissao_casas = pd.concat([df_permissao_casas, df_casas_delivery[df_casas_delivery['ID Loja'] == 112]])
+        if 105 in lista_ids_casas_permissao: # Jacaré
+            df_permissao_casas = pd.concat([df_permissao_casas, df_casas_delivery[df_casas_delivery['ID Loja'] == 139]])
+    
+    lista_casas_validas = df_permissao_casas['Loja'].unique().tolist()
     # Adiciona opção Todas as casas
     if 'Todas as Casas' not in lista_casas_retirar:
         lista_casas_validas.insert(0, "Todas as Casas")
 
+    lista_casas_validas.sort()
     casa = st.selectbox("Casa", lista_casas_validas, key=key)
 
     if casa == "Todas as Casas":

@@ -20,8 +20,31 @@ def get_casas_validas():
     return df
 
 
-# Dados de Eventos
+@st.cache_data
+def get_casas_delivery():
+    result, column_names = execute_query("""
+		SELECT
+			CASE 
+				WHEN te.ID = 117 THEN 118
+				ELSE te.ID							 							 
+			END AS 'ID Loja',
+			CASE
+				WHEN te.ID = 117 THEN 'Delivery Brahma Centro'
+				ELSE te.NOME_FANTASIA						 
+			END AS 'Loja',
+			CASE
+				WHEN te.ID = 117 THEN '862812de-a2cd-4de4-987e-0e738403b800'
+				ELSE te.ID_ZIGPAY 
+			END AS 'ID Zigpay'
+		FROM T_EMPRESAS te
+		WHERE te.ID IN (103, 112, 117, 118, 139, 169)								 
+		"""
+	)
+    df_casas_delivery = pd.DataFrame(result, columns=column_names)
+    return df_casas_delivery
 
+
+# Dados de Eventos
 @st.cache_data
 def GET_EVENTOS_E_ADITIVOS_PRICELESS():
    	return dataframe_query(f'''
