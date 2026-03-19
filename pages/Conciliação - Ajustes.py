@@ -39,7 +39,7 @@ with col1:
   
 # Seletor de ano
 with col2:
-  ano = seletor_ano(2024, 2026, 'ano_ajustes', 'Selecione um ano:')
+  ano = seletor_ano(2024, 2026, 'ano_ajustes')
 
 st.divider()
 

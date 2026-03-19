@@ -22,9 +22,13 @@ if 'loggedIn' not in st.session_state or not st.session_state['loggedIn']:
 # Personaliza menu lateral
 config_sidebar()
 
-col1, col2, col3 = st.columns([6, 1, 1], vertical_alignment='center')
+col1, col2 = st.columns([5, 1], vertical_alignment='center')
 with col1:
-    st.title("💰 Faturamento ZigPay - Dias da semana")
+    st.title("💰 Faturamento ZigPay - Dias da Semana")
+    st.markdown("""
+    - Para uma casa e ano selecionados, exibe a média de faturamento desse período incluindo Alimentos, Bebidas, Couvert e Serviço por dia da semana
+    - Para meses futuros, calcula uma projeção baseada nas duas semanas anteriores
+    """)
 with col2:
     st.button(label="Atualizar dados", on_click=st.cache_data.clear)
 st.divider()

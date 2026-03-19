@@ -47,11 +47,11 @@ col1, col2 = st.columns(2)
 # Seletor de mês
 with col1: 
     meses = ['Todos os meses', '1º Trimestre', '2º Trimestre', '3º Trimestre', '4º Trimestre', 'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro']
-    mes_farol = st.selectbox("Selecione um mês ou trimestre:", meses)
+    mes_farol = st.selectbox("Selecione um mês ou trimestre", meses)
 
 # Seletor de ano
 with col2:
-    ano_farol = seletor_ano(2024, 2026, 'ano_farol', 'Selecione um ano:')
+    ano_farol = seletor_ano(2024, 2026, 'ano_farol')
     
 st.divider()
 

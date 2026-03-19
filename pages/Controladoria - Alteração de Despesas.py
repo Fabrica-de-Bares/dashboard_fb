@@ -4,13 +4,13 @@ from utils.functions.general_functions import config_sidebar
 from utils.functions.controladoria_alteracao_despesas import *
 from utils.functions.general_functions import *
 from utils.queries_controladoria import *
-from utils.components import seletor_mes, seletor_ano, input_multiselecao_casas, input_selecao_casas
+from utils.components import seletor_mes, seletor_ano, input_selecao_casas
 
 pd.set_option('future.no_silent_downcasting', True)
 
 
 st.set_page_config(
-    page_title="Alteração de Despesas",
+    page_title="Auditoria - Alteração de Despesas em Sistema",
     page_icon="🔎",
     layout="wide",
     initial_sidebar_state="collapsed"
@@ -25,7 +25,7 @@ config_sidebar()
 
 col1, col2 = st.columns([5, 1], vertical_alignment='center')
 with col1:
-    st.title("🔎 Alteração de Despesas")
+    st.title("🔎 Auditoria - Alteração de Despesas em Sistema")
     st.write("Aba para visualizar despesas alteradas após as datas de fechamento de cada mês de DRE.")
 with col2:
     st.button(label='Atualizar dados', key='atualizar_forecast', on_click=st.cache_data.clear)
@@ -80,12 +80,12 @@ else:
     st.warning("Não existe data de fechamento para esse mês.")
     st.stop()
 
+# Lista de dataframes para excel
+dfs_exportar = {}
 
-# Filtra pela casa selecionada e data > data de fechamento
+# Filtra pela casa selecionada
 df_log_despesas_filtrado = filtragem_inicial_despesas(df_log_despesas_inicial, id_casa, data_fechamento_mes_selecionado)
 df_log_despesas_filtrado = filtragem_classificacao_contabil(df_log_despesas_filtrado, lista_class_cont_1_selecionadas, lista_class_cont_2_selecionadas)
-
-dfs_exportar = {} # Lista de dataframes para excel
 
 # Despesas criadas após data de fechamento
 st.subheader('Despesas criadas após data de fechamento')
@@ -120,7 +120,7 @@ tipos_alteracao = [
         "titulo": "Alteração em Valor",
         "campo_filtro": "Valor",
         "colunas_comparar": ["Valor Original", "Valor Liquido"],
-        "titulo_excel": "Valor Original"
+        "titulo_excel": "Valor"
     },
     {
         "titulo": "Alteração em Classificação Contábil",

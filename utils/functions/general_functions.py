@@ -223,6 +223,17 @@ def config_sidebar():
             'Auditoria',
         ]
 
+        ordem_abas = { # Ordena abas nas seções por id
+            "KPI's de Faturamento": [100, 101, 102, 103, 104, 105],
+            "KPI's de Faturamento - Eventos": [106, 107, 108, 109, 111, 113, 112, 114, 115, 116],
+            "KPI's de Resultado Operacional": [124, 125, 126, 128, 127, 129],
+            "KPI's de Resultado Operacional - Suprimentos": [131, 130, 132],
+            "Conciliação": [122, 121, 123],
+            "Fluxo de Caixa": [118, 120, 119],
+            "Controladoria": [135, 136, 138],
+            "Auditoria": [133, 134]
+        }
+
         # Organizar abas por secao
         abas_por_secao = {}
         for aba in abas_permitidas:
@@ -234,11 +245,13 @@ def config_sidebar():
         
         # Renderizar cada secao
         for secao in ordem_secoes:
-            if secao in abas_por_secao.keys():
+            if secao in abas_por_secao:
+                if secao in ordem_abas:
+                    ordem_ids = ordem_abas[secao]
+                    abas_por_secao[secao].sort(key=lambda x: ordem_ids.index(x['ID Aba']) if x['ID Aba'] in ordem_ids else 999)
                 st.sidebar.markdown(f"## {secao}")
                 for aba in abas_por_secao[secao]:
                     st.sidebar.page_link(f'{aba["page_link"]}', label=f'{aba["Aba"]}')
-        
     else:
         st.sidebar.write("Por favor, faça login para acessar o menu.")
 

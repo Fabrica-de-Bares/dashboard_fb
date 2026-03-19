@@ -39,7 +39,7 @@ def input_selecao_casas(lista_casas_retirar, key, adicionar_delivery=None):
         lista_casas_validas.insert(0, "Todas as Casas")
 
     lista_casas_validas.sort()
-    casa = st.selectbox("Casa", lista_casas_validas, key=key)
+    casa = st.selectbox("Selecione uma casa", lista_casas_validas, key=key)
 
     if casa == "Todas as Casas":
         id_casa = -1  # Valor padrão para "Todas as Casas"
@@ -150,7 +150,7 @@ def input_multiselecao_casas(lista_casas_retirar, key, adicionar_delivery=None):
     if 'Todas as Casas' not in lista_casas_retirar:
         lista_casas_validas.insert(0, "Todas as Casas")
 
-    lista_casas = st.multiselect("Casa", lista_casas_validas, key=key, default=lista_casas_validas[0])
+    lista_casas = st.multiselect("Selecione uma ou mais casas", lista_casas_validas, key=key, default=lista_casas_validas[0])
     df_validas = pd.DataFrame(lista_casas_validas, columns=["Casa"])
     df_validas = df_validas[df_validas["Casa"].isin(lista_casas)].sort_values(by="Casa").reset_index(drop=True)
 
@@ -197,7 +197,7 @@ def input_selecao_casas_analise_produtos(lista_casas_retirar, key):
     return id_casa, casa, id_zigpay
 
 
-def input_periodo_datas(key, label='Período'):
+def input_periodo_datas(key, label='Selecionar Período'):
     today = get_today()
     jan_this_year = get_jan_this_year(today)
     first_day_this_month_this_year = get_first_day_this_month_this_year(today)
@@ -243,7 +243,7 @@ def seletor_mes(label, key):
   return mes_selecionado
 
 
-def seletor_mes_produtos(key, label='Mês', help=None):
+def seletor_mes_produtos(key, label='Selecione um mês', help=None):
     # Dicionário para mapear os meses
     meses = {
         "Janeiro": 1,
@@ -276,7 +276,7 @@ def seletor_mes_produtos(key, label='Mês', help=None):
     return nome_mes_selecionado, num_mes_selecionado
 
 
-def seletor_ano(ano_inicio, ano_fim, key, label='Selecionar Ano', help=None):
+def seletor_ano(ano_inicio, ano_fim, key, label='Selecione um ano', help=None):
    anos = list(range(ano_inicio, ano_fim + 1))
    anos_ordenados = sorted(anos, reverse=True)
    ano_atual = datetime.datetime.now().year 

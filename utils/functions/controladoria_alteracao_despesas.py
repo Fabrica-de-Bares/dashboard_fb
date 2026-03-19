@@ -91,8 +91,8 @@ def filtragem_mes_ano_competencia(df, mes_competencia_selecionado, ano_competenc
         lista_ids_alteracao_mes_selecionado = df_despesas_alteradas['ID Despesa'].tolist()
         df_filtrado = df_filtrado[df_filtrado['ID Despesa'].isin(lista_ids_alteracao_mes_selecionado)]
 
-        df_despesas_alteracao = df_filtrado[ # Despesas com data de alteração >= data de fechamento
-            df_filtrado['Data Alteração'] >= data_fechamento
+        df_despesas_alteracao = df_filtrado[ # Despesas com data de alteração > data de fechamento
+            df_filtrado['Data Alteração'] > data_fechamento
         ].copy()
         lista_ids_alteracao = df_despesas_alteracao['ID Despesa'].tolist()
         df_filtrado = df_filtrado[df_filtrado['ID Despesa'].isin(lista_ids_alteracao)]
@@ -104,7 +104,7 @@ def ocorrencia_despesas(df_log_despesas_inicial, id_casa, data_fechamento):
     # Cria df com despesas criadas depois da data limite
     df_log_despesas_criadas = df_log_despesas_inicial[
         df_log_despesas_inicial.groupby('ID Despesa')['Data Alteração']
-        .transform('min') >= data_fechamento # data do primeiro log é maior que a data de fechamento
+        .transform('min') > data_fechamento # data do primeiro log é maior que a data de fechamento
     ].copy()
     
     df_log_despesas_criadas = df_log_despesas_criadas[(df_log_despesas_criadas['Bit Cancelada'] == 0) & (df_log_despesas_criadas['ID Casa'] == id_casa)]
