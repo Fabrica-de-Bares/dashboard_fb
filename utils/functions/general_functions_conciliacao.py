@@ -125,6 +125,7 @@ def filtra_formata_df(df, coluna_data, id_casa, start_date, end_date):
     # Guarda a data original (com horário)
     col_data_original = f"{coluna_data}_original"
     df_filtrado[col_data_original] = pd.to_datetime(df_filtrado[coluna_data])
+    df_filtrado.sort_values(by=[col_data_original], ascending =False, inplace=True)
 
     # Normaliza SOMENTE para filtro
     df_filtrado[coluna_data] = df_filtrado[coluna_data].dt.normalize()
