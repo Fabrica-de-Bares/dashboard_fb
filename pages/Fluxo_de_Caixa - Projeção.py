@@ -106,10 +106,11 @@ with st.container(border=True):
     lista_bares_agrupados = sorted(lojasAgrupadas)
     texto = ", ".join(lista_bares_agrupados)
     st.markdown(f"{texto}")
-    df_projecao_bares = df_projecao_bares_geral
 
     # Aplica data e multiplicador selecionados
+    df_projecao_bares = df_projecao_bares_geral[df_projecao_bares_geral['Empresa'].isin(lista_bares_agrupados)]
     df_projecao_bares = filtra_soma_saldo_final(seletor_status_despesa, df_projecao_bares, data_fim, multiplicador)
+    df_casas_valor_zig_projetado = df_projecao_bares.copy()
     
     # Aplica as casas agrupadas
     df_projecao_grouped = config_grouped_projecao(df_projecao_bares, lojasAgrupadas)
@@ -124,6 +125,19 @@ with st.container(border=True):
     st.dataframe(df_projecao_grouped_styled, width='stretch', hide_index=True)
     button_download(df_projecao_grouped_com_soma, f"Projeção de bares agrupados", f"Projeção de bares agrupados")
 
+    # Exibe de quais casas está vindo o Valor Zig Projetado
+    with st.expander('Visualizar casas que contém Valor Zig Projetado'):
+        df_casas_valor_zig_projetado = df_casas_valor_zig_projetado[
+            (df_casas_valor_zig_projetado['Valor_Projetado_Zig'] != 0) &
+            (df_casas_valor_zig_projetado['Valor_Liquido_Recebido'] == 0)
+        ].copy()
+
+        df_casas_valor_zig_projetado = df_casas_valor_zig_projetado[['Data', 'Empresa', 'Valor_Liquido_Recebido', 'Valor_Projetado_Zig']]
+        df_casas_valor_zig_projetado.rename(columns={'Empresa': 'Casa', 'Valor_Liquido_Recebido': 'Valor Líquido Recebido', 'Valor_Projetado_Zig': 'Valor Zig Projetado'}, inplace=True)
+        df_casas_valor_zig_projetado = format_columns_brazilian(df_casas_valor_zig_projetado, ['Valor Líquido Recebido', 'Valor Zig Projetado'])
+        st.dataframe(df_casas_valor_zig_projetado, width='stretch', hide_index=True)
+
+    # Exibe provisões pendentes/não lançadas
     if seletor_status_despesa == 'Todas Previstas':
         exibe_provisoes_pendentes(df_provisoes_nao_lancadas, data_fim, lojasAgrupadas)
 

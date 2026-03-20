@@ -16,45 +16,47 @@ ORDER BY te.NOME_FANTASIA
 @st.cache_data
 def GET_SALDOS_BANCARIOS():
   return dataframe_query(f"""
-SELECT * FROM View_Saldos_Bancarios
-WHERE Data >= CURDATE() 
-AND Data < DATE_ADD(CURDATE(), INTERVAL 365 DAY)
-AND Empresa IS NOT NULL
-ORDER BY Data ASC
+    SELECT
+      tc.DATA AS 'Data',
+      te.NOME_FANTASIA AS 'Empresa',
+      SUM(tsb.SALDO_INICIO_DIA) AS 'Saldo_Inicio_Dia'
+    FROM T_CALENDARIO AS tc
+    LEFT JOIN T_SALDOS_BANCARIOS AS tsb ON (tc.DATA = tsb.DATA)
+    LEFT JOIN T_EMPRESAS AS te ON (tsb.FK_LOJA = te.ID)
+    WHERE tc.DATA >= CURDATE() 
+    AND tc.DATA < DATE_ADD(CURDATE(), INTERVAL 365 DAY)
+    AND te.ID IS NOT NULL
+    GROUP BY te.NOME_FANTASIA, tc.DATA
+    ORDER BY tc.DATA ASC
 """)
 
 
 @st.cache_data
 def GET_VALOR_LIQUIDO_RECEBIDO():
   return dataframe_query(f'''
-SELECT
-  tc.DATA AS Data,
-  te.NOME_FANTASIA AS Empresa,
-  sum(trem.VALOR_RECEBIDO) AS Valor_Liquido_Recebido
-FROM
-  T_CALENDARIO tc
-LEFT JOIN T_RECEITAS_EXTRATOS_MANUAL trem on
-  tc.DATA = trem.DATA
-LEFT JOIN T_EMPRESAS te on
-  trem.FK_LOJA = te.ID
-WHERE tc.DATA >= CURDATE() 
-	AND tc.DATA < DATE_ADD(CURDATE(), INTERVAL 365 DAY)
-	AND te.NOME_FANTASIA IS NOT NULL
-GROUP BY
-  te.NOME_FANTASIA,
-  tc.DATA
-ORDER BY tc.DATA ASC
+    SELECT
+      tc.DATA AS Data,
+      te.NOME_FANTASIA AS Empresa,
+      sum(trem.VALOR_RECEBIDO) AS Valor_Liquido_Recebido
+    FROM T_CALENDARIO tc
+    LEFT JOIN T_RECEITAS_EXTRATOS_MANUAL trem on (tc.DATA = trem.DATA)
+    LEFT JOIN T_EMPRESAS te on (trem.FK_LOJA = te.ID)
+    WHERE tc.DATA >= CURDATE() 
+    AND tc.DATA < DATE_ADD(CURDATE(), INTERVAL 365 DAY)
+    AND te.NOME_FANTASIA IS NOT NULL
+    GROUP BY te.NOME_FANTASIA, tc.DATA
+    ORDER BY tc.DATA ASC
 ''')
 
 
 @st.cache_data
 def GET_PROJECAO_ZIG():
   return dataframe_query(f'''
-SELECT * FROM View_Projecao_Zig_Agrupadas
-WHERE Data >= CURDATE() 
-AND Data < DATE_ADD(CURDATE(), INTERVAL 365 DAY)
-AND Empresa IS NOT NULL
-ORDER BY Data ASC
+    SELECT * FROM View_Projecao_Zig_Agrupadas
+    WHERE Data >= CURDATE() 
+    AND Data < DATE_ADD(CURDATE(), INTERVAL 365 DAY)
+    AND Empresa IS NOT NULL
+    ORDER BY Data ASC
 ''')
 
 
@@ -65,23 +67,20 @@ def GET_RECEITAS_EXTRAORD_FLUXO_CAIXA():
       tc.DATA AS Data,
       te.NOME_FANTASIA AS Empresa,
       SUM(vpa.VALOR_PARCELA) AS Receita_Projetada_Extraord
-    FROM
-      T_CALENDARIO tc
-    LEFT JOIN View_Parcelas_Agrupadas vpa ON tc.DATA = vpa.DATA_VENCIMENTO
-    LEFT JOIN T_EMPRESAS te ON vpa.FK_EMPRESA = te.ID
-    WHERE
-      vpa.DATA_VENCIMENTO IS NOT NULL
-      AND vpa.DATA_RECEBIMENTO IS NULL
-      AND Data >= CURDATE() 
-      AND Data < DATE_ADD(CURDATE(), INTERVAL 365 DAY)
-      AND te.NOME_FANTASIA IS NOT NULL
-    GROUP BY
-      te.NOME_FANTASIA,
-      vpa.DATA_VENCIMENTO
+    FROM T_CALENDARIO tc
+    LEFT JOIN View_Parcelas_Agrupadas vpa ON (tc.DATA = vpa.DATA_VENCIMENTO)
+    LEFT JOIN T_EMPRESAS te ON (vpa.FK_EMPRESA = te.ID)
+    WHERE vpa.DATA_VENCIMENTO IS NOT NULL
+    AND vpa.DATA_RECEBIMENTO IS NULL
+    AND Data >= CURDATE() 
+    AND Data < DATE_ADD(CURDATE(), INTERVAL 365 DAY)
+    AND te.NOME_FANTASIA IS NOT NULL
+    GROUP BY te.NOME_FANTASIA,
+    vpa.DATA_VENCIMENTO
     ORDER BY
-      te.NOME_FANTASIA,
-      vpa.DATA_VENCIMENTO,
-      Data ASC
+    te.NOME_FANTASIA,
+    vpa.DATA_VENCIMENTO,
+    Data ASC
 ''')
 
 
@@ -92,8 +91,7 @@ def GET_EVENTOS_FLUXO_CAIXA():
       tc.DATA AS Data,
       te.NOME_FANTASIA AS Empresa,
       SUM(parcelas.VALOR_PARCELA) AS Receita_Projetada_Eventos
-    FROM
-        T_CALENDARIO tc
+    FROM T_CALENDARIO tc
     LEFT JOIN (
         SELECT tep.ID AS ID_EVENTO,
               te.ID AS FK_EMPRESA,
@@ -102,24 +100,18 @@ def GET_EVENTOS_FLUXO_CAIXA():
               tpep.DATA_RECEBIMENTO_PARCELA AS DATA_RECEBIMENTO,
               tpep.VALOR_PARCELA
         FROM T_PARCELAS_EVENTOS_PRICELESS tpep
-        LEFT JOIN T_EVENTOS_PRICELESS tep ON tep.ID = tpep.FK_EVENTO_PRICELESS
-        LEFT JOIN T_EMPRESAS te ON te.ID = tep.FK_EMPRESA
-        LEFT JOIN T_RECEITAS_EXTRAORDINARIAS_CLIENTE trec ON trec.ID = tep.FK_CLIENTE
+        LEFT JOIN T_EVENTOS_PRICELESS tep ON (tep.ID = tpep.FK_EVENTO_PRICELESS)
+        LEFT JOIN T_EMPRESAS te ON (te.ID = tep.FK_EMPRESA)
+        LEFT JOIN T_RECEITAS_EXTRAORDINARIAS_CLIENTE trec ON (trec.ID = tep.FK_CLIENTE)
     ) AS parcelas ON tc.DATA = parcelas.DATA_VENCIMENTO
-    LEFT JOIN T_EMPRESAS te ON parcelas.FK_EMPRESA = te.ID
-    WHERE
-        parcelas.DATA_VENCIMENTO IS NOT NULL
-        AND parcelas.DATA_RECEBIMENTO IS NULL
-        AND tc.DATA >= CURDATE() 
-        AND tc.DATA < DATE_ADD(CURDATE(), INTERVAL 365 DAY)
-        AND te.NOME_FANTASIA IS NOT NULL
-    GROUP BY
-        te.NOME_FANTASIA,
-        parcelas.DATA_VENCIMENTO
-    ORDER BY
-        te.NOME_FANTASIA,
-        parcelas.DATA_VENCIMENTO,
-        Data ASC
+    LEFT JOIN T_EMPRESAS te ON (parcelas.FK_EMPRESA = te.ID)
+    WHERE parcelas.DATA_VENCIMENTO IS NOT NULL
+    AND parcelas.DATA_RECEBIMENTO IS NULL
+    AND tc.DATA >= CURDATE() 
+    AND tc.DATA < DATE_ADD(CURDATE(), INTERVAL 365 DAY)
+    AND te.NOME_FANTASIA IS NOT NULL
+    GROUP BY te.NOME_FANTASIA, parcelas.DATA_VENCIMENTO
+    ORDER BY te.NOME_FANTASIA, parcelas.DATA_VENCIMENTO, Data ASC
 ''')
 
 
@@ -195,13 +187,12 @@ def GET_RECEITAS_EXTRAORD_DO_DIA():
       vpa.DATA_VENCIMENTO AS Data_Vencimento_Parcela,
       vpa.VALOR_PARCELA AS Valor_Parcela
     FROM vpa
-    LEFT JOIN T_EMPRESAS te ON vpa.FK_EMPRESA = te.ID
-    LEFT JOIN T_RECEITAS_EXTRAORDINARIAS_CLIENTE trec ON vpa.FK_CLIENTE = trec.ID
-    LEFT JOIN T_RECEITAS_EXTRAORDINARIAS_CLASSIFICACAO trec2 ON vpa.FK_CLASSIFICACAO = trec2.ID 
-    WHERE
-      vpa.DATA_VENCIMENTO IS NOT NULL
-      AND vpa.DATA_RECEBIMENTO IS NULL 
-      AND te.NOME_FANTASIA IS NOT NULL
+    LEFT JOIN T_EMPRESAS te ON (vpa.FK_EMPRESA = te.ID)
+    LEFT JOIN T_RECEITAS_EXTRAORDINARIAS_CLIENTE trec ON (vpa.FK_CLIENTE = trec.ID)
+    LEFT JOIN T_RECEITAS_EXTRAORDINARIAS_CLASSIFICACAO trec2 ON (vpa.FK_CLASSIFICACAO = trec2.ID)
+    WHERE vpa.DATA_VENCIMENTO IS NOT NULL
+    AND vpa.DATA_RECEBIMENTO IS NULL 
+    AND te.NOME_FANTASIA IS NOT NULL
 ''')
 
 
@@ -217,13 +208,12 @@ def GET_RECEITAS_EVENTOS_DO_DIA():
       DATE(tpep.DATA_VENCIMENTO_PARCELA) AS Data_Vencimento_Parcela,
       tpep.VALOR_PARCELA AS Valor_Parcela
     FROM T_PARCELAS_EVENTOS_PRICELESS tpep
-      LEFT JOIN T_EVENTOS_PRICELESS tep ON tep.ID = tpep.FK_EVENTO_PRICELESS
-      LEFT JOIN T_EMPRESAS te ON te.ID = tep.FK_EMPRESA
-      LEFT JOIN T_RECEITAS_EXTRAORDINARIAS_CLIENTE trec ON tep.FK_CLIENTE = trec.ID
-    WHERE
-      tpep.DATA_VENCIMENTO_PARCELA IS NOT NULL
-      AND tpep.DATA_RECEBIMENTO_PARCELA IS NULL 
-      AND te.NOME_FANTASIA IS NOT NULL;
+      LEFT JOIN T_EVENTOS_PRICELESS tep ON (tep.ID = tpep.FK_EVENTO_PRICELESS)
+      LEFT JOIN T_EMPRESAS te ON (te.ID = tep.FK_EMPRESA)
+      LEFT JOIN T_RECEITAS_EXTRAORDINARIAS_CLIENTE trec ON (tep.FK_CLIENTE = trec.ID)
+    WHERE tpep.DATA_VENCIMENTO_PARCELA IS NOT NULL
+    AND tpep.DATA_RECEBIMENTO_PARCELA IS NULL 
+    AND te.NOME_FANTASIA IS NOT NULL;
   ''')
 
 
@@ -262,155 +252,155 @@ def GET_RECEITAS_EVENTOS_DO_DIA():
 @st.cache_data
 def GET_DESPESAS_PENDENTES():
   return dataframe_query(f'''
-SELECT
-	tc.DATA as 'Previsao_Pgto',
-	DATE_ADD(STR_TO_DATE(tdr.VENCIMENTO, '%Y-%m-%d'), INTERVAL 30 SECOND) as 'Data_Vencimento',
-    te.NOME_FANTASIA as 'Empresa',
-    tdr.FK_APROVACAO_DIRETORIA as 'Status_Diretoria',
-    tdr.VALOR_LIQUIDO as 'Valor_Liquido',
-	tdr.FK_STATUS_PGTO as 'Status_Pgto'
-FROM T_DESPESA_RAPIDA tdr 
-INNER JOIN T_EMPRESAS te ON (tdr.FK_LOJA = te.ID)
-LEFT JOIN T_CALENDARIO tc ON (tdr.PREVISAO_PAGAMENTO = tc.ID)
-LEFT JOIN T_DEPESA_PARCELAS tdp ON (tdp.FK_DESPESA = tdr.ID)
-LEFT JOIN T_STATUS_APROVACAO_DIRETORIA tsad ON (tdr.FK_APROVACAO_DIRETORIA = tsad.ID)
-LEFT JOIN T_STATUS_PAGAMENTO tsp ON (tdr.FK_STATUS_PGTO = tsp.ID)
-WHERE tdp.ID IS NULL
-  AND DATE_ADD(STR_TO_DATE(tdr.VENCIMENTO, '%Y-%m-%d'), INTERVAL 30 SECOND) >= '2025-01-01 00:00:00'
-  AND te.FK_GRUPO_EMPRESA = 100
-  AND tdr.BIT_CANCELADA = 0
-  -- AND tdr.PREVISAO_PAGAMENTO = 1220 # data de previsao = 19/01
-  -- AND te.ID = 114 # Bar Brahma
-  AND (tdr.FK_APROVACAO_DIRETORIA IS NULL OR tdr.FK_APROVACAO_DIRETORIA IN (100, 101, 103, 105, 108))
-  AND (tdr.FK_STATUS_PGTO IS NULL OR tdr.FK_STATUS_PGTO IN (100, 108))
-UNION ALL
-SELECT
-	tc.DATA as 'Previsao_Pgto',
-	DATE_ADD(tdp.DATA, INTERVAL 30 SECOND) as 'Data_Vencimento',
-    te.NOME_FANTASIA as 'Empresa',
-    tdr.FK_APROVACAO_DIRETORIA as 'Status_Diretoria',
-    tdp.VALOR as 'Valor_Liquido',
-    CASE
-        WHEN tdp.PARCELA_PAGA = 1 THEN 'Pago'
-        ELSE 'Pendente'
-    END as 'Status_Pgto'
-FROM T_DESPESA_RAPIDA tdr 
-INNER JOIN T_EMPRESAS te ON (tdr.FK_LOJA = te.ID)
-LEFT JOIN T_DEPESA_PARCELAS tdp ON (tdp.FK_DESPESA = tdr.ID)
-LEFT JOIN T_CALENDARIO tc ON (tdp.FK_PREVISAO_PGTO = tc.ID)
-LEFT JOIN T_STATUS_APROVACAO_DIRETORIA tsad ON (tdr.FK_APROVACAO_DIRETORIA = tsad.ID)
-WHERE tdp.ID IS NOT NULL
-  AND DATE_ADD(tdp.DATA, INTERVAL 30 SECOND) >= '2025-01-01 00:00:00'
-  AND te.FK_GRUPO_EMPRESA = 100
-  AND tdr.BIT_CANCELADA = 0
-  -- AND tdp.FK_PREVISAO_PGTO = 1220 # data de previsao = 19/01
-  -- AND te.ID = 114
-  AND (tdr.FK_APROVACAO_DIRETORIA IS NULL OR tdr.FK_APROVACAO_DIRETORIA IN (100, 101, 103, 105, 108))
-  AND (tdp.PARCELA_PAGA IS NULL OR tdp.PARCELA_PAGA = 0)
+    SELECT
+      tc.DATA as 'Previsao_Pgto',
+      DATE_ADD(STR_TO_DATE(tdr.VENCIMENTO, '%Y-%m-%d'), INTERVAL 30 SECOND) as 'Data_Vencimento',
+        te.NOME_FANTASIA as 'Empresa',
+        tdr.FK_APROVACAO_DIRETORIA as 'Status_Diretoria',
+        tdr.VALOR_LIQUIDO as 'Valor_Liquido',
+      tdr.FK_STATUS_PGTO as 'Status_Pgto'
+    FROM T_DESPESA_RAPIDA tdr 
+    INNER JOIN T_EMPRESAS te ON (tdr.FK_LOJA = te.ID)
+    LEFT JOIN T_CALENDARIO tc ON (tdr.PREVISAO_PAGAMENTO = tc.ID)
+    LEFT JOIN T_DEPESA_PARCELAS tdp ON (tdp.FK_DESPESA = tdr.ID)
+    LEFT JOIN T_STATUS_APROVACAO_DIRETORIA tsad ON (tdr.FK_APROVACAO_DIRETORIA = tsad.ID)
+    LEFT JOIN T_STATUS_PAGAMENTO tsp ON (tdr.FK_STATUS_PGTO = tsp.ID)
+    WHERE tdp.ID IS NULL
+    AND DATE_ADD(STR_TO_DATE(tdr.VENCIMENTO, '%Y-%m-%d'), INTERVAL 30 SECOND) >= '2025-01-01 00:00:00'
+    AND te.FK_GRUPO_EMPRESA = 100
+    AND tdr.BIT_CANCELADA = 0
+    -- AND tdr.PREVISAO_PAGAMENTO = 1220 # data de previsao = 19/01
+    -- AND te.ID = 114 # Bar Brahma
+    AND (tdr.FK_APROVACAO_DIRETORIA IS NULL OR tdr.FK_APROVACAO_DIRETORIA IN (100, 101, 103, 105, 108))
+    AND (tdr.FK_STATUS_PGTO IS NULL OR tdr.FK_STATUS_PGTO IN (100, 108))
+    UNION ALL
+    SELECT
+      tc.DATA as 'Previsao_Pgto',
+      DATE_ADD(tdp.DATA, INTERVAL 30 SECOND) as 'Data_Vencimento',
+        te.NOME_FANTASIA as 'Empresa',
+        tdr.FK_APROVACAO_DIRETORIA as 'Status_Diretoria',
+        tdp.VALOR as 'Valor_Liquido',
+        CASE
+            WHEN tdp.PARCELA_PAGA = 1 THEN 'Pago'
+            ELSE 'Pendente'
+        END as 'Status_Pgto'
+    FROM T_DESPESA_RAPIDA tdr 
+    INNER JOIN T_EMPRESAS te ON (tdr.FK_LOJA = te.ID)
+    LEFT JOIN T_DEPESA_PARCELAS tdp ON (tdp.FK_DESPESA = tdr.ID)
+    LEFT JOIN T_CALENDARIO tc ON (tdp.FK_PREVISAO_PGTO = tc.ID)
+    LEFT JOIN T_STATUS_APROVACAO_DIRETORIA tsad ON (tdr.FK_APROVACAO_DIRETORIA = tsad.ID)
+    WHERE tdp.ID IS NOT NULL
+    AND DATE_ADD(tdp.DATA, INTERVAL 30 SECOND) >= '2025-01-01 00:00:00'
+    AND te.FK_GRUPO_EMPRESA = 100
+    AND tdr.BIT_CANCELADA = 0
+    -- AND tdp.FK_PREVISAO_PGTO = 1220 # data de previsao = 19/01
+    -- AND te.ID = 114
+    AND (tdr.FK_APROVACAO_DIRETORIA IS NULL OR tdr.FK_APROVACAO_DIRETORIA IN (100, 101, 103, 105, 108))
+    AND (tdp.PARCELA_PAGA IS NULL OR tdp.PARCELA_PAGA = 0)
 ''')
 
 
 @st.cache_data
 def GET_DESPESAS_PAGAS():
   return dataframe_query(f'''
-SELECT
-	tc.DATA as 'Previsao_Pgto',
-	DATE_ADD(STR_TO_DATE(tdr.VENCIMENTO, '%Y-%m-%d'), INTERVAL 30 SECOND) as 'Data_Vencimento',
-    te.NOME_FANTASIA as 'Empresa',
-    tdr.FK_APROVACAO_DIRETORIA as 'Status_Diretoria',
-    tdr.VALOR_LIQUIDO as 'Valor_Liquido',
-	tdr.FK_STATUS_PGTO as 'Status_Pgto'
-FROM T_DESPESA_RAPIDA tdr 
-INNER JOIN T_EMPRESAS te ON (tdr.FK_LOJA = te.ID)
-LEFT JOIN T_CALENDARIO tc ON (tdr.PREVISAO_PAGAMENTO = tc.ID)
-LEFT JOIN T_DEPESA_PARCELAS tdp ON (tdp.FK_DESPESA = tdr.ID)
-LEFT JOIN T_STATUS_APROVACAO_DIRETORIA tsad ON (tdr.FK_APROVACAO_DIRETORIA = tsad.ID)
-LEFT JOIN T_STATUS_PAGAMENTO tsp ON (tdr.FK_STATUS_PGTO = tsp.ID)
-WHERE tdp.ID IS NULL
-  AND DATE_ADD(STR_TO_DATE(tdr.VENCIMENTO, '%Y-%m-%d'), INTERVAL 30 SECOND) >= '2025-01-01 00:00:00'
-  AND te.FK_GRUPO_EMPRESA = 100
-  AND tdr.BIT_CANCELADA = 0
-  -- AND tdr.PREVISAO_PAGAMENTO = 1220 # data de previsao = 19/01
-  -- AND te.ID = 114 # Bar Brahma
-  AND (tdr.FK_APROVACAO_DIRETORIA IS NULL OR tdr.FK_APROVACAO_DIRETORIA IN (100, 101, 103, 105, 108))
-  AND (tdr.FK_STATUS_PGTO = 103)
-UNION ALL
-SELECT
-	tc.DATA as 'Previsao_Pgto',
-	DATE_ADD(tdp.DATA, INTERVAL 30 SECOND) as 'Data_Vencimento',
-    te.NOME_FANTASIA as 'Empresa',
-    tdr.FK_APROVACAO_DIRETORIA as 'Status_Diretoria',
-    tdp.VALOR as 'Valor_Liquido',
-    CASE
-        WHEN tdp.PARCELA_PAGA = 1 THEN 'Pago'
-        ELSE 'Pendente'
-    END as 'Status_Pgto'
-FROM T_DESPESA_RAPIDA tdr 
-INNER JOIN T_EMPRESAS te ON (tdr.FK_LOJA = te.ID)
-LEFT JOIN T_DEPESA_PARCELAS tdp ON (tdp.FK_DESPESA = tdr.ID)
-LEFT JOIN T_CALENDARIO tc ON (tdp.FK_PREVISAO_PGTO = tc.ID)
-LEFT JOIN T_STATUS_APROVACAO_DIRETORIA tsad ON (tdr.FK_APROVACAO_DIRETORIA = tsad.ID)
-WHERE tdp.ID IS NOT NULL
-  AND DATE_ADD(tdp.DATA, INTERVAL 30 SECOND) >= '2025-01-01 00:00:00'
-  AND te.FK_GRUPO_EMPRESA = 100
-  AND tdr.BIT_CANCELADA = 0
-  -- AND tdp.FK_PREVISAO_PGTO = 1220 # data de previsao = 19/01
-  -- AND te.ID = 114
-  AND (tdr.FK_APROVACAO_DIRETORIA IS NULL OR tdr.FK_APROVACAO_DIRETORIA IN (100, 101, 103, 105, 108))
-  AND (tdp.PARCELA_PAGA = 1)
+    SELECT
+      tc.DATA as 'Previsao_Pgto',
+      DATE_ADD(STR_TO_DATE(tdr.VENCIMENTO, '%Y-%m-%d'), INTERVAL 30 SECOND) as 'Data_Vencimento',
+        te.NOME_FANTASIA as 'Empresa',
+        tdr.FK_APROVACAO_DIRETORIA as 'Status_Diretoria',
+        tdr.VALOR_LIQUIDO as 'Valor_Liquido',
+      tdr.FK_STATUS_PGTO as 'Status_Pgto'
+    FROM T_DESPESA_RAPIDA tdr 
+    INNER JOIN T_EMPRESAS te ON (tdr.FK_LOJA = te.ID)
+    LEFT JOIN T_CALENDARIO tc ON (tdr.PREVISAO_PAGAMENTO = tc.ID)
+    LEFT JOIN T_DEPESA_PARCELAS tdp ON (tdp.FK_DESPESA = tdr.ID)
+    LEFT JOIN T_STATUS_APROVACAO_DIRETORIA tsad ON (tdr.FK_APROVACAO_DIRETORIA = tsad.ID)
+    LEFT JOIN T_STATUS_PAGAMENTO tsp ON (tdr.FK_STATUS_PGTO = tsp.ID)
+    WHERE tdp.ID IS NULL
+    AND DATE_ADD(STR_TO_DATE(tdr.VENCIMENTO, '%Y-%m-%d'), INTERVAL 30 SECOND) >= '2025-01-01 00:00:00'
+    AND te.FK_GRUPO_EMPRESA = 100
+    AND tdr.BIT_CANCELADA = 0
+    -- AND tdr.PREVISAO_PAGAMENTO = 1220 # data de previsao = 19/01
+    -- AND te.ID = 114 # Bar Brahma
+    AND (tdr.FK_APROVACAO_DIRETORIA IS NULL OR tdr.FK_APROVACAO_DIRETORIA IN (100, 101, 103, 105, 108))
+    AND (tdr.FK_STATUS_PGTO = 103)
+    UNION ALL
+    SELECT
+      tc.DATA as 'Previsao_Pgto',
+      DATE_ADD(tdp.DATA, INTERVAL 30 SECOND) as 'Data_Vencimento',
+        te.NOME_FANTASIA as 'Empresa',
+        tdr.FK_APROVACAO_DIRETORIA as 'Status_Diretoria',
+        tdp.VALOR as 'Valor_Liquido',
+        CASE
+            WHEN tdp.PARCELA_PAGA = 1 THEN 'Pago'
+            ELSE 'Pendente'
+        END as 'Status_Pgto'
+    FROM T_DESPESA_RAPIDA tdr 
+    INNER JOIN T_EMPRESAS te ON (tdr.FK_LOJA = te.ID)
+    LEFT JOIN T_DEPESA_PARCELAS tdp ON (tdp.FK_DESPESA = tdr.ID)
+    LEFT JOIN T_CALENDARIO tc ON (tdp.FK_PREVISAO_PGTO = tc.ID)
+    LEFT JOIN T_STATUS_APROVACAO_DIRETORIA tsad ON (tdr.FK_APROVACAO_DIRETORIA = tsad.ID)
+    WHERE tdp.ID IS NOT NULL
+    AND DATE_ADD(tdp.DATA, INTERVAL 30 SECOND) >= '2025-01-01 00:00:00'
+    AND te.FK_GRUPO_EMPRESA = 100
+    AND tdr.BIT_CANCELADA = 0
+    -- AND tdp.FK_PREVISAO_PGTO = 1220 # data de previsao = 19/01
+    -- AND te.ID = 114
+    AND (tdr.FK_APROVACAO_DIRETORIA IS NULL OR tdr.FK_APROVACAO_DIRETORIA IN (100, 101, 103, 105, 108))
+    AND (tdp.PARCELA_PAGA = 1)
 ''')
 
 
 @st.cache_data
 def GET_DETALHES_DESPESAS_PENDENTES():
   return dataframe_query(f'''
-  SELECT
-    DATE_FORMAT(tc.DATA, '%Y-%m-%d') as 'Previsao_Pgto',
-    tdr.VENCIMENTO AS 'Data_Vencimento',
-    tdr.ID as 'ID_Despesa',
-    tdr.FK_APROVACAO_DIRETORIA AS FK_Aprovacao_Diretoria,
-    tsad.DESCRICAO AS Status_Aprovacao_Diretoria,
-    "Nulo" as 'ID_Parcela',
-    te.NOME_FANTASIA as 'Loja',
-    tf.FANTASY_NAME as 'Fornecedor',
-    tdr.VALOR_LIQUIDO as 'Valor',
-    "Falso" as 'Parcelamento',
-    CASE
-        WHEN tdr.FK_STATUS_PGTO = 103 THEN 'Pago'
-        ELSE 'Pendente'
-    END as 'Status_Pgto'
-  FROM T_DESPESA_RAPIDA tdr 
-  INNER JOIN T_EMPRESAS te ON (tdr.FK_LOJA = te.ID)
-  INNER JOIN T_FORNECEDOR tf ON (tdr.FK_FORNECEDOR = tf.ID)
-  LEFT JOIN T_CALENDARIO tc ON (tdr.PREVISAO_PAGAMENTO = tc.ID)
-  LEFT JOIN T_DEPESA_PARCELAS tdp ON (tdp.FK_DESPESA = tdr.ID)
-  LEFT JOIN T_STATUS_APROVACAO_DIRETORIA tsad ON (tdr.FK_APROVACAO_DIRETORIA = tsad.ID)
-  WHERE tdp.ID is NULL 
+    SELECT
+      DATE_FORMAT(tc.DATA, '%Y-%m-%d') as 'Previsao_Pgto',
+      tdr.VENCIMENTO AS 'Data_Vencimento',
+      tdr.ID as 'ID_Despesa',
+      tdr.FK_APROVACAO_DIRETORIA AS FK_Aprovacao_Diretoria,
+      tsad.DESCRICAO AS Status_Aprovacao_Diretoria,
+      "Nulo" as 'ID_Parcela',
+      te.NOME_FANTASIA as 'Loja',
+      tf.FANTASY_NAME as 'Fornecedor',
+      tdr.VALOR_LIQUIDO as 'Valor',
+      "Falso" as 'Parcelamento',
+      CASE
+          WHEN tdr.FK_STATUS_PGTO = 103 THEN 'Pago'
+          ELSE 'Pendente'
+      END as 'Status_Pgto'
+    FROM T_DESPESA_RAPIDA tdr 
+    INNER JOIN T_EMPRESAS te ON (tdr.FK_LOJA = te.ID)
+    INNER JOIN T_FORNECEDOR tf ON (tdr.FK_FORNECEDOR = tf.ID)
+    LEFT JOIN T_CALENDARIO tc ON (tdr.PREVISAO_PAGAMENTO = tc.ID)
+    LEFT JOIN T_DEPESA_PARCELAS tdp ON (tdp.FK_DESPESA = tdr.ID)
+    LEFT JOIN T_STATUS_APROVACAO_DIRETORIA tsad ON (tdr.FK_APROVACAO_DIRETORIA = tsad.ID)
+    WHERE tdp.ID is NULL 
     AND tdr.BIT_CANCELADA = 0
-   	AND (tdr.FK_APROVACAO_DIRETORIA IS NULL OR tdr.FK_APROVACAO_DIRETORIA IN (100, 101, 103, 105, 108))
-  UNION ALL
-  SELECT
-    DATE_FORMAT(tc.DATA, '%Y-%m-%d') as 'Previsao_Pgto',
-    tdr.VENCIMENTO AS 'Data_Vencimento',
-    tdr.ID as 'ID_Despesa',
-    tdr.FK_APROVACAO_DIRETORIA AS FK_Aprovacao_Diretoria,
-    tsad.DESCRICAO AS Status_Aprovacao_Diretoria,
-    tdp.ID as 'ID_Parcela',
-    te.NOME_FANTASIA as 'Loja',
-    tf.FANTASY_NAME as 'Fornecedor',
-    tdp.VALOR as 'Valor',
-    "True" as 'Parcelamento',
-    CASE
-        WHEN tdp.PARCELA_PAGA = 1 THEN 'Pago'
-        ELSE 'Pendente'
-    END as 'Status_Pgto'
-  FROM T_DESPESA_RAPIDA tdr 
-  LEFT JOIN T_EMPRESAS te ON (tdr.FK_LOJA = te.ID)
-  LEFT JOIN T_FORNECEDOR tf ON (tdr.FK_FORNECEDOR = tf.ID)
-  LEFT JOIN T_DEPESA_PARCELAS tdp ON (tdp.FK_DESPESA = tdr.ID)
-  LEFT JOIN T_CALENDARIO tc ON (tdp.FK_PREVISAO_PGTO = tc.ID)
-  LEFT JOIN T_STATUS_APROVACAO_DIRETORIA tsad ON (tdr.FK_APROVACAO_DIRETORIA = tsad.ID)
-  WHERE tdp.ID is NOT NULL 
+    AND (tdr.FK_APROVACAO_DIRETORIA IS NULL OR tdr.FK_APROVACAO_DIRETORIA IN (100, 101, 103, 105, 108))
+    UNION ALL
+    SELECT
+      DATE_FORMAT(tc.DATA, '%Y-%m-%d') as 'Previsao_Pgto',
+      tdr.VENCIMENTO AS 'Data_Vencimento',
+      tdr.ID as 'ID_Despesa',
+      tdr.FK_APROVACAO_DIRETORIA AS FK_Aprovacao_Diretoria,
+      tsad.DESCRICAO AS Status_Aprovacao_Diretoria,
+      tdp.ID as 'ID_Parcela',
+      te.NOME_FANTASIA as 'Loja',
+      tf.FANTASY_NAME as 'Fornecedor',
+      tdp.VALOR as 'Valor',
+      "True" as 'Parcelamento',
+      CASE
+          WHEN tdp.PARCELA_PAGA = 1 THEN 'Pago'
+          ELSE 'Pendente'
+      END as 'Status_Pgto'
+    FROM T_DESPESA_RAPIDA tdr 
+    LEFT JOIN T_EMPRESAS te ON (tdr.FK_LOJA = te.ID)
+    LEFT JOIN T_FORNECEDOR tf ON (tdr.FK_FORNECEDOR = tf.ID)
+    LEFT JOIN T_DEPESA_PARCELAS tdp ON (tdp.FK_DESPESA = tdr.ID)
+    LEFT JOIN T_CALENDARIO tc ON (tdp.FK_PREVISAO_PGTO = tc.ID)
+    LEFT JOIN T_STATUS_APROVACAO_DIRETORIA tsad ON (tdr.FK_APROVACAO_DIRETORIA = tsad.ID)
+    WHERE tdp.ID is NOT NULL 
     AND tdr.BIT_CANCELADA = 0
     AND (tdr.FK_APROVACAO_DIRETORIA IS NULL OR tdr.FK_APROVACAO_DIRETORIA IN (100, 101, 103, 105, 108))
 ''')
@@ -439,9 +429,8 @@ def GET_DESPESAS_PROVISIONADAS_MENSAIS():
     LEFT JOIN T_CLASSIFICACAO_CONTABIL_GRUPO_1 AS tccg1 ON (tpp.FK_CLASSIFICACAO_CONT_GRUPO_1 = tccg1.ID)
     LEFT JOIN T_CLASSIFICACAO_CONTABIL_GRUPO_2 AS tccg2 ON (tpp.FK_CLASSIFICACAO_CONT_GRUPO_2 = tccg2.ID)
     LEFT JOIN T_FREQUENCIA_PROVISOES AS tfp ON (tpp.FK_FREQUENCIA = tfp.ID)
-    WHERE 
-      tpp.FK_FREQUENCIA = 101 # Mensal 
-      AND BIT_CANCELADA = 0                                  
+    WHERE tpp.FK_FREQUENCIA = 101 # Mensal 
+    AND BIT_CANCELADA = 0                                  
 ''')
 
 
@@ -476,11 +465,11 @@ def GET_DESPESAS_RAPIDAS_PREVISTAS():
     LEFT JOIN T_CLASSIFICACAO_CONTABIL_GRUPO_2 AS tccg2 ON (tdr.FK_CLASSIFICACAO_CONTABIL_GRUPO_2 = tccg2.ID)
     LEFT JOIN T_REAL_PROVISAO AS trp ON (tdr.FK_REAL_PROVISAO = trp.ID)                     
     WHERE tdp.ID IS NULL
-      AND DATE_ADD(STR_TO_DATE(tdr.VENCIMENTO, '%Y-%m-%d'), INTERVAL 30 SECOND) >= '2025-01-01 00:00:00'
-      AND te.FK_GRUPO_EMPRESA = 100
-      AND tdr.BIT_CANCELADA = 0
-      AND (tdr.FK_APROVACAO_DIRETORIA IS NULL OR tdr.FK_APROVACAO_DIRETORIA IN (100, 101, 103, 105, 108))
-    --   AND (tdr.FK_STATUS_PGTO = 103)
+    AND DATE_ADD(STR_TO_DATE(tdr.VENCIMENTO, '%Y-%m-%d'), INTERVAL 30 SECOND) >= '2025-01-01 00:00:00'
+    AND te.FK_GRUPO_EMPRESA = 100
+    AND tdr.BIT_CANCELADA = 0
+    AND (tdr.FK_APROVACAO_DIRETORIA IS NULL OR tdr.FK_APROVACAO_DIRETORIA IN (100, 101, 103, 105, 108))
+    -- AND (tdr.FK_STATUS_PGTO = 103)
     UNION ALL
     SELECT
       tdr.ID AS 'ID_Despesa',
@@ -509,11 +498,11 @@ def GET_DESPESAS_RAPIDAS_PREVISTAS():
     LEFT JOIN T_CLASSIFICACAO_CONTABIL_GRUPO_2 AS tccg2 ON (tdr.FK_CLASSIFICACAO_CONTABIL_GRUPO_2 = tccg2.ID)
     LEFT JOIN T_REAL_PROVISAO AS trp ON (tdr.FK_REAL_PROVISAO = trp.ID)                                          
     WHERE tdp.ID IS NOT NULL
-      AND DATE_ADD(tdp.DATA, INTERVAL 30 SECOND) >= '2025-01-01 00:00:00'
-      AND te.FK_GRUPO_EMPRESA = 100
-      AND tdr.BIT_CANCELADA = 0
-      AND (tdr.FK_APROVACAO_DIRETORIA IS NULL OR tdr.FK_APROVACAO_DIRETORIA IN (100, 101, 103, 105, 108))
-    --   AND (tdp.PARCELA_PAGA = 1)
+    AND DATE_ADD(tdp.DATA, INTERVAL 30 SECOND) >= '2025-01-01 00:00:00'
+    AND te.FK_GRUPO_EMPRESA = 100
+    AND tdr.BIT_CANCELADA = 0
+    AND (tdr.FK_APROVACAO_DIRETORIA IS NULL OR tdr.FK_APROVACAO_DIRETORIA IN (100, 101, 103, 105, 108))
+    -- AND (tdp.PARCELA_PAGA = 1)
   ''')
 
 
@@ -527,18 +516,12 @@ def GET_PREVISOES_ZIG_AGRUPADAS():
     te.NOME_FANTASIA AS Empresa,
     tzf.DATA AS Data,
     SUM(tzf.VALOR) AS Valor
-  FROM
-    T_ZIG_FATURAMENTO tzf
-    LEFT JOIN T_EMPRESAS te ON tzf.FK_LOJA = te.ID
-  WHERE
-    tzf.DATA >= '2023-08-01 00:00:00'
-    AND tzf.VALOR > 0
-  GROUP BY
-    Data,
-    Empresa
-  ORDER BY
-    Data,
-    Empresa;
+  FROMT_ZIG_FATURAMENTO tzf
+  LEFT JOIN T_EMPRESAS te ON (tzf.FK_LOJA = te.ID)
+  WHERE tzf.DATA >= '2023-08-01 00:00:00'
+  AND tzf.VALOR > 0
+  GROUP BY Data, Empresa
+  ORDER BY Data, Empresa;
 ''')
 
 
