@@ -415,43 +415,8 @@ def GET_DETALHES_DESPESAS_PENDENTES():
     AND (tdr.FK_APROVACAO_DIRETORIA IS NULL OR tdr.FK_APROVACAO_DIRETORIA IN (100, 101, 103, 105, 108))
 ''')
 
-###########################  Previsão Faturamento  #############################
 
-@st.cache_data
-def GET_PREVISOES_ZIG_AGRUPADAS():
-  return dataframe_query(f'''
-  SELECT
-    te.NOME_FANTASIA AS Empresa,
-    tzf.DATA AS Data,
-    SUM(tzf.VALOR) AS Valor
-  FROM
-    T_ZIG_FATURAMENTO tzf
-    LEFT JOIN T_EMPRESAS te ON tzf.FK_LOJA = te.ID
-  WHERE
-    tzf.DATA >= '2023-08-01 00:00:00'
-    AND tzf.VALOR > 0
-  GROUP BY
-    Data,
-    Empresa
-  ORDER BY
-    Data,
-    Empresa;
-''')
-
-
-@st.cache_data
-def GET_FATURAMENTO_REAL():
-  return dataframe_query(f'''
-  SELECT
-	  te.NOME_FANTASIA as 'Loja',
-	  tzf.DATA as 'Data',
-	  SUM(tzf.VALOR) as 'Valor_Faturado' 
-	FROM T_ZIG_FATURAMENTO tzf 
-	INNER JOIN T_EMPRESAS te ON (tzf.FK_LOJA = te.ID)
-	GROUP BY te.ID, tzf.DATA
-''')
-
-
+# Despesas Provisionadas
 @st.cache_data
 def GET_DESPESAS_PROVISIONADAS_MENSAIS():
   return dataframe_query(f'''
@@ -474,7 +439,9 @@ def GET_DESPESAS_PROVISIONADAS_MENSAIS():
     LEFT JOIN T_CLASSIFICACAO_CONTABIL_GRUPO_1 AS tccg1 ON (tpp.FK_CLASSIFICACAO_CONT_GRUPO_1 = tccg1.ID)
     LEFT JOIN T_CLASSIFICACAO_CONTABIL_GRUPO_2 AS tccg2 ON (tpp.FK_CLASSIFICACAO_CONT_GRUPO_2 = tccg2.ID)
     LEFT JOIN T_FREQUENCIA_PROVISOES AS tfp ON (tpp.FK_FREQUENCIA = tfp.ID)
-    WHERE tpp.FK_FREQUENCIA = 101 # Mensal                                   
+    WHERE 
+      tpp.FK_FREQUENCIA = 101 # Mensal 
+      AND BIT_CANCELADA = 0                                  
 ''')
 
 
@@ -548,3 +515,42 @@ def GET_DESPESAS_RAPIDAS_PREVISTAS():
       AND (tdr.FK_APROVACAO_DIRETORIA IS NULL OR tdr.FK_APROVACAO_DIRETORIA IN (100, 101, 103, 105, 108))
     --   AND (tdp.PARCELA_PAGA = 1)
   ''')
+
+
+###########################  Previsão Faturamento  #############################
+
+
+@st.cache_data
+def GET_PREVISOES_ZIG_AGRUPADAS():
+  return dataframe_query(f'''
+  SELECT
+    te.NOME_FANTASIA AS Empresa,
+    tzf.DATA AS Data,
+    SUM(tzf.VALOR) AS Valor
+  FROM
+    T_ZIG_FATURAMENTO tzf
+    LEFT JOIN T_EMPRESAS te ON tzf.FK_LOJA = te.ID
+  WHERE
+    tzf.DATA >= '2023-08-01 00:00:00'
+    AND tzf.VALOR > 0
+  GROUP BY
+    Data,
+    Empresa
+  ORDER BY
+    Data,
+    Empresa;
+''')
+
+
+@st.cache_data
+def GET_FATURAMENTO_REAL():
+  return dataframe_query(f'''
+  SELECT
+	  te.NOME_FANTASIA as 'Loja',
+	  tzf.DATA as 'Data',
+	  SUM(tzf.VALOR) as 'Valor_Faturado' 
+	FROM T_ZIG_FATURAMENTO tzf 
+	INNER JOIN T_EMPRESAS te ON (tzf.FK_LOJA = te.ID)
+	GROUP BY te.ID, tzf.DATA
+''')
+
