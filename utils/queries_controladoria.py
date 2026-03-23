@@ -159,3 +159,58 @@ def GET_CLASS_CONT_2():
     LEFT JOIN T_CLASSIFICACAO_CONTABIL_GRUPO_1 tccg1 ON (tccg2.FK_GRUPO_1 = tccg1.ID)
     WHERE tccg1.FK_VERSAO_PLANO_CONTABIL = 103;
   ''')
+
+# Para a validação do faturamento da Zigpay
+@st.cache_data
+def GET_FATURAMENTO_ZIGPAY_VALIDACAO(lista_ids_zigpay, mes, ano):
+
+    # garante lista
+    if not isinstance(lista_ids_zigpay, (list, tuple)):
+        lista_ids_zigpay = [lista_ids_zigpay]
+
+    if not lista_ids_zigpay:
+        return pd.DataFrame()
+
+    # placeholders do IN
+    placeholders = ', '.join(['%s'] * len(lista_ids_zigpay))
+
+    query = f'''
+        SELECT
+            te.ID AS 'ID Casa',
+            te.NOME_FANTASIA AS 'Casa',
+            CAST(tiv.EVENT_DATE AS DATE) AS 'Data Evento',
+            DATE_FORMAT(tiv.EVENT_DATE, '%m/%Y') AS Mes_Texto,
+            SUM((tiv.UNIT_VALUE * tiv.COUNT)) AS Soma_Valor_Transacao_Bruto,
+            SUM(tiv.DISCOUNT_VALUE) AS Soma_Desconto,
+            SUM((tiv.UNIT_VALUE * tiv.COUNT) - tiv.DISCOUNT_VALUE) AS Soma_Valor_Transacao_Liquido
+        FROM T_ITENS_VENDIDOS tiv
+        LEFT JOIN T_ITENS_VENDIDOS_CADASTROS tivc 
+            ON tiv.PRODUCT_ID = tivc.ID_ZIGPAY
+        LEFT JOIN T_ITENS_VENDIDOS_CATEGORIAS tivc2 
+            ON tivc.FK_CATEGORIA = tivc2.ID
+        LEFT JOIN T_EMPRESAS te 
+            ON tiv.LOJA_ID = te.ID_ZIGPAY
+        WHERE MONTH(tiv.EVENT_DATE) = %s 
+          AND YEAR(tiv.EVENT_DATE) = %s
+          AND te.FK_GRUPO_EMPRESA = 100
+          AND tivc2.ID IN (100,101,102,103,104)
+          AND te.ID_ZIGPAY IN ({placeholders})
+        GROUP BY te.ID, CAST(tiv.EVENT_DATE AS DATE)
+        ORDER BY tiv.EVENT_DATE
+    '''
+
+    params = [mes, ano] + list(lista_ids_zigpay)
+
+    return dataframe_query(query, params)
+
+
+def GET_CADASTROS_COUVERT_ZIGPAY():
+  return dataframe_query('''
+    SELECT
+    tivc.ID_ZIGPAY AS 'ID Zigpay',
+    tivc.NOME_PRODUTO AS 'Nome Produto',
+    tivc2.DESCRICAO AS 'Categoria'
+    FROM T_ITENS_VENDIDOS_CADASTROS tivc
+    INNER JOIN T_ITENS_VENDIDOS_CATEGORIAS tivc2 ON tivc.FK_CATEGORIA = tivc2.ID
+    WHERE tivc2.ID = 102
+  ''')
