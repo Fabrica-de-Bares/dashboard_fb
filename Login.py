@@ -49,7 +49,8 @@ ABAS = {
     135: {'nome_aba': '⬆️ DRE e Orçamento - Input no Sistema', 'page_link': 'pages/Controladoria - Colunas_DRE.py'},
     136: {'nome_aba': '🏷️ Descontos - DRE', 'page_link': 'pages/Controladoria - Descontos_DRE.py'},
     137: {'nome_aba': '🪙 Cálculo de Gorjeta', 'page_link': 'pages/Operacional - Cálculo_Gorjeta.py'},
-    138: {'nome_aba': '🔎 Auditoria - Alteração de Despesas em Sistema', 'page_link': 'pages/Controladoria - Alteração de Despesas.py'}
+    138: {'nome_aba': '🔎 Auditoria - Alteração de Despesas em Sistema', 'page_link': 'pages/Controladoria - Alteração de Despesas.py'},
+    139: {'nome_aba': '✅ Validação de Faturamento Zigpay', 'page_link': 'pages/Controladoria - Validacao_Faturamento_Zigpay.py'},
 }
 
 def main():
@@ -99,7 +100,7 @@ def main():
 
         # Recupera a permissao de casas
         df_lojas_user = GET_LOJAS_USER(login)
-        casas_permitidas = df_lojas_user.to_dict("records")
+        casas_permitidas = df_lojas_user.to_dict("records")        
         if not casas_permitidas and cargo == "Gazit":
             casas_permitidas = [
                 {"ID Loja": 149, "Loja": "Priceless"},
@@ -110,6 +111,7 @@ def main():
             st.stop()
         st.session_state["casas_permitidas"] = casas_permitidas
 
+        # Permissão de abas em relação aos cargos
         cargo_abas = GET_ABAS_CARGOS(cargo)
         abas_permitidas = cargo_abas.to_dict("records")
         for aba in abas_permitidas:

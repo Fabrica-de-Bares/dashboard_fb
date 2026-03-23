@@ -37,14 +37,14 @@ def mysql_connection_eshows():
     return conn
 
 
-def execute_query(query, use_eshows=False):
+def execute_query(query, params=None, use_eshows=False):
     conn = (
         mysql_connection_fb() if use_eshows == False 
         else mysql_connection_eshows()
     )
     cursor = conn.cursor()
     try:
-        cursor.execute(query)
+        cursor.execute(query, params)
         
         # Verifique se cursor.description não é None
         if cursor.description is None:
@@ -70,8 +70,8 @@ def execute_query(query, use_eshows=False):
         conn.close()
 
 
-def dataframe_query(query, use_eshows=False):
-	resultado, nomeColunas = execute_query(query, use_eshows=use_eshows)
+def dataframe_query(query, params=None, use_eshows=False):
+	resultado, nomeColunas = execute_query(query, params=params, use_eshows=use_eshows)
 	dataframe = pd.DataFrame(resultado, columns=nomeColunas)
 	return dataframe
 
@@ -159,6 +159,47 @@ def GET_LOJAS_USER(login):
 		WHERE au.LOGIN = {loginStr}
   	''')
 
+def GET_LOJAS_USER_COM_DELIVERY(login):
+    loginStr = f"'{login}'"
+    return dataframe_query(f'''
+    -- Criar tabela de mapeamento
+    WITH delivery_map AS (
+        SELECT 114 AS original_id, 118 AS delivery_id
+        UNION ALL SELECT 116, 103
+        UNION ALL SELECT 148, 169
+        UNION ALL SELECT 105, 139
+        UNION ALL SELECT 104, 112
+    )
+
+    -- Query original
+    SELECT 
+        te.ID AS 'ID Loja',
+        te.NOME_FANTASIA AS 'Loja',
+        te.ID_ZIGPAY AS 'ID Zigpay'
+    FROM
+        ADMIN_USERS au 
+        LEFT JOIN T_USUARIOS_EMPRESAS tue ON au.ID = tue.FK_USUARIO 
+        LEFT JOIN T_EMPRESAS te ON tue.FK_EMPRESA = te.ID
+        LEFT JOIN T_LOJAS tl ON te.ID = tl.ID
+    WHERE au.LOGIN = {loginStr}
+
+    UNION ALL
+
+    -- Adicionar linhas do mapeamento
+    SELECT 
+        te.ID AS 'ID Loja',
+        te.NOME_FANTASIA AS 'Loja',
+        te.ID_ZIGPAY AS 'ID Zigpay'
+    FROM
+        ADMIN_USERS au 
+        LEFT JOIN T_USUARIOS_EMPRESAS tue ON au.ID = tue.FK_USUARIO 
+        LEFT JOIN T_EMPRESAS te ON tue.FK_EMPRESA = te.ID
+        LEFT JOIN T_LOJAS tl ON te.ID = tl.ID
+        LEFT JOIN delivery_map dm ON tue.FK_EMPRESA = dm.delivery_id
+    WHERE au.LOGIN = {loginStr}
+        AND dm.original_id IS NOT NULL
+    ''')
+
 def config_sidebar():
 
     abas_secoes = {
@@ -199,7 +240,8 @@ def config_sidebar():
         134: "Auditoria",
         135: "Controladoria",
         136: "Controladoria",
-        138: "Controladoria"
+        138: "Controladoria",
+        139: "Controladoria",
     }
 
     cargo, user_name, email = config_permissoes_user()
@@ -386,7 +428,6 @@ def highlight_values(val):
     color = 'red' if '-' in val else 'green'
     return f'color: {color}'
 
-
 def preparar_dados_lojas_user_financeiro():
     permissao, nomeuser, username = config_permissoes_user()
     dflojas = GET_LOJAS_USER(username)
@@ -465,4 +506,60 @@ def highlight_values_inverse(val):
   return f'color: {color}'
 
 
+def normalize_cpf_punctuated(value: str) -> str:
+    """Garante CPF com pontuação (###.###.###-##). Se vier só dígitos (11), formata.
+    Mantém vazio se informado vazio.
+    """
+    if not value:
+        return value
+    s = value.strip()
+    # Se já contém pontos e traço, mantém
+    if '.' in s and '-' in s and len(s) >= 14:
+        return s
+    digits = "".join(ch for ch in s if ch.isdigit())
+    if len(digits) == 11:
+        return f"{digits[0:3]}.{digits[3:6]}.{digits[6:9]}-{digits[9:11]}"
+    return s
 
+def normalizar_cnpj(cnpj):
+    """Normaliza CNPJ para formato XX.XXX.XXX/XXXX-XX"""
+    # Remove tudo que não é dígito
+    digits = ''.join(filter(str.isdigit, cnpj))
+    
+    # Formata
+    return f"{digits[:2]}.{digits[2:5]}.{digits[5:8]}/{digits[8:12]}-{digits[12:14]}"
+
+
+def normalize_reference_mmyyyy(value: str) -> str:
+    """Converte datas/competências em formato MMAAAA exigido pelo serviço.
+
+    Aceita entradas como 'YYYY-MM-DD', 'DD/MM/YYYY', 'MM/YYYY' ou já 'MMAAAA'.
+    """
+    if not value:
+        return value
+    s = value.strip()
+    # Já no formato MMAAAA?
+    if len(s) in (6, 7) and s.replace(' ', '').isdigit():
+        # Permite '102025' ou '10 2025' (ajusta removendo espaço)
+        s = s.replace(' ', '')
+        if len(s) == 6:
+            return s
+    # YYYY-MM-DD
+    try:
+        dt = datetime.strptime(s, "%Y-%m-%d")
+        return dt.strftime("%m%Y")
+    except Exception:
+        pass
+    # DD/MM/YYYY
+    try:
+        dt = datetime.strptime(s, "%d/%m/%Y")
+        return dt.strftime("%m%Y")
+    except Exception:
+        pass
+    # MM/YYYY (competência)
+    try:
+        dt = datetime.strptime("01/" + s, "%d/%m/%Y")
+        return dt.strftime("%m%Y")
+    except Exception:
+        pass
+    return s
