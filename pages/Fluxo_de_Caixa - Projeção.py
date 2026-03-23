@@ -31,7 +31,7 @@ seletor_status_despesa = st.segmented_control(
     options=["Apenas Aprovadas", "Todas Previstas"],
     selection_mode="single",
     default="Apenas Aprovadas",
-    help='"Previstas" envolve as despesas aprovadas e pendentes'
+    help='"Previstas" envolve as despesas com status: Aprovadas Diretoria, Análise Pendente, Pré-Aprovado, Travados e Edição Liberada'
 )
 st.divider()
 
