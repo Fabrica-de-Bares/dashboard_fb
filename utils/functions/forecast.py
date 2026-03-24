@@ -6,9 +6,9 @@ from datetime import datetime, timedelta
 from utils.functions.general_functions import format_brazilian
 from utils.functions.general_functions_conciliacao import formata_df, traduz_semana_mes
 from utils.functions.cmv_teorico_fichas_tecnicas import function_format_number_columns
-from utils.queries_cmv import GET_INSUMOS_AGRUPADOS_BLUE_ME_POR_CATEG_SEM_PEDIDO, GET_TRANSF_ESTOQUE, GET_PERDAS_E_CONSUMO_AGRUPADOS
-from utils.queries_forecast import GET_VALORACAO_ESTOQUE, GET_VALORACAO_PRODUCAO, GET_EVENTOS_CMV, GET_AUT_BLUE_ME_COM_PEDIDO
-from utils.components import dataframe_aggrid, seletor_ano, seletor_mes
+from utils.queries_cmv import *
+from utils.queries_forecast import *
+from utils.components import dataframe_aggrid
 from st_aggrid import ColumnsAutoSizeMode
 
 pd.set_option('future.no_silent_downcasting', True)
@@ -20,7 +20,7 @@ def prepara_dados_faturam_agregado_diario(id_casa, df_faturamento_agregado_dia, 
     # Filtra por casa
     df_faturamento_agregado_casa = df_faturamento_agregado_dia[
         (df_faturamento_agregado_dia['ID_Casa'] == id_casa) &
-        df_faturamento_agregado_dia['Categoria'].isin(['Alimentos', 'Bebidas', 'Couvert', 'Delivery', 'Gifts', 'Eventos A&B', 'Eventos Couvert', 'Eventos Locações', 'Outras Receitas'])
+        df_faturamento_agregado_dia['Categoria'].isin(['Alimentos', 'Bebidas', 'Couvert', 'Serviço', 'Delivery', 'Gifts', 'Eventos A&B', 'Eventos Couvert', 'Eventos Locações', 'Outras Receitas'])
     ].copy()
     df_faturamento_agregado_casa['Data Evento'] = pd.to_datetime(df_faturamento_agregado_casa['Data Evento'], errors='coerce')
     
@@ -195,8 +195,8 @@ def exibe_faturamento_categoria_mes_corrente(categoria, df_dias_futuros_mes, tip
         # Filtra para exibir dias anteriores do mês corrente - para comparação projeção/real
         df_projecao_faturamento_mes_corrente = df_dias_futuros_mes[
             (df_dias_futuros_mes['Data Evento'] >= datas['inicio_mes_atual']) &
-            (df_dias_futuros_mes['Data Evento'] < datas['today']) &
-            (df_dias_futuros_mes['Categoria'] != 'Serviço')
+            (df_dias_futuros_mes['Data Evento'] < datas['today']) 
+            # (df_dias_futuros_mes['Categoria'] != 'Serviço')
         ]
 
         # Colunas a serem exibidas
@@ -375,57 +375,82 @@ def projecao_faturamento_meses_seguintes(df_faturamento_orcamento, df_meses_futu
         left_on=['Ano', 'Mês', 'Categoria'],
         right_on=['Ano', 'Meses_Ano', 'Categoria']
     )
-   
+    df_meses_seguintes = df_meses_seguintes[df_meses_seguintes['Categoria'].isin(['Alimentos', 'Bebidas', 'Couvert', 'Delivery', 'Eventos A&B', 'Eventos Couvert', 'Eventos Locações', 'Gifts', 'Outras Receitas', 'Serviço'])]
     df_meses_seguintes['Projeção Atingimento'] = None
     df_meses_seguintes['Valor Projetado'] = None
     
     # Loop por categoria
     for categoria in df_meses_seguintes['Categoria'].unique():
-        df_cat = None
-        df_cat = df_meses_seguintes[df_meses_seguintes['Categoria'] == categoria]
-        
-        if df_cat is not None and not df_cat.empty:
-            for i, row in df_cat.iterrows():
-                # data = row['Data']
-                ano = row['Ano']
+        if categoria != 'Serviço':
+            df_cat = None
+            df_cat = df_meses_seguintes[df_meses_seguintes['Categoria'] == categoria]
+            
+            if df_cat is not None and not df_cat.empty:
+                for i, row in df_cat.iterrows():
+                    mes = row['Data']
 
-                # if ano >= ano_atual:  # apenas meses do ano atual
-                mes = row['Data']
+                    # pega histórico dos dois meses atrás
+                    dois_meses_atras = mes - pd.DateOffset(months=2)
 
-                # pega histórico dos dois meses atrás
-                dois_meses_atras = mes - pd.DateOffset(months=2)
+                    historico = df_meses_seguintes[
+                        (df_meses_seguintes['Categoria'] == categoria) &
+                        (df_meses_seguintes['Data'] >= dois_meses_atras) &
+                        (df_meses_seguintes['Data'] < mes)
+                    ].copy()
 
-                historico = df_meses_seguintes[
-                    (df_meses_seguintes['Categoria'] == categoria) &
-                    (df_meses_seguintes['Data'] >= dois_meses_atras) &
-                    (df_meses_seguintes['Data'] < mes)
-                ].copy()
+                    # Define colunas auxiliares conforme o mês
+                    historico["Atingimento_Usado"] = np.where(
+                        (historico["Mês"] >= mes_atual) & (historico['Ano'] == ano_atual),
+                        historico["Projeção Atingimento"],       # usa o projetado se mês >= atual
+                        historico["Atingimento Real"]            # senão usa o real
+                    )
+                    
+                    # usa o Atingimento (real) quando existir, senão a Projecao (que pode vir de meses anteriores)
+                    valores_para_media = historico['Atingimento_Usado'].fillna(historico['Projeção Atingimento']).astype(float)
 
-                # Define colunas auxiliares conforme o mês
-                historico["Atingimento_Usado"] = np.where(
-                    (historico["Mês"] >= mes_atual) & (historico['Ano'] == ano_atual),
-                    historico["Projeção Atingimento"],       # usa o projetado se mês >= atual
-                    historico["Atingimento Real"]            # senão usa o real
-                )
-                
-                # historico["Faturamento_Usado"] = np.where(
-                #     historico["Mês"] >= mes_atual,
-                #     historico["Valor Projetado"],          # usa o projetado se mês >= atual
-                #     historico["Valor Bruto"]               # senão usa o real
-                # )
-
-                # usa o Atingimento (real) quando existir, senão a Projecao (que pode vir de meses anteriores)
-                valores_para_media = historico['Atingimento_Usado'].fillna(historico['Projeção Atingimento']).astype(float)
-
-                if not valores_para_media.empty:
-                    media = valores_para_media.mean()
-                    df_meses_seguintes.at[i, 'Projeção Atingimento'] = media
+                    if not valores_para_media.empty:
+                        media = valores_para_media.mean()
+                        df_meses_seguintes.at[i, 'Projeção Atingimento'] = media
 
     # Define valor de faturamento projetado baseado na projeção (%) de atingimento do orçamento
     df_meses_seguintes['Valor Projetado'] = (
         df_meses_seguintes['Orçamento'].astype(float) * (df_meses_seguintes['Projeção Atingimento'].astype(float) / 100)
     )
     return df_meses_seguintes
+
+
+# Função para cálculo da projeção dpo serviço - meses seguintes: 13% do faturamento A&B projetado
+# Precisa dos faturamentos das outras categorias já calculado
+def projecao_faturamento_servico_meses_seguintes(df_faturamento_meses_futuros, ano_atual, mes_atual):
+    # Filtra o df de faturamento para apenas a categoria de Serviço
+    df_cat = df_faturamento_meses_futuros[df_faturamento_meses_futuros['Categoria'] == 'Serviço']
+
+    if df_cat is not None and not df_cat.empty:
+        for i, row in df_cat.iterrows():
+            mes = row['Mês']
+            ano = row['Ano']
+
+            historico = df_faturamento_meses_futuros[
+                (df_faturamento_meses_futuros['Categoria'].isin(['Alimentos', 'Bebidas'])) &
+                (df_faturamento_meses_futuros['Mês'] == mes) &
+                (df_faturamento_meses_futuros['Ano'] == ano)
+            ].copy()
+
+            # Define colunas auxiliares conforme o mês
+            historico["Faturamento_Usado"] = np.where(
+                (historico["Mês"] >= mes_atual) & (historico['Ano'] == ano_atual),
+                historico["Valor Projetado"],       # usa o projetado se mês >= atual
+                historico["Valor Bruto"]            # senão usa o real
+            )
+            
+            # usa o Atingimento (real) quando existir, senão a Projecao (que pode vir de meses anteriores)
+            soma_ab = historico['Faturamento_Usado'].sum()
+            valor_servico = soma_ab * 0.13
+            
+            df_faturamento_meses_futuros.at[i, 'Projeção Atingimento'] = '-'
+            df_faturamento_meses_futuros.at[i, 'Valor Projetado'] = valor_servico
+
+    return df_faturamento_meses_futuros
 
 
 # # Função para exibição da projeção por categoria - mês corrente
@@ -579,17 +604,13 @@ def config_compras(data_inicio, data_fim, loja):
     df1['Primeiro_Dia_Mes'] = pd.to_datetime(df1['Primeiro_Dia_Mes'], errors='coerce')
     df1['Mes_Ano'] = df1['Primeiro_Dia_Mes'].dt.strftime('%Y-%m')
     
-    # df2 = GET_INSUMOS_AGRUPADOS_BLUE_ME_POR_CATEG_COM_PEDIDO()
-    df2 = GET_AUT_BLUE_ME_COM_PEDIDO()
-    df_aut_blue_me_com_pedido = df2.copy()
-    df2['Data_Emissao'] = pd.to_datetime(df2['Data_Emissao'], errors='coerce')
-    df2['Mes_Ano'] = df2['Data_Emissao'].dt.strftime('%Y-%m')
-    df2 = df2.groupby(['Casa', 'Mes_Ano'], as_index=False)[['Valor_Liquido', 'Valor_Cotacao', 'Valor_Liq_Alimentos', 'Valor_Liq_Bebidas', 'Valor_Liq_Descart_Hig_Limp', 'Valor_Gelo_Gas_Carvao_Velas', 'Valor_Utensilios', 'Valor_Liq_Outros']].sum()
-    
-    df_compras = pd.merge(df2, df1, on=['Casa', 'Mes_Ano'], how='outer')
-    df_compras['Primeiro_Dia_Mes'] = pd.to_datetime(df_compras['Primeiro_Dia_Mes'], errors='coerce')
-    # df_compras['Mes_Ano'] = df_compras['Primeiro_Dia_Mes'].dt.strftime('%Y-%m')
-    
+    df_aut_blue_me_com_pedido = GET_AUT_BLUE_ME_COM_PEDIDO()
+    df2 = GET_INSUMOS_AGRUPADOS_BLUE_ME_POR_CATEG_COM_PEDIDO_PERIODO_LOJA()
+    df2['Primeiro_Dia_Mes'] = pd.to_datetime(df2['Primeiro_Dia_Mes'], errors='coerce')
+    df2['Mes_Ano'] = df2['Primeiro_Dia_Mes'].dt.strftime('%Y-%m')
+
+    df_compras = pd.merge(df2, df1, on=['Casa', 'Mes_Ano', 'Primeiro_Dia_Mes'], how='outer')
+  
     df_compras = df_compras[
         (df_compras['Casa'] == loja) &
         (df_compras['Primeiro_Dia_Mes'] >= data_inicio) &
@@ -826,7 +847,7 @@ def merge_e_calculo_para_cmv(df_faturamento_zig, df_compras, df_valoracao_estoqu
     df_calculo_cmv['Saídas Geral'] = df_calculo_cmv['Saídas Geral'].astype(float)
     df_calculo_cmv['Consumo Interno'] = df_calculo_cmv['Consumo Interno'].astype(float)
     df_calculo_cmv['Variacao_Producao'] = df_calculo_cmv['Variacao_Producao'].astype(float)
-    # st.write(df_calculo_cmv) Para verificar valores que não batem com a planilha
+    # st.write('cmv', df_calculo_cmv) # Para verificar valores que não batem com a planilha
 
     df_calculo_cmv['CMV Real'] = df_calculo_cmv['Compras Geral'] - df_calculo_cmv['Variacao_Estoque'] + df_calculo_cmv['Entradas Geral'] - df_calculo_cmv['Saídas Geral'] - df_calculo_cmv['Consumo Interno'] - df_calculo_cmv['Variacao_Producao']
     df_calculo_cmv['CMV Real Percentual'] = (df_calculo_cmv['CMV Real'] / df_calculo_cmv['Faturamento_Geral']) * 100
@@ -1136,8 +1157,8 @@ def prepara_dados_custos_mensais(df_custos_gerais, df_faturamento_meses_futuros,
         df_custos_filtrado_mensal = df_merge[['Casa', 'Mês', 'Ano', 'Classificacao_Contabil_2', 'Custo Real']]
 
     # Resgata faturamentos projetados por mês
-    df_resgata_faturamento_meses_futuros = df_faturamento_meses_futuros[df_faturamento_meses_futuros['Categoria'] != 'Serviço']
-    df_resgata_faturamento_meses_futuros = df_resgata_faturamento_meses_futuros.groupby(['Ano', 'Mês'], as_index=False)[['Valor Bruto', 'Valor Projetado']].sum()
+    # df_resgata_faturamento_meses_futuros = df_faturamento_meses_futuros[df_faturamento_meses_futuros['Categoria'] != 'Serviço']
+    df_resgata_faturamento_meses_futuros = df_faturamento_meses_futuros.groupby(['Ano', 'Mês'], as_index=False)[['Valor Bruto', 'Valor Projetado']].sum()
     df_resgata_faturamento_meses_futuros = df_resgata_faturamento_meses_futuros.rename(columns={'Valor Bruto':'Faturamento Real', 'Valor Projetado':'Faturamento Projetado'})
     
     # Merge da tabela de custos passados com a de faturamentos - obter combinação de cada class. cont. 2 com todos os meses do ano para projetar
@@ -1337,19 +1358,19 @@ def aplica_layout_dre(df_faturamento_meses_passados_futuros, df_cmv_projetado, d
     df_layout_faturamento = df_faturamento_meses_passados_futuros[
         (df_faturamento_meses_passados_futuros['Ano'] == ano_selecionado) &
         (df_faturamento_meses_passados_futuros['Mês'] == mes_selecionado) &
-        (df_faturamento_meses_passados_futuros['Categoria'].isin(['Alimentos', 'Bebidas', 'Couvert', 'Gifts', 'Eventos A&B', 'Eventos Couvert', 'Eventos Locações', 'Delivery', 'Outras Receitas']))
+        (df_faturamento_meses_passados_futuros['Categoria'].isin(['Alimentos', 'Bebidas', 'Couvert', 'Serviço', 'Gifts', 'Eventos A&B', 'Eventos Couvert', 'Eventos Locações', 'Delivery', 'Outras Receitas']))
     ].copy()
 
-    df_layout_faturamento.rename(columns={'Valor Bruto': 'Valor Real', 'Atingimento Real': 'Percentual Real', 'Projeção Atingimento': 'Percentual Projetado'}, inplace=True)
-    df_layout_faturamento = df_layout_faturamento[['Categoria', 'Orçamento', 'Percentual Projetado', 'Valor Projetado', 'Valor Real', 'Percentual Real']]
+    df_layout_faturamento.rename(columns={'Valor Bruto': 'Valor Real', 'Atingimento Real': 'Percentual Real (do Orçamento)', 'Projeção Atingimento': 'Percentual Projetado (do Orçamento)'}, inplace=True)
+    df_layout_faturamento = df_layout_faturamento[['Categoria', 'Orçamento', 'Percentual Projetado (do Orçamento)', 'Valor Projetado', 'Valor Real', 'Percentual Real (do Orçamento)']]
     
     # Formata dados de CMV
     df_layout_cmv = df_cmv_projetado[(df_cmv_projetado['Ano'] == ano_selecionado) & (df_cmv_projetado['Mês'] == mes_selecionado)]
     df_layout_cmv.drop(columns=['Valor Projetado'], inplace=True)
-    df_layout_cmv = df_layout_cmv.rename(columns={'CMV Percentual Projetado': 'Percentual Projetado', 'CMV Projetado': 'Valor Projetado', 'CMV Real': 'Valor Real', 'CMV Real Percentual': 'Percentual Real'})
+    df_layout_cmv = df_layout_cmv.rename(columns={'CMV Percentual Projetado': 'Percentual Projetado (do Orçamento)', 'CMV Projetado': 'Valor Projetado', 'CMV Real': 'Valor Real', 'CMV Real Percentual': 'Percentual Real (do Orçamento)'})
     df_layout_cmv['Categoria'] = 'CMV'
     df_layout_cmv['Orçamento'] = None
-    df_layout_cmv = df_layout_cmv[['Categoria', 'Orçamento', 'Percentual Projetado', 'Valor Projetado', 'Valor Real', 'Percentual Real']]
+    df_layout_cmv = df_layout_cmv[['Categoria', 'Orçamento', 'Percentual Projetado (do Orçamento)', 'Valor Projetado', 'Valor Real', 'Percentual Real (do Orçamento)']]
 
     # Formata dados de despesas
     df_layout_despesas = df_projecao_despesas[
@@ -1358,16 +1379,19 @@ def aplica_layout_dre(df_faturamento_meses_passados_futuros, df_cmv_projetado, d
     ].copy()
 
     df_layout_despesas.drop(columns=['Categoria'], inplace=True)
-    df_layout_despesas.rename(columns={'Classificacao_Contabil_2': 'Categoria', 'Custo Percentual Projetado': 'Percentual Projetado', 'Custo Projetado': 'Valor Projetado', 'Custo Real': 'Valor Real'}, inplace=True)
-    df_layout_despesas['Percentual Real'] = None
-    df_layout_despesas = df_layout_despesas[['Categoria', 'Orçamento', 'Percentual Projetado', 'Valor Projetado', 'Valor Real', 'Percentual Real']]
+    df_layout_despesas.rename(columns={'Classificacao_Contabil_2': 'Categoria', 'Custo Percentual Projetado': 'Percentual Projetado (do Orçamento)', 'Custo Projetado': 'Valor Projetado', 'Custo Real': 'Valor Real'}, inplace=True)
+    df_layout_despesas = df_layout_despesas[['Categoria', 'Orçamento', 'Percentual Projetado (do Orçamento)', 'Valor Projetado', 'Valor Real']]
 
+    # Calcula coluna de Percentual Real 
+    df_layout_despesas['Valor Real'] = pd.to_numeric(df_layout_despesas['Valor Real'], errors='coerce')
+    df_layout_despesas['Orçamento'] = pd.to_numeric(df_layout_despesas['Orçamento'], errors='coerce')
+    
+    df_layout_despesas['Percentual Real (do Orçamento)'] = (df_layout_despesas['Valor Real'] / df_layout_despesas['Orçamento'].replace(0, np.nan)) * 100
+
+    # Concatena 
     df_layout_dre = pd.concat([df_layout_faturamento, df_layout_cmv, df_layout_despesas])
     df_layout_dre['Orçamento'] = df_layout_dre['Orçamento'].fillna(0)
-    df_layout_dre['Percentual Projetado'] = df_layout_dre['Percentual Projetado'].fillna(0)
-    df_layout_dre['Valor Projetado'] = df_layout_dre['Valor Projetado'].fillna(0)
-    df_layout_dre['Valor Real'] = df_layout_dre['Valor Real'].fillna('-')
-    df_layout_dre['Percentual Real'] = df_layout_dre['Percentual Real'].fillna('-')
+    df_layout_dre['Percentual Projetado (do Orçamento)'] = df_layout_dre['Percentual Projetado (do Orçamento)'].fillna(0)
 
     df_layout_dre = adiciona_titulos_secoes_dre(df_layout_dre)
     return df_layout_dre
@@ -1392,7 +1416,7 @@ def adiciona_titulos_secoes_dre(df):
         'Internet': 'Informática e TI',
         'Decoração/Paisagismo e Jardinagem': 'Despesas Gerais',
         'Agência de Propaganda': 'Marketing',
-        'Assessoria de Imprensa': 'Servições de Terceiros',
+        'Assessoria Contabil': 'Servições de Terceiros',
         'Locação de Equipamentos - Informatica e TI': 'Locação de Equipamentos',
         'Fee Gestão FB': 'Sistema de Franquias'
     }
@@ -1402,12 +1426,7 @@ def adiciona_titulos_secoes_dre(df):
         categoria = row['Categoria']
         if categoria in insercoes:
             nova_linha = {
-                'Categoria': insercoes[categoria],
-                'Orçamento': '-',
-                'Percentual Projetado': '-',
-                'Valor Projetado': '-',
-                'Valor Real': '-',
-                'Percentual Real': '-'
+                'Categoria': insercoes[categoria]
             }
             linhas.append(nova_linha)
 

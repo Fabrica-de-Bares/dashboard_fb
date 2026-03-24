@@ -3,6 +3,7 @@ from utils.components import input_selecao_casas, seletor_ano, seletor_mes
 from utils.functions.forecast import *
 from utils.functions.general_functions import config_sidebar, format_columns_percentage_simples
 from utils.functions.general_functions_conciliacao import *
+from utils.functions.cmv_teorico_fichas_tecnicas import function_format_number_columns
 from utils.queries_forecast import *
 
 
@@ -118,6 +119,7 @@ df_meses_futuros_com_categorias = lista_meses_ano(df_faturamento_mes_casa)
 
 # Gera projeção para prox meses do ano
 df_faturamento_meses_futuros = projecao_faturamento_meses_seguintes(df_faturamento_orcamento, df_meses_futuros_com_categorias, datas['ano_atual'], datas['mes_atual'])
+df_faturamento_meses_futuros = projecao_faturamento_servico_meses_seguintes(df_faturamento_meses_futuros, datas['ano_atual'], datas['mes_atual'])
 
 # # Container que exibe projeção dos prox meses
 # with st.container(border=True):
@@ -153,8 +155,6 @@ df_faturamento_meses_futuros = projecao_faturamento_meses_seguintes(df_faturamen
 #             <p><strong>Premissa:</strong></p>
 #         ''', unsafe_allow_html=True)
 
-dfs_resultados = [] # Lista com todos dfs de despesas projetadas
-
 # CMV 
 df_faturamento_zig, faturamento_bruto_alimentos, faturamento_bruto_bebidas, faturamento_delivery = config_faturamento_bruto_zig(df_faturamento_agregado_dia, datas['jan_ano_passado'], datas['dez_ano_atual'], casa)
 df_faturamento_eventos = config_faturamento_eventos(datas['jan_ano_passado'], datas['dez_ano_atual'], casa, faturamento_bruto_alimentos, faturamento_bruto_bebidas)
@@ -175,6 +175,8 @@ df_calculo_cmv = merge_e_calculo_para_cmv(
 
 df_cmv_meses_anteriores_seguintes = calcula_cmv_proximos_meses(df_faturamento_meses_futuros, df_calculo_cmv, datas['ano_atual'], datas['mes_atual'])
 # exibe_cmv_meses_anteriores_e_seguintes(df_cmv_meses_anteriores_seguintes, 'meses seguintes', datas['mes_atual'], datas['ano_atual'])
+
+dfs_resultados = [] # Lista com todos dfs de despesas projetadas
 
 # Desconto sobre Venda (vem dos Descontos)
 df_descontos_mensais_passados = prepara_dados_custos_mensais(df_descontos, df_faturamento_meses_futuros, casa, 'Desconto sobre Venda', df_orcamentos)
@@ -365,8 +367,17 @@ df_layout_dre = aplica_layout_dre(df_faturamento_meses_futuros, df_cmv_meses_ant
 height = (len(df_layout_dre) + 1) * 35 # Define altura sem rolagem
 
 # Formata colunas numéricas
-df_layout_dre = format_columns_brazilian(df_layout_dre, ['Orçamento', 'Valor Projetado', 'Valor Real'])
-df_layout_dre = format_columns_percentage_simples(df_layout_dre, ['Percentual Projetado', 'Atingimento Real', 'Percentual Real'])
+df_layout_dre = function_format_number_columns(
+    df_layout_dre,
+    columns_money=['Orçamento', 'Valor Projetado', 'Valor Real'],
+    columns_percent=['Percentual Projetado (do Orçamento)', 'Percentual Real (do Orçamento)']
+)
+
+df_layout_dre.loc[df_layout_dre['Orçamento'] == 'R$ nan', 'Orçamento'] = '-'
+df_layout_dre.loc[df_layout_dre['Percentual Projetado (do Orçamento)'] == '', 'Percentual Projetado (do Orçamento)'] = '-'
+df_layout_dre.loc[df_layout_dre['Valor Projetado'] == 'R$ nan', 'Valor Projetado'] = '-'
+df_layout_dre.loc[df_layout_dre['Valor Real'] == 'R$ nan', 'Valor Real'] = '-'
+df_layout_dre.loc[df_layout_dre['Percentual Real (do Orçamento)'] == '', 'Percentual Real (do Orçamento)'] = '-'
 
 # Destaca linhas de título
 df_layout_dre_styled = df_layout_dre.style.apply(highlight_titulos_dre, axis=1) 
