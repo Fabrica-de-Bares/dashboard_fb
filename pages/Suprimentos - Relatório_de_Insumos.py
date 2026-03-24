@@ -250,12 +250,12 @@ def main():
 				df_compras_anuais['Casa'].isin(companies_filtered) &
 				(df_compras_anuais['Data Competencia'].dt.year == ano)
 			]
-			df_compras_anuais_styled = df_compras_anuais_filtrado[['Casa', 'ID Fornecedor', 'Fornecedor', 'Insumo N2', 'ID Nivel 5', 'Insumo N5', 'Valor Compra', 'Mes/Ano']]
+			df_compras_anuais_styled = df_compras_anuais_filtrado[['Casa', 'ID Fornecedor', 'Fornecedor', 'Insumo N2', 'ID Nivel 5', 'Insumo N5', 'Quantidade', 'Valor Total', 'Mês/Ano']]
 			df_compras_anuais_styled = function_format_number_columns(
 				df_compras_anuais_styled,
-				columns_money=['Valor Compra'],
+				columns_money=['Valor Total'],
 			)
-			df_compras_anuais_styled.sort_values(by=['Casa', 'Mes/Ano', 'Insumo N2', 'Fornecedor'], inplace=True)
+			df_compras_anuais_styled.sort_values(by=['Casa', 'Mês/Ano', 'Insumo N2', 'Fornecedor'], inplace=True)
 
 			st.dataframe(df_compras_anuais_styled, hide_index=True, width='stretch')
 			function_copy_dataframe_as_tsv(df_compras_anuais_filtrado)

@@ -305,9 +305,9 @@ def GET_COMPRAS_POR_ANO():
       N5.ID AS 'ID Nivel 5',
       N5.DESCRICAO AS 'Insumo N5',
       -- tudm.UNIDADE_MEDIDA_NAME AS 'Unidade Medida',                   
-      -- DRI.QUANTIDADE AS 'Quantidade Insumo',
-      SUM(DRI.VALOR) AS 'Valor Compra',
-      CONCAT(MONTH(DR.COMPETENCIA), '/', YEAR(DR.COMPETENCIA)) AS 'Mes/Ano'                   
+      SUM(DRI.QUANTIDADE) AS 'Quantidade',
+      SUM(DRI.VALOR) AS 'Valor Total',
+      CONCAT(MONTH(DR.COMPETENCIA), '/', YEAR(DR.COMPETENCIA)) AS 'Mês/Ano'                   
       -- SUM(DRI.VALOR) / SUM(DRI.QUANTIDADE) AS 'Valor Med Por Insumo'                                
     FROM T_DESPESA_RAPIDA_ITEM DRI 
       INNER JOIN T_INSUMOS_NIVEL_5 N5 ON (DRI.FK_INSUMO = N5.ID)
@@ -320,6 +320,6 @@ def GET_COMPRAS_POR_ANO():
       LEFT JOIN T_UNIDADES_DE_MEDIDAS tudm ON (N5.FK_UNIDADE_MEDIDA = tudm.ID)
     WHERE DR.BIT_CANCELADA = 0
     GROUP BY E.NOME_FANTASIA, F.ID, MONTH(DR.COMPETENCIA), YEAR(DR.COMPETENCIA), N2.DESCRICAO, N5.ID 
-    ORDER BY F.FANTASY_NAME, N2.DESCRICAO
+    ORDER BY F.FANTASY_NAME, N2.DESCRICAO;
   ''')
 
