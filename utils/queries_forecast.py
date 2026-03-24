@@ -273,18 +273,12 @@ def GET_ORCAMENTOS():
         WHEN tccg.DESCRICAO IN ('GIFTS', 'Gifts') THEN 'Gifts'
         ELSE tccg.DESCRICAO
         END AS 'Categoria'
-    FROM
-        T_ORCAMENTOS to2
-    JOIN
-        T_EMPRESAS te ON to2.FK_EMPRESA = te.ID
-    JOIN
-        T_CLASSIFICACAO_CONTABIL_GRUPO_2 tccg ON to2.FK_CLASSIFICACAO_2 = tccg.ID
-    WHERE
-        to2.FK_CLASSIFICACAO_1 IN (178, 245)                           
-    ORDER BY
-        ID_Casa,
-        MES,
-        ANO;
+    FROM T_ORCAMENTOS to2
+    JOIN T_EMPRESAS te ON (to2.FK_EMPRESA = te.ID)
+    JOIN T_CLASSIFICACAO_CONTABIL_GRUPO_2 tccg ON (to2.FK_CLASSIFICACAO_2 = tccg.ID)
+    WHERE to2.ANO >= 2025
+    # AND to2.FK_CLASSIFICACAO_1 IN (178, 245)                           
+    ORDER BY ID_Casa, to2.MES, to2.ANO;
     ''')
 
 
