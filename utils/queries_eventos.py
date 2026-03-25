@@ -512,6 +512,7 @@ def GET_CLIENTES_EVENTOS():
 			SUM(tep.VALOR_LOCACAO_ANEXO) AS 'Valor Locação Anexo',
 			SUM(tep.VALOR_LOCACAO_NOTIE) AS 'Valor Locação Notie',
 			SUM(tep.VALOR_LOCACAO_MIRANTE) AS 'Valor Locação Mirante',
+			SUM(tep.VALOR_LOCACAO_BAR) AS 'Valor Locação Bar',
 			SUM(tep.VALOR_LOCACAO_ESPACO) AS 'Valor Locação Espaço',
 			SUM(tep.VALOR_IMPOSTO) AS 'Valor Imposto',
 			tep2.OBSERVACOES AS 'Observações',
