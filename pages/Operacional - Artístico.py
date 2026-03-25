@@ -119,8 +119,8 @@ def main():
   with col1:
     st.markdown('### Propostas Eshows')
   with col2:
+    df_propostas_eshows = df_propostas_eshows[df_propostas_eshows['Loja'].isin(lojas_selecionadas)]
     button_download(df_propostas_eshows, f'propostas_{data_inicio}_{data_fim}', 'propostas_eshows')
-  df_propostas_eshows = df_propostas_eshows[df_propostas_eshows['Loja'].isin(lojas_selecionadas)]
   dataframe_aggrid(df_propostas_eshows, name='Propostas Eshows', num_columns=['Valor Bruto'], fit_columns=ColumnsAutoSizeMode.FIT_ALL_COLUMNS_TO_VIEW, fit_columns_on_grid_load=True)
 
 
