@@ -44,10 +44,6 @@ def conciliacao_casa(df, casa, datas_completas):
              (df_parc_receit_extr_farol["Recebimento_Parcela"].dt.year >= 2025))
         )
     ]
-    if casa == 'Blue Note - São Paulo':
-        df_parc_receit_extr_farol = df_parc_receit_extr_farol[ # não vai considerar na soma essa receita com status_pgto = 'Desconto' - ajuste pedido 18/02/26
-            df_parc_receit_extr['Status_Pgto'] != 'Desconto'
-        ]
 
     if 'Receitas Extraordinárias' not in df_copia.columns:
         df_copia['Receitas Extraordinárias'] = somar_por_data(
@@ -60,10 +56,7 @@ def conciliacao_casa(df, casa, datas_completas):
         (df_eventos['Casa'] == casa) &
         ~(df_eventos['Forma_Pgto'] == 'Permuta')
     ]
-    if casa == 'Blue Note - São Paulo':
-        df_eventos_farol = df_eventos_farol[ # não vai considerar na soma essa receita com status_pgto = 'Desconto' - ajuste pedido 24/03/26
-            df_eventos_farol['Status_Pgto'] != 'Desconto'
-        ]
+    
     if 'Eventos' not in df_copia.columns:
         df_copia['Eventos'] = somar_por_data(
             df_eventos_farol, "Recebimento_Parcela", "Valor_Parcela", datas_completas

@@ -12,7 +12,8 @@ def GET_CASAS():
           CASE 
             WHEN ID IN (161, 162) THEN 149
             WHEN ID = 178 THEN 110
-            WHEN ID = 177 THEN 176                  
+            WHEN ID = 177 THEN 176    
+            WHEN ID = 175 THEN 114                                 
             ELSE ID
           END AS ID_Casa_Normalizada,
           NOME_FANTASIA,
@@ -77,7 +78,8 @@ def GET_ZIG_FATURAMENTO():
           CASE 
             WHEN FK_LOJA IN (161, 162) THEN 149
             WHEN FK_LOJA = 178 THEN 110
-            WHEN FK_LOJA = 177 THEN 176                            
+            WHEN FK_LOJA = 177 THEN 176  
+            WHEN FK_LOJA = 175 THEN 114                                                      
             ELSE FK_LOJA
           END AS ID_Casa,
           DATA,
@@ -108,13 +110,15 @@ def GET_PARCELAS_RECEIT_EXTR():
           CASE
               WHEN te.ID IN (161, 162) THEN 149 
               WHEN te.ID = 178 THEN 110
-              WHEN te.ID = 177 THEN 176                                                      
+              WHEN te.ID = 177 THEN 176
+              WHEN te.ID = 175 THEN 114                                                                                    
               ELSE te.ID
           END AS 'ID_Casa',
           CASE
               WHEN te.ID IN (161, 162) THEN 'Priceless'
               WHEN te.ID = 178 THEN 'Blue Note - São Paulo'
-              WHEN te.ID = 177 THEN 'The Cavern'                                                                                         
+              WHEN te.ID = 177 THEN 'The Cavern'
+              WHEN te.ID = 175 THEN 'Bar Brahma - Centro'                                                                                                                     
               ELSE te.NOME_FANTASIA
           END AS 'Casa',
           trec.NOME AS 'Cliente',
@@ -187,6 +191,10 @@ def GET_PARCELAS_RECEIT_EXTR():
       LEFT JOIN T_STATUS_PAGAMENTO tsp ON vpa.STATUS_PGTO = tsp.ID
       LEFT JOIN T_CONTAS_BANCARIAS tcb ON tre.FK_CONTA_BANCARIA = tcb.ID
       WHERE vpa.DATA_VENCIMENTO IS NOT NULL
+      AND NOT (
+        te.ID = 110 # Blue Note - São Paulo
+        AND tsp.DESCRICAO = 'Desconto'
+      )
       ORDER BY te.NOME_FANTASIA ASC, vpa.DATA_RECEBIMENTO DESC
     ''')
     df_parc_receit_extr['Data_Ocorrencia'] = pd.to_datetime(df_parc_receit_extr['Data_Ocorrencia']) 
@@ -203,13 +211,15 @@ def GET_CUSTOS_BLUEME_SEM_PARC():
       CASE
         WHEN te.ID IN (161, 162) THEN 149 
         WHEN te.ID = 178 THEN 110
-        WHEN te.ID = 177 THEN 176                                                                                       
+        WHEN te.ID = 177 THEN 176
+        WHEN te.ID = 175 THEN 114                                                                                                                                     
         ELSE te.ID                                                                 
       END AS 'ID_Casa',
       CASE
         WHEN te.ID IN (161, 162) THEN 'Priceless' 
         WHEN te.ID = 178 THEN 'Blue Note - São Paulo'
-        WHEN te.ID = 177 THEN 'The Cavern'                                                                                                                          
+        WHEN te.ID = 177 THEN 'The Cavern' 
+        WHEN te.ID = 175 THEN 'Bar Brahma - Centro'                                                                                                                                                                           
         ELSE te.NOME_FANTASIA                                                                 
       END AS 'Casa',
       tf.CORPORATE_NAME as 'Fornecedor',
@@ -273,13 +283,15 @@ def GET_CUSTOS_BLUEME_COM_PARC():
       CASE
         WHEN te.ID IN (161, 162) THEN 149 
         WHEN te.ID = 178 THEN 110
-        WHEN te.ID = 177 THEN 176                                                                                        
+        WHEN te.ID = 177 THEN 176
+        WHEN te.ID = 175 THEN 114                                                                                                                                      
         ELSE te.ID                                                                 
       END AS 'ID_Casa',
       CASE
         WHEN te.ID IN (161, 162) THEN 'Priceless'
         WHEN te.ID = 178 THEN 'Blue Note - São Paulo'
-        WHEN te.ID = 177 THEN 'The Cavern'                                                                                        
+        WHEN te.ID = 177 THEN 'The Cavern'
+        WHEN te.ID = 175 THEN 'Bar Brahma - Centro'                                                                                                                                          
         ELSE te.NOME_FANTASIA                                                                 
       END AS 'Casa',
       tdr.FK_LOJA_CNPJ as 'CNPJ_Loja',
@@ -356,13 +368,15 @@ def GET_EXTRATOS_BANCARIOS():
     CASE
         WHEN te.ID IN (161, 162) THEN 149 
         WHEN te.ID = 178 THEN 110
-        WHEN te.ID = 177 THEN 176                                                                    
+        WHEN te.ID = 177 THEN 176 
+        WHEN te.ID = 175 THEN 114                                                                                                       
         ELSE te.ID                                                                 
       END AS 'ID_Casa',
       CASE
         WHEN te.ID IN (161, 162) THEN 'Priceless' 
         WHEN te.ID = 178 THEN 'Blue Note - São Paulo'
-        WHEN te.ID = 177 THEN 'The Cavern'                                                                    
+        WHEN te.ID = 177 THEN 'The Cavern'
+        WHEN te.ID = 175 THEN 'Bar Brahma - Centro'                                                                                                            
         ELSE te.NOME_FANTASIA                                                                 
       END AS 'Casa',
     teb.DATA_TRANSACAO as 'Data_Transacao',
@@ -400,12 +414,24 @@ def GET_MUTUOS():
       SELECT
       tm.ID as 'Mutuo_ID',
       tm.`DATA` as 'Data_Mutuo',
-      te.ID as 'ID_Casa_Saida',
-      te.NOME_FANTASIA as 'Casa_Saida',
+      CASE 
+        WHEN te.ID = 175 THEN 114
+        ELSE te.ID                                                    
+      END AS 'ID_Casa_Saida',
+      CASE
+        WHEN te.ID = 175 THEN 'Bar Brahma - Centro'
+        ELSE te.NOME_FANTASIA                                                                        
+      END AS 'Casa_Saida',
       tcb_s.ID AS 'ID_Conta_Saida',
       tcb_s.NOME_DA_CONTA AS 'Conta_Saida',
-      te2.ID as 'ID_Casa_Entrada',
-      te2.NOME_FANTASIA as 'Casa_Entrada',
+      CASE 
+        WHEN te2.ID = 175 THEN 114
+        ELSE te2.ID                                                    
+      END AS 'ID_Casa_Entrada',
+      CASE
+        WHEN te2.ID = 175 THEN 'Bar Brahma - Centro'
+        ELSE te2.NOME_FANTASIA                                                                        
+      END AS 'Casa_Entrada',
       tcb_e.ID AS 'ID_Conta_Entrada',
       tcb_e.NOME_DA_CONTA AS 'Conta_Entrada',
       tm.VALOR as 'Valor',
@@ -430,13 +456,15 @@ def GET_TESOURARIA():
     CASE
         WHEN te2.ID IN (161, 162) THEN 149 
         WHEN te2.ID = 178 THEN 110
-        WHEN te2.ID = 177 THEN 176                                                        
+        WHEN te2.ID = 177 THEN 176
+        WHEN te2.ID = 175 THEN 114                                                                                                                                                                                
         ELSE te2.ID                                                                 
       END AS 'ID_Casa',
       CASE
         WHEN te2.ID IN (161, 162) THEN 'Priceless' 
         WHEN te2.ID = 178 THEN 'Blue Note - São Paulo'
-        WHEN te2.ID = 177 THEN 'The Cavern'                                                                                          
+        WHEN te2.ID = 177 THEN 'The Cavern'
+        WHEN te2.ID = 175 THEN 'Bar Brahma - Centro'                                                                                                                            
         ELSE te2.NOME_FANTASIA                                                                 
       END AS 'Casa',
     ttt.FK_EMPRESA_TESOURARIA as 'ID_Empresa_Tesouraria',
@@ -460,13 +488,15 @@ def GET_AJUSTES():
       CASE
         WHEN te.ID IN (161, 162) THEN 149 
         WHEN te.ID = 178 THEN 110
-        WHEN te.ID = 177 THEN 176                                                                          
+        WHEN te.ID = 177 THEN 176
+        WHEN te.ID = 175 THEN 114                                                                                                                                                                                                                      
         ELSE te.ID                                                                 
       END AS 'ID_Casa',
       CASE
         WHEN te.ID IN (161, 162) THEN 'Priceless'
         WHEN te.ID = 178 THEN 'Blue Note - São Paulo'
-        WHEN te.ID = 177 THEN 'The Cavern'                                                                                                             
+        WHEN te.ID = 177 THEN 'The Cavern'
+        WHEN te.ID = 175 THEN 'Bar Brahma - Centro'                                                                                                                                                        
         ELSE te.NOME_FANTASIA                                                                 
       END AS 'Casa',
       tac.DATA_AJUSTE AS 'Data_Ajuste',
@@ -490,13 +520,15 @@ def GET_BLOQUEIOS_JUDICIAIS():
       CASE
         WHEN te.ID IN (161, 162) THEN 149 
         WHEN te.ID = 178 THEN 110
-        WHEN te.ID = 177 THEN 176                                                                            
+        WHEN te.ID = 177 THEN 176
+        WHEN te.ID = 175 THEN 114                                                                                                                                                                                                                       
         ELSE te.ID                                                                 
       END AS 'ID_Casa',
       CASE
         WHEN te.ID IN (161, 162) THEN 'Priceless' 
         WHEN te.ID = 178 THEN 'Blue Note - São Paulo'
-        WHEN te.ID = 177 THEN 'The Cavern'                                                                      
+        WHEN te.ID = 177 THEN 'The Cavern'
+        WHEN te.ID = 175 THEN 'Bar Brahma - Centro'                                                                                                                 
         ELSE te.NOME_FANTASIA                                                                 
       END AS 'Casa',
       tbj.DATA_TRANSACAO as 'Data_Transacao',
@@ -570,13 +602,15 @@ def GET_FATURAMENTO_AGREGADO():
         CASE
           WHEN te.ID IN (161, 162) THEN 149 -- Priceless
               WHEN te.ID = 131 THEN 110 -- Blue Note
-              WHEN te.ID = 177 THEN 176 -- The Cavern                                    
+              WHEN te.ID = 177 THEN 176 -- The Cavern
+              WHEN te.ID = 175 THEN 114 -- Brahminha                                                                                                                                                                         
               ELSE tivd.FK_CASA
             END AS 'ID_Casa',
           CASE
               WHEN te.NOME_FANTASIA IN ('Terraço Notie', 'Notiê - Priceless') THEN 'Priceless'
               WHEN te.NOME_FANTASIA = 'Blue Note SP (Novo)' THEN 'Blue Note - São Paulo'
-              WHEN te.NOME_FANTASIA = 'The Cavern - Almoço' THEN 'The Cavern'                                    
+              WHEN te.NOME_FANTASIA = 'The Cavern - Almoço' THEN 'The Cavern' 
+              WHEN te.NOME_FANTASIA = 'Brahminha' THEN 'Bar Brahma - Centro'                                                                         
               ELSE te.NOME_FANTASIA
           END AS 'Casa',
       tivc2.DESCRICAO AS 'Categoria',
@@ -629,13 +663,15 @@ def GET_EVENTOS_FATURAM_AGREGADO():
         CASE
           WHEN te.ID IN (161, 162) THEN 149 
           WHEN te.ID = 178 THEN 110
-          WHEN te.ID = 177 THEN 176                                                                                
+          WHEN te.ID = 177 THEN 176
+          WHEN te.ID = 175 THEN 114                                                                                                                                                                                                                               
           ELSE te.ID                                                                 
         END AS 'ID_Casa',
       CASE
         WHEN te.ID IN (161, 162) THEN 'Priceless' 
         WHEN te.ID = 178 THEN 'Blue Note - São Paulo'
-        WHEN te.ID = 177 THEN 'The Cavern'                                                                                                                          
+        WHEN te.ID = 177 THEN 'The Cavern'
+        WHEN te.ID = 175 THEN 'Bar Brahma - Centro'      
         ELSE te.NOME_FANTASIA                                                                 
       END AS 'Casa',
         YEAR(tpep.DATA_RECEBIMENTO_PARCELA) as Ano,
@@ -663,12 +699,14 @@ def GET_EVENTOS():
             WHEN te.ID IN (161, 162) THEN 149
             WHEN te.ID = 178 THEN 110                      
             WHEN te.ID = 177 THEN 176
+            WHEN te.ID = 175 THEN 114                                                                                                                            
             ELSE te.ID                                                                 
           END AS 'ID_Casa',
           CASE
             WHEN te.ID IN (161, 162) THEN 'Priceless'
             WHEN te.ID = 178 THEN 'Blue Note - São Paulo'
-            WHEN te.ID = 177 THEN 'The Cavern'                                                        
+            WHEN te.ID = 177 THEN 'The Cavern'
+            WHEN te.ID = 175 THEN 'Bar Brahma - Centro'                                                                                   
             ELSE te.NOME_FANTASIA                                                                 
           END AS 'Casa',
           tpep.ID AS 'ID_Parcela',
@@ -686,7 +724,12 @@ def GET_EVENTOS():
       LEFT JOIN T_STATUS_PAGAMENTO tsp ON (tpep.FK_STATUS_PAGAMENTO = tsp.ID)
       LEFT JOIN T_FORMAS_DE_PAGAMENTO tfp ON (tpep. FK_FORMA_PAGAMENTO = tfp.ID)
       LEFT JOIN T_CONTAS_BANCARIAS tcb ON (tpep.FK_CONTA_BANCARIA = tcb.ID)
-      WHERE tpep.DATA_VENCIMENTO_PARCELA IS NOT NULL AND tpep.DATA_RECEBIMENTO_PARCELA >= '2025-09-01 00:00:00'
+      WHERE tpep.DATA_VENCIMENTO_PARCELA IS NOT NULL 
+      AND tpep.DATA_RECEBIMENTO_PARCELA >= '2025-09-01 00:00:00'
+      AND NOT (
+        te.ID = 110 # Blue Note - São Paulo
+        AND tsp.DESCRICAO = 'Desconto'
+      )                           
       ORDER BY te.NOME_FANTASIA ASC, tpep.DATA_RECEBIMENTO_PARCELA DESC
       ''')
     return df_eventos

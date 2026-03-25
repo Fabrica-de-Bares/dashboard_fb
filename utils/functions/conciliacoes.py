@@ -45,10 +45,7 @@ def conciliacao_inicial(id_casa, casa, start_date, end_date, tab):
              (df_parc_receit_extr_filtrada_copia["Recebimento_Parcela"].dt.year >= 2025))
         )
     ]
-    if id_casa == 110: # Blue Note
-        df_parc_receit_extr_filtrada_copia = df_parc_receit_extr_filtrada_copia[ # não vou exibir essa receita com status_pgto = 'Desconto' - ajuste pedido 18/02/26
-            df_parc_receit_extr_filtrada_copia["Status_Pgto"] != 'Desconto'
-        ]
+    
     df_parc_receit_extr_formatada = formata_df(df_parc_receit_extr_filtrada_copia)
 
     ## Custos BlueMe Sem Parcelamento
@@ -95,10 +92,10 @@ def conciliacao_inicial(id_casa, casa, start_date, end_date, tab):
     ## Eventos
     df_eventos = GET_EVENTOS()
     df_eventos = df_eventos[~(df_eventos['Forma_Pgto'] == 'Permuta')] # Desconsdera eventos pagos com 'Permuta'
-    if id_casa == 110: # Blue Note
-        df_eventos = df_eventos[ # não vou exibir essa receita com status_pgto = 'Desconto' - ajuste pedido 24/03/26
-            df_eventos["Status_Pgto"] != 'Desconto'
-        ]
+    # if id_casa == 110: # Blue Note
+    #     df_eventos = df_eventos[ # não vou exibir essa receita com status_pgto = 'Desconto' - ajuste pedido 24/03/26
+    #         df_eventos["Status_Pgto"] != 'Desconto'
+    #     ]
     df_eventos_filtrada, df_eventos_formatada = filtra_formata_df(df_eventos, "Recebimento_Parcela", id_casa, start_date, end_date)
 
     ## Contas Bancárias
@@ -188,12 +185,6 @@ def conciliacao_inicial(id_casa, casa, start_date, end_date, tab):
                 )
             ]
 
-            # não vai considerar na soma essa receita com status_pgto = 'Desconto' - ajuste pedido 18/02/26
-            if id_casa == 110: # Blue Note
-                df_parc_receit_extr_filtrada = df_parc_receit_extr_filtrada[
-                    (df_parc_receit_extr_filtrada['Status_Pgto'] != 'Desconto')
-                ]
-
             # soma final
             df_conciliacao['Receitas Extraordinárias'] = somar_por_data(
                 df_parc_receit_extr_filtrada, "Recebimento_Parcela", "Valor_Parcela", datas
@@ -201,10 +192,10 @@ def conciliacao_inicial(id_casa, casa, start_date, end_date, tab):
 
         # Eventos (desmembrar de Receitas Extraordinárias) #
         if 'Eventos' not in df_conciliacao.columns:
-            if id_casa == 110: # Blue Note
-                df_eventos_filtrada = df_eventos_filtrada[ # não vou exibir essa receita com status_pgto = 'Desconto' - ajuste pedido 24/03/26
-                    df_eventos_filtrada["Status_Pgto"] != 'Desconto'
-                ]
+            # if id_casa == 110: # Blue Note
+            #     df_eventos_filtrada = df_eventos_filtrada[ # não vou exibir essa receita com status_pgto = 'Desconto' - ajuste pedido 24/03/26
+            #         df_eventos_filtrada["Status_Pgto"] != 'Desconto'
+            #     ]
 
             df_conciliacao['Eventos'] = somar_por_data(
                 df_eventos_filtrada, "Recebimento_Parcela", "Valor_Parcela", datas
