@@ -34,7 +34,7 @@ col1, col2 = st.columns(2)
 
 # Seletor de casa
 with col1: 
-  lista_retirar_casas = ['Todas as Casas', 'Bar Léo - Vila Madalena', 'Blue Note SP (Sala 2)', 'The Cavern - Almoço']
+  lista_retirar_casas = ['Todas as Casas', 'Bar Léo - Vila Madalena', 'Blue Note SP (Sala 2)', 'The Cavern - Almoço', 'Brahminha']
   id_casa, nome_casa, id_zigpay = input_selecao_casas(lista_retirar_casas, key='faturamento_bruto')
   
 # Seletor de ano
