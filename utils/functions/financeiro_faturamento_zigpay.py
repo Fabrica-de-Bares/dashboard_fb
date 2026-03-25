@@ -144,17 +144,12 @@ def top_dez(dataframe, categoria, key):
 
   topDez['Valor Líquido Venda'] = topDez['Valor Líquido Venda'].astype(float)
   topDez['Valor Bruto Venda'] = topDez['Valor Bruto Venda'].astype(float)
-  # max_valor_liq_venda = topDez['Valor Líquido Venda'].max()
-  # max_valor_bru_venda = topDez['Valor Bruto Venda'].max()
 
   valor_total_bruto = topDez['Valor Bruto Venda'].sum()
   valor_total_liq = topDez['Valor Líquido Venda'].sum()
   
   topDez['% do Valor Líquido Total'] = (topDez['Valor Líquido Venda']/valor_total_liq) * 100
   topDez['% do Valor Bruto Total'] = (topDez['Valor Bruto Venda']/valor_total_bruto) * 100
-
-  # topDez['Comparação Valor Líq.'] = topDez['Valor Líquido Venda']
-  # topDez['Comparação Valor Bruto'] = topDez['Valor Bruto Venda']
 
   # Aplicar a formatação brasileira nas colunas
   colunas = ['Valor Líquido Venda', 'Valor Bruto Venda']
@@ -170,30 +165,8 @@ def top_dez(dataframe, categoria, key):
   ]
   topDez = topDez.reindex(columns=colunas_ordenadas)
 
-  st.data_editor(
-    topDez,
-    width=1080,
-    column_config={
-      "% do Valor Líquido Total": st.column_config.ProgressColumn(
-        "% do Valor Líquido Total",
-        help="O Valor Líquido da Venda do produto em porcentagem",
-        format="%.2f%%",
-        min_value=0,
-        max_value=100,
-    ),
-      "% do Valor Bruto Total": st.column_config.ProgressColumn(
-        "% do Valor Bruto Total",
-        help="O Valor Bruto da Venda do produto em porcentagem",
-        format="%.2f%%",
-        min_value=0,
-        max_value=100,
-      ),
-    },
-    disabled=True,
-    hide_index=True,
-    key=key
-  )
-
+  altura_total = len(topDez) * 40 + 45
+  dataframe_aggrid(topDez, 'top_dez', height=altura_total, num_columns=['Preço Unitário', 'Quantia comprada', 'Valor Bruto Venda', 'Desconto', 'Valor Líquido Venda'], progress_columns=['% do Valor Líquido Total', '% do Valor Bruto Total'], key=key)
 
   return topDez
 

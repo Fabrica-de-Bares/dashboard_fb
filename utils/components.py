@@ -606,7 +606,7 @@ def apply_master_detail(df, df_details, coluns_merge_details, coluns_name_detail
     return df, grid_options
 
 
-def dataframe_aggrid(df, name, num_columns=None, percent_columns=None,
+def dataframe_aggrid(df, name, num_columns=None, percent_columns=None, progress_columns=None,
                      date_columns=None, datetime_columns=None, df_details=None, coluns_merge_details=None,
                      coluns_name_details=None, key="default", highlight_rows=None,
                      fit_columns=None, fit_columns_on_grid_load=None, height=None, num_cel_style=None, num_columns_style=None):
@@ -620,6 +620,7 @@ def dataframe_aggrid(df, name, num_columns=None, percent_columns=None,
     '''
     num_columns = num_columns or []
     percent_columns = percent_columns or []
+    progress_columns = progress_columns or []
     date_columns = date_columns or []
     datetime_columns = datetime_columns or []
     highlight_rows = highlight_rows or []
@@ -632,6 +633,11 @@ def dataframe_aggrid(df, name, num_columns=None, percent_columns=None,
         df = format_numeric_column(df, col)
     for col in percent_columns:
         df = format_percent_column(df, col)
+    for col in progress_columns:
+        if col in df.columns:
+            df[f"{col}_NUM"] = pd.to_numeric(df[col], errors='coerce')
+        else:
+            st.warning(f"Coluna '{col}' não encontrada para progress_columns")
     for col in date_columns:
         df = format_date_column(df, col)
     for col in datetime_columns:
@@ -647,7 +653,7 @@ def dataframe_aggrid(df, name, num_columns=None, percent_columns=None,
     gb = GridOptionsBuilder.from_dataframe(df)
     gb.configure_default_column(resizable=True, sortable=True, filterable=True)
 
-    for col in num_columns + percent_columns:
+    for col in num_columns + percent_columns + progress_columns:
         if f"{col}_NUM" in df.columns:
             gb.configure_column(f"{col}_NUM", hide=True, type=["numericColumn"])
     if "detail" in df.columns:
@@ -659,7 +665,67 @@ def dataframe_aggrid(df, name, num_columns=None, percent_columns=None,
     column_defs = []
 
     for col in df.columns:
-        if f"{col}_NUM" in df.columns and not col.endswith("_NUM"):
+        if col in progress_columns:
+            # ✅ PROGRESS COLUMNS - Barra proporcional à largura da célula
+            col_def = {
+                "field": col,
+                "type": ["numericColumn"],
+                "valueGetter": JsCode(f"""
+                    function(params) {{
+                        return params.data['{col}_NUM'];
+                    }}
+                """),
+                "valueFormatter": JsCode(f"""
+                    function(params) {{
+                        if (params.value == null) return '';
+                        return params.value.toFixed(2) + '%';
+                    }}
+                """),
+                "cellStyle": JsCode(f"""
+                    function(params) {{
+                        if (params.value == null) return {{}};
+                        const percentage = Math.min(Math.max(params.value, 0), 100);
+                        const color = percentage >= 75 ? '#4CAF50' : percentage >= 50 ? '#FFC107' : '#F44336';
+                        
+                        // Largura máxima da barra é 85% da célula (deixa espaço para o texto)
+                        const cellWidth = params.node.offsetWidth || 200;
+                        const barMaxWidth = cellWidth * 0.85;
+                        const barWidth = (percentage / 100) * barMaxWidth;
+                        const barMinWidth = Math.max(8, barWidth);
+                        
+                        return {{
+                            'background': 
+                                'radial-gradient(circle at ' + (barMinWidth - 3) + 'px center, ' + color + ' 0%, ' + color + ' 3px, transparent 3px),' +
+                                'linear-gradient(90deg, ' + color + ' 0%, ' + color + ' ' + barMinWidth + 'px, transparent ' + barMinWidth + 'px, transparent 100%)',
+                            'backgroundSize': '100% 6px, 100% 6px',
+                            'backgroundPosition': 'left center, left center',
+                            'backgroundRepeat': 'no-repeat, no-repeat',
+                            'color': '#333',
+                            'fontWeight': '600',
+                            'fontSize': '12px',
+                            'textAlign': 'right',
+                            'paddingRight': '8px',
+                            'paddingLeft': '8px',
+                            'display': 'flex',
+                            'alignItems': 'center',
+                            'justifyContent': 'flex-end'
+                        }};
+                    }}
+                """),
+                "comparator": JsCode("""
+                    function(a, b) {
+                        if (a == null && b == null) return 0;
+                        if (a == null) return -1;
+                        if (b == null) return 1;
+                        return a - b;
+                    }
+                """),
+                "minWidth": 120,
+            }
+            column_defs.append(col_def)
+
+        elif f"{col}_NUM" in df.columns and not col.endswith("_NUM"):
+            # ✅ NUM_COLUMNS e PERCENT_COLUMNS - Com valueFormatter
             col_def = {
                 "field": col,
                 "type": ["numericColumn"],
@@ -693,6 +759,7 @@ def dataframe_aggrid(df, name, num_columns=None, percent_columns=None,
             column_defs.append(col_def)
 
         elif col.endswith("_NUM"):
+            # ✅ COLUNAS _NUM AUXILIARES - Escondidas
             column_defs.append({
                 "field": col,
                 "hide": True,
@@ -700,12 +767,12 @@ def dataframe_aggrid(df, name, num_columns=None, percent_columns=None,
             })
 
         else:
+            # ✅ OUTRAS COLUNAS - Padrão
             column_defs.append({
                 "field": col
             })
 
-
-    # ✅ agora é seguro substituir
+    # ✅ Substituir columnDefs
     grid_options["columnDefs"] = column_defs
 
     grid_options.update({
@@ -736,7 +803,6 @@ def dataframe_aggrid(df, name, num_columns=None, percent_columns=None,
 
     # 5. DataFrame final (sem colunas técnicas)
     df_to_show = df.drop(columns=[c for c in df.columns if c.endswith("_NUM") or c == "detail"], errors="ignore")
-
 
     # 6. Tema e zebra
     if st.session_state.get("base_theme") == "dark":
@@ -801,7 +867,6 @@ def dataframe_aggrid(df, name, num_columns=None, percent_columns=None,
     filtered_df = grid_response["data"]
     filtered_df = filtered_df.drop(columns=[c for c in filtered_df.columns if c.endswith("_NUM")], errors="ignore")
     return filtered_df, len(filtered_df)
-
 
 def component_plotPizzaChart(labels, sizes, name, max_columns=8):
     chart_key = f"{labels}_{sizes}_{name}_"
