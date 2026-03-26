@@ -369,11 +369,26 @@ def format_percentage(num):
     except (ValueError, TypeError):
         return num  # Retorna o valor original em caso de erro
 
-
 def format_columns_percentage(df, numeric_columns):
     for col in numeric_columns:
         if col in df.columns:
             df[col] = df[col].apply(format_percentage)
+    return df
+
+
+# Formata colunas de porcentagem sem multiplicar por 100
+def format_percentage_simples(num):
+    try:
+        num = float(num)
+        formatted_num = f"{num:,.2f}"  # Multiplica por 100 e formata
+        return f"{formatted_num.replace(',', 'X').replace('.', ',').replace('X', '.')}%"  # Formata como percentual
+    except (ValueError, TypeError):
+        return num
+    
+def format_columns_percentage_simples(df, numeric_columns):
+    for col in numeric_columns:
+        if col in df.columns:
+            df[col] = df[col].apply(format_percentage_simples)
     return df
 
 
