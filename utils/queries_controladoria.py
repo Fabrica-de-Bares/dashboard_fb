@@ -214,3 +214,35 @@ def GET_CADASTROS_COUVERT_ZIGPAY():
     INNER JOIN T_ITENS_VENDIDOS_CATEGORIAS tivc2 ON tivc.FK_CATEGORIA = tivc2.ID
     WHERE tivc2.ID = 102
   ''')
+
+def GET_ITENS_SEM_CADASTRO():
+  return dataframe_query('''
+    SELECT DISTINCT
+      tiv.PRODUCT_NAME,
+      tiv.PRODUCT_ID,
+      tiv.PRODUCT_SKU,
+      tivc2.DESCRICAO AS Categoria,
+      te.NOME_FANTASIA as Casa,
+      te.ID_ZIGPAY AS 'ID Zigpay'
+    FROM T_ITENS_VENDIDOS tiv
+      LEFT JOIN T_ITENS_VENDIDOS_CADASTROS tivc ON tiv.PRODUCT_ID = tivc.ID_ZIGPAY
+      LEFT JOIN T_ITENS_VENDIDOS_CATEGORIAS tivc2 ON tivc.FK_CATEGORIA = tivc2.ID
+      LEFT JOIN T_ITENS_VENDIDOS_TIPOS tivt ON tivc.FK_TIPO = tivt.ID
+      INNER JOIN T_EMPRESAS te ON (tiv.LOJA_ID = te.ID_ZIGPAY)
+    WHERE tiv.EVENT_DATE > '2026-03-01 00:00:00'
+      AND tivc2.DESCRICAO IS NULL
+    ORDER BY tiv.PRODUCT_NAME asc
+  ''')
+
+def GET_ITENS_COM_CADASTRO_DUPLICADO():
+  return dataframe_query('''
+    SELECT *
+    FROM T_ITENS_VENDIDOS_CADASTROS tivc
+    WHERE tivc.ID_ZIGPAY IN (
+        SELECT ID_ZIGPAY
+        FROM T_ITENS_VENDIDOS_CADASTROS
+        GROUP BY ID_ZIGPAY
+        HAVING COUNT(*) > 1
+    )
+    ORDER BY tivc.ID_ZIGPAY;
+  ''')

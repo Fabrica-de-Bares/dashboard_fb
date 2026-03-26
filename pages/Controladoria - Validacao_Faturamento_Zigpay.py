@@ -7,7 +7,7 @@ from utils.components import *
 from utils.functions.date_functions import *
 from utils.functions.general_functions import *
 from utils.functions.api_zigpay import login_zigpay, id_casa_para_ids_zigpay, request_getEvents_zigpay, request_getProductsSoldAtEventInPeriodV2_zigpay
-from utils.queries_controladoria import GET_FATURAMENTO_ZIGPAY_VALIDACAO
+from utils.queries_controladoria import GET_FATURAMENTO_ZIGPAY_VALIDACAO, GET_ITENS_SEM_CADASTRO, GET_ITENS_COM_CADASTRO_DUPLICADO
 
 st.set_page_config(
 	page_icon="✅",
@@ -147,7 +147,18 @@ def main():
     df_merged_zig_bd.dropna(inplace=True)
     df_merged_zig_bd = format_columns_brazilian(df_merged_zig_bd, ['Faturamento Bruto Zigpay', 'Faturamento Líquido Zigpay', 'Faturamento Bruto T_ITENS_VENDIDOS', 'Faturamento Líquido T_ITENS_VENDIDOS', 'Desconto Zigpay', 'Desconto T_ITENS_VENDIDOS'])
     
+    st.markdown('## Faturamento Zigpay e T_ITENS_VENDIDOS')
     st.dataframe(df_merged_zig_bd, width='stretch', hide_index=True)
+
+    df_itens_sem_cadastro = GET_ITENS_SEM_CADASTRO()
+    df_itens_sem_cadastro = df_itens_sem_cadastro[df_itens_sem_cadastro['ID Zigpay'].isin(lista_ids_zigpay)]
+    st.markdown('## Itens sem cadastro')
+    st.dataframe(df_itens_sem_cadastro, width='stretch', hide_index=True)
+
+    df_itens_cadastro_duplicado = GET_ITENS_COM_CADASTRO_DUPLICADO()
+    st.markdown('## Itens com cadastro duplicado')
+    st.dataframe(df_itens_cadastro_duplicado)
+
     # Cards
     col1, col2, col3 = st.columns([1, 1, 1])
     
