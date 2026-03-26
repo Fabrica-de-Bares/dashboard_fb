@@ -1,11 +1,10 @@
 import streamlit as st
 from utils.components import seletor_ano, input_multiselecao_casas, button_download
 from utils.functions.general_functions import config_sidebar
-from utils.queries_conciliacao import GET_CASAS
+from utils.functions.general_functions_conciliacao import formata_df
 from utils.queries_forecast import GET_ITENS_VENDIDOS_DIA_DA_SEMANA
 from utils.functions.faturamento_dia_semana import *
 from utils.functions.forecast import *
-from utils.user import logout
 
 
 st.set_page_config(
@@ -26,7 +25,7 @@ col1, col2 = st.columns([5, 1], vertical_alignment='center')
 with col1:
     st.title("💰 Faturamento ZigPay - Dias da Semana")
     st.markdown("""
-    - Para uma casa e ano selecionados, exibe a média de faturamento desse período incluindo Alimentos, Bebidas, Couvert e Serviço por dia da semana
+    - Para uma casa e ano selecionados, exibe a média de faturamento desse período incluindo Alimentos, Bebidas, Couvert, Gifts e Serviço por dia da semana
     - Para meses futuros, calcula uma projeção baseada nas duas semanas anteriores
     """)
 with col2:
@@ -48,6 +47,8 @@ st.divider()
 if lista_casas_selecionadas == []:
   st.warning('Nenhuma casa selecionada.')
   st.stop()
+
+if 'Arcos' in lista_casas_selecionadas: st.info('Observação: Arcos sem operação às segundas-feiras.')
 
 # Query com todos os faturamentos da Zig
 df_faturamento_diario = GET_ITENS_VENDIDOS_DIA_DA_SEMANA()

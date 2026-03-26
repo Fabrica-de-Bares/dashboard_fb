@@ -1,7 +1,7 @@
 import streamlit as st
 from utils.components import input_selecao_casas, seletor_ano, seletor_mes
 from utils.functions.forecast import *
-from utils.functions.general_functions import config_sidebar, format_columns_percentage_simples
+from utils.functions.general_functions import config_sidebar
 from utils.functions.general_functions_conciliacao import *
 from utils.functions.cmv_teorico_fichas_tecnicas import function_format_number_columns
 from utils.queries_forecast import *
@@ -63,11 +63,16 @@ with col3:
     ano_selecionado = seletor_ano(2025, datas['ano_atual'], 'ano_forecast')
 st.divider()
 
+if casa == 'Arcos': st.info('Observação: Arcos sem operação às segundas-feiras.')
 
 ###################### PROJEÇÃO DE FATURAMENTO - MÊS CORRENTE ###################### 
 
 # Prepara df de faturamento agregado diário para a casa selecionada
 df_faturamento_agregado_mes_corrente = prepara_dados_faturam_agregado_diario(id_casa, df_faturamento_agregado_dia, datas['fim_mes_atual'], datas['inicio_dois_meses_antes'])
+if casa == 'Arcos': 
+    # Não abre de segunda-feira: zera segundas com faturamento de A&B para não impactar na projeção (vêm de Eventos)
+    condicao = (df_faturamento_agregado_mes_corrente['Casa'] == 'Arcos') & (df_faturamento_agregado_mes_corrente['Dia Semana'] == 'Segunda-feira')
+    df_faturamento_agregado_mes_corrente.loc[condicao, 'Valor Bruto'] = 0
 
 # --- CRIA COMBINAÇÃO DE TODAS AS CATEGORIAS x DIAS (mês anterior e corrente) ---
 df_dias_futuros_com_categorias = lista_dias_mes_anterior_atual(
@@ -93,10 +98,20 @@ if mes_selecionado == datas['mes_atual']:
 
     st.subheader('Faturamento - mês corrente')
     st.dataframe(df_mes_corrente_estilizado, hide_index=True, width='stretch')
+    # Exibe legenda
     st.markdown(f'''
         <div style="display: flex; align-items: center; padding:10px; border:1px solid #ccc; border-radius:8px";>
             <div style="width: 15px; height: 15px; background-color: rgba(255,255,224); border: 1px solid #ccc; margin-right: 10px;"></div>
             <span style="font-size: 14px">Média de faturamento projetado (não real) para dias futuros.</span>
+        </div>
+    ''', unsafe_allow_html=True)
+    st.write("")
+    # Premissas
+    st.markdown(f'''
+        <div style="display:flex; flex-direction:column; padding:10px; border:1px solid #ccc; border-radius:8px";>
+            <p><strong>Premissas</strong></p>
+            <span style="font-size: 14px">- Para Alimentos, Bebidas, Couvert, Delivery e Gifts: por dia da semana, é calculada a média de faturamento baseada nas das duas últimas semanas.</span>
+            <span style="font-size: 14px">- Para Eventos: considerar os lançamentos com competência para o dia correspondete.</span>
         </div>
     ''', unsafe_allow_html=True)
     st.divider()
@@ -251,5 +266,18 @@ df_layout_dre.loc[(df_layout_dre['Percentual Real (do Orçamento)'] == '') | (df
 df_layout_dre = df_layout_dre.reset_index(drop=True)
 df_layout_dre_styled = df_layout_dre.style.apply(highlight_titulos_dre, axis=1) 
 st.dataframe(df_layout_dre_styled, hide_index=True, width='stretch', height=height)
+
+# Premissas
+# Falta ajustar Benefícios e Outros B (Mão de Obra - Benefícios)
+st.markdown(f'''
+    <div style="display:flex; flex-direction:column; padding:10px; border:1px solid #ccc; border-radius:8px";>
+        <p><strong>Premissas</strong></p>
+        <span style="font-size: 14px">- Para os itens de faturamento (exceto Serviço): calcula a média do percentual (%) de atingimento do Faturamento Real dos últimos dois meses x Orçamento.</span>
+        <span style="font-size: 14px">- Para Serviço: calcula 13% do Faturamento Projetado para o mês.</span>
+        <span style="font-size: 14px">- Para CMV, Desconto sobre Venda, Custos Artístico Geral, Custos Eventos, Gorjeta, Deduções sobre Venda, Mão de Obra - Extra, Mão de Obra - Encargos e Provisões, Utilidades, Manutenção e Marketing: média da % da despesa em relação ao Faturamento Real dos últimos 2 meses x o Faturamento Projetado para o mês.</span>
+        <span style="font-size: 14px">- Para Mão de Obra - PJ, Mão de Obra - Salários, Custos de Ocupação, Informática e TI, Serviços de Terceiros e Locação de Equipamentos: Valor Fixo, considerar o valor do mês anterior.</span>
+        <span style="font-size: 14px">- Para Sistema de Franquias: calcula 5% do Faturamento Projetado para o mês.</span>
+    </div>
+''', unsafe_allow_html=True)
 
 

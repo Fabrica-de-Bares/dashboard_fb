@@ -4,8 +4,7 @@ import numpy as np
 import calendar
 from datetime import datetime, timedelta
 from utils.functions.general_functions import format_brazilian
-from utils.functions.general_functions_conciliacao import formata_df, traduz_semana_mes, calcular_datas
-from utils.functions.cmv_teorico_fichas_tecnicas import function_format_number_columns
+from utils.functions.general_functions_conciliacao import traduz_semana_mes, calcular_datas
 from utils.queries_cmv import *
 from utils.queries_forecast import *
 
@@ -96,11 +95,7 @@ def lista_dias_mes_anterior_atual(ano_atual, mes_atual, df_faturamento_agregado_
         mes_fim=mes_fim
     )
     
-    categorias = (
-        df_faturamento_agregado_mes_corrente['Categoria']
-        .dropna()
-        .unique()
-    )
+    categorias = df_faturamento_agregado_mes_corrente['Categoria'].dropna().unique()
     df_categorias = pd.DataFrame({'Categoria': categorias})
 
     df_resultado = df_dias_mes.merge(df_categorias, how='cross')

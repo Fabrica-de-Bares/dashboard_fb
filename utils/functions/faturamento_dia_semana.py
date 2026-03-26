@@ -21,10 +21,7 @@ def prepara_dados_faturamento_casa(df_faturamento_diario, casas_selecionadas):
     df_faturamento_diario_casa = df_faturamento_diario_casa[
         (df_faturamento_diario_casa['Casa'].isin(casas_selecionadas))
     ].copy()
-    
-    # Agrupa o faturamento das casas selecionadas
-    df_faturamento_diario_casa = df_faturamento_diario_casa.groupby(['Categoria', 'Data Evento'], as_index=False)[['Valor Bruto', 'Desconto', 'Valor Liquido']].sum()
-    
+
     # Cria dia da semana em português
     df_faturamento_diario_casa['Dia Semana'] = df_faturamento_diario_casa['Data Evento'].dt.strftime('%A')
     df_faturamento_diario_casa['Dia Semana'] = df_faturamento_diario_casa['Dia Semana'].apply(
@@ -39,8 +36,15 @@ def prepara_dados_faturamento_casa(df_faturamento_diario, casas_selecionadas):
 
     # Cria mês numérico
     df_faturamento_diario_casa['Mes_Ano'] = df_faturamento_diario_casa['Data Evento'].dt.strftime('%m-%Y')
-    df_faturamento_diario_casa = df_faturamento_diario_casa[['Categoria', 'Data Evento', 'Valor Bruto', 'Dia Semana', 'Nome Mes', 'Mes_Ano']]
-    
+    df_faturamento_diario_casa = df_faturamento_diario_casa[['Casa', 'Categoria', 'Data Evento', 'Valor Bruto', 'Dia Semana', 'Nome Mes', 'Mes_Ano']]
+
+    # Arcos não abre de segunda-feira: zera segundas com faturamento de A&B para não impactar na projeção (vêm de Eventos)
+    condicao = (df_faturamento_diario_casa['Casa'] == 'Arcos') & (df_faturamento_diario_casa['Dia Semana'] == 'Segunda-feira')
+    df_faturamento_diario_casa.loc[condicao, 'Valor Bruto'] = 0
+
+    # Agrupa o faturamento das casas selecionadas
+    df_faturamento_diario_casa = df_faturamento_diario_casa.groupby(['Categoria', 'Data Evento', 'Dia Semana', 'Nome Mes', 'Mes_Ano'], as_index=False)[['Valor Bruto']].sum()
+
     return df_faturamento_diario_casa
 
 
