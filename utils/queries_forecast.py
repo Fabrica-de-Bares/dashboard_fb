@@ -181,6 +181,8 @@ def GET_FATURAMENTO_EVENTOS():
     df_eventos_tratado = df_eventos_melt[
         ['ID_Casa', 'Casa', 'Categoria', 'Data Evento', 'Valor Bruto', 'Desconto', 'Valor Liquido']
     ]
+    df_eventos_tratado = df_eventos_tratado.groupby(['ID_Casa', 'Casa', 'Categoria', 'Data Evento'], as_index=False)[['Valor Bruto', 'Desconto', 'Valor Liquido']].sum()
+
     return df_faturamento_eventos, df_eventos_tratado
 
 
@@ -265,17 +267,19 @@ def GET_ORCAMENTOS():
         to2.ANO AS 'Ano',
         to2.MES AS 'Mês',
         to2.VALOR AS 'Orçamento',
+        tccg1.DESCRICAO AS 'Classificacao_Contabil_1',                    
         CASE
-        WHEN tccg.DESCRICAO IN ('VENDA DE ALIMENTO', 'Alimentação') THEN 'Alimentos'
-        WHEN tccg.DESCRICAO IN ('VENDA DE BEBIDAS', 'Bebida') THEN 'Bebidas'
-        WHEN tccg.DESCRICAO IN ('VENDA DE COUVERT/ SHOWS', 'Artístico (couvert/shows)') THEN 'Couvert'
-        WHEN tccg.DESCRICAO IN ('DELIVERY', 'Delivery') THEN 'Delivery'
-        WHEN tccg.DESCRICAO IN ('GIFTS', 'Gifts') THEN 'Gifts'
-        ELSE tccg.DESCRICAO
+        WHEN tccg2.DESCRICAO IN ('VENDA DE ALIMENTO', 'Alimentação') THEN 'Alimentos'
+        WHEN tccg2.DESCRICAO IN ('VENDA DE BEBIDAS', 'Bebida') THEN 'Bebidas'
+        WHEN tccg2.DESCRICAO IN ('VENDA DE COUVERT/ SHOWS', 'Artístico (couvert/shows)') THEN 'Couvert'
+        WHEN tccg2.DESCRICAO IN ('DELIVERY', 'Delivery') THEN 'Delivery'
+        WHEN tccg2.DESCRICAO IN ('GIFTS', 'Gifts') THEN 'Gifts'
+        ELSE tccg2.DESCRICAO
         END AS 'Categoria'
     FROM T_ORCAMENTOS to2
     JOIN T_EMPRESAS te ON (to2.FK_EMPRESA = te.ID)
-    JOIN T_CLASSIFICACAO_CONTABIL_GRUPO_2 tccg ON (to2.FK_CLASSIFICACAO_2 = tccg.ID)
+    JOIN T_CLASSIFICACAO_CONTABIL_GRUPO_1 tccg1 ON (to2.FK_CLASSIFICACAO_1 = tccg1.ID)
+    JOIN T_CLASSIFICACAO_CONTABIL_GRUPO_2 tccg2 ON (to2.FK_CLASSIFICACAO_2 = tccg2.ID)
     WHERE to2.ANO >= 2025
     # AND to2.FK_CLASSIFICACAO_1 IN (178, 245)                           
     ORDER BY ID_Casa, to2.MES, to2.ANO;
