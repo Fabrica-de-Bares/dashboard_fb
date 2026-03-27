@@ -65,7 +65,7 @@ def GET_FATURAM_ZIG(data_inicial, data_final):
     tiv.TRANSACTION_DATE as 'Data_Venda',
     CAST(tiv.EVENT_DATE as DATE) as 'Data_Evento',
     tivc.ID as 'ID_Produto_EPM',
-    tiv.PRODUCT_NAME as 'Nome_Produto',
+    tivc.NOME_PRODUTO as 'Nome_Produto',
     tiv.UNIT_VALUE as 'Preco',
     tiv.COUNT as 'Qtd_Transacao',
     tiv.DISCOUNT_VALUE as 'Desconto',
