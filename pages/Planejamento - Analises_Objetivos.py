@@ -99,5 +99,5 @@ with tab2:
         st.divider()
         
         with st.container(horizontal_alignment="center"):
-            st.image(f"assets/images/2026/{casa}_Analise_Interna.png")
+            st.image(f"assets/images/2026/{id_casa}_Analise_Interna.png")
     else: st.warning(f'The Cavern sem dados para Análise Interna.')
