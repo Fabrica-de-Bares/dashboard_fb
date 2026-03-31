@@ -7,12 +7,11 @@ def render_swot_box(titulo, classe, lista, casa):
     if casa == 'Arcos' or casa == 'Girondino' or casa == 'Jacaré' or casa == 'Ultra Evil Premium Ltda ':
         height = '18em'
     elif casa == 'Bar Léo - Centro':
-        if classe == 'fraquezas' or classe == 'ameacas': height = '26em'
-        else: height = '23em'
+        height = '32em'
     elif casa == 'Blue Note - São Paulo':
         if classe == 'fraquezas' or classe == 'ameacas': height = '30em'
         else: height = '34em'
-    else: height = '23em'
+    else: height = '26em'
 
     return f"""
 <div class="swot-box" style="height: {height}">

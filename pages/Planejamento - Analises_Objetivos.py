@@ -89,7 +89,7 @@ with tab1:
 # Análise Interna
 with tab2:
     st.subheader('Análise da Operação')
-    if casa != 'The Cavern':
+    if casa != 'The Cavern' and casa != 'Escritório Fabrica de Bares':
         st.markdown(f"""
             <div style="display: flex; flex-direction: column; gap:1em; padding:10px; border:1px solid #ccc; border-radius:8px";>
                 <span style="font-size: 16px"><b>1.</b> Análisar se essas responsabilidades são atendidas hoje pela área na FB</span>
@@ -100,4 +100,4 @@ with tab2:
         
         with st.container(horizontal_alignment="center"):
             st.image(f"assets/images/2026/{id_casa}_Analise_Interna.png")
-    else: st.warning(f'The Cavern sem dados para Análise Interna.')
+    else: st.warning(f'{casa} sem dados para Análise Interna.')
