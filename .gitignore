@@ -14,9 +14,3 @@ venv/
 # Ignorar devcontainer
 .devcontainer/
 
-# Ignorar definição das Análises SWOT
-utils/constants/analise_swot.py
-
-# Ignorar prints de Análise Interna
-assets/images
-

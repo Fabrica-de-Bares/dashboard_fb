@@ -3,7 +3,6 @@ import pandas as pd
 from utils.functions.general_functions import config_sidebar
 from utils.functions.analises_objetivos import *
 from utils.constants.analise_swot import SWOT_CASAS_2026
-from utils.queries_conciliacao import GET_CASAS
 from utils.components import button_download, seletor_ano, input_selecao_casas
 
 pd.set_option('future.no_silent_downcasting', True)

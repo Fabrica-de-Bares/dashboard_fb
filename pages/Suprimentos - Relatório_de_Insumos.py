@@ -250,10 +250,10 @@ def main():
 				df_compras_anuais['Casa'].isin(companies_filtered) &
 				(df_compras_anuais['Data Competencia'].dt.year == ano)
 			]
-			df_compras_anuais_styled = df_compras_anuais_filtrado[['Casa', 'ID Fornecedor', 'Fornecedor', 'Insumo N2', 'ID Nivel 5', 'Insumo N5', 'Quantidade', 'Valor Total', 'Mês/Ano']]
+			df_compras_anuais_styled = df_compras_anuais_filtrado[['Casa', 'ID Fornecedor', 'Fornecedor', 'Insumo N2', 'ID Nivel 5', 'Insumo N5', 'Quantidade', 'Valor Total', 'Valor Médio por Insumo', 'Mês/Ano']]
 			df_compras_anuais_styled = function_format_number_columns(
 				df_compras_anuais_styled,
-				columns_money=['Valor Total'],
+				columns_money=['Valor Total', 'Valor Médio por Insumo'],
 			)
 			df_compras_anuais_styled.sort_values(by=['Casa', 'Mês/Ano', 'Insumo N2', 'Fornecedor'], inplace=True)
 
