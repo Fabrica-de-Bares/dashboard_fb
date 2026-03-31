@@ -51,6 +51,7 @@ ABAS = {
     137: {'nome_aba': '🪙 Cálculo de Gorjeta', 'page_link': 'pages/Operacional - Cálculo_Gorjeta.py'},
     138: {'nome_aba': '🔎 Auditoria - Alteração de Despesas em Sistema', 'page_link': 'pages/Controladoria - Alteração de Despesas.py'},
     139: {'nome_aba': '✅ Validação de Faturamento Zigpay', 'page_link': 'pages/Controladoria - Validacao_Faturamento_Zigpay.py'},
+    141: {'nome_aba': '📜 Análises e Objetivos', 'page_link': 'pages/Geral - Analises_Objetivos.py'},
 }
 
 def main():
