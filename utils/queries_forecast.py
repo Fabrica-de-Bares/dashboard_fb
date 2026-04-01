@@ -186,7 +186,7 @@ def GET_FATURAMENTO_EVENTOS():
     return df_faturamento_eventos, df_eventos_tratado
 
 
-# Receitas Extraordinárias: 'Outras receitas'
+# Receitas Extraordinárias: 'Outras receitas' (apenas Coleta de Óleo)
 @st.cache_data
 def GET_PARCELAS_RECEIT_EXTR():
     df_parc_receit_extr = dataframe_query(f'''
@@ -209,7 +209,7 @@ def GET_PARCELAS_RECEIT_EXTR():
         LEFT JOIN T_RECEITAS_EXTRAORDINARIAS tre ON (vpa.ID = tre.ID)
         LEFT JOIN T_RECEITAS_EXTRAORDINARIAS_CLASSIFICACAO trec2 ON (tre.FK_CLASSIFICACAO = trec2.ID)
         WHERE YEAR(tre.DATA_OCORRENCIA) > 2024 
-        AND trec2.CLASSIFICACAO NOT IN ('Alimentos', 'Bebidas', 'Delivery')                                  
+        AND trec2.CLASSIFICACAO IN ('Coleta de Óleo', 'Lojinha')                                  
         AND te.NOME_FANTASIA IN ({casas_str})
         ORDER BY te.NOME_FANTASIA ASC, tre.DATA_OCORRENCIA
         ''')
@@ -218,6 +218,10 @@ def GET_PARCELAS_RECEIT_EXTR():
     df_parc_receit_extr['Categoria'] = df_parc_receit_extr['Categoria'].replace(
         'Coleta de Óleo',
         'Outras Receitas'
+    )
+    df_parc_receit_extr['Categoria'] = df_parc_receit_extr['Categoria'].replace(
+        'Lojinha',
+        'Gifts'
     )
     
     # Adequa para poder concatenar ao faturamento agregado
@@ -228,15 +232,14 @@ def GET_PARCELAS_RECEIT_EXTR():
     
     df_parc_receit_extr['Desconto'] = 0
     df_parc_receit_extr['Valor Liquido'] = df_parc_receit_extr['Valor Bruto']
-
     df_parc_receit_extr = df_parc_receit_extr[['ID_Casa', 'Casa', 'Categoria', 'Data Evento', 'Valor Bruto', 'Desconto', 'Valor Liquido']]
     
     # Agrupa por casa e dia (soma todas as categorias)
-    df_parc_receit_extr_dia = df_parc_receit_extr.groupby(['ID_Casa', 'Casa', 'Data Evento'], as_index=False)[['Valor Bruto', 'Desconto', 'Valor Liquido']].sum()    
-    df_parc_receit_extr_dia['Categoria'] = 'Outras Receitas'
-    df_parc_receit_extr_dia = df_parc_receit_extr_dia[['ID_Casa', 'Casa', 'Categoria', 'Data Evento', 'Valor Bruto', 'Desconto', 'Valor Liquido']]
+    # df_parc_receit_extr_dia = df_parc_receit_extr.groupby(['ID_Casa', 'Casa', 'Data Evento'], as_index=False)[['Valor Bruto', 'Desconto', 'Valor Liquido']].sum()    
+    # df_parc_receit_extr_dia['Categoria'] = 'Outras Receitas'
+    # df_parc_receit_extr_dia = df_parc_receit_extr_dia[['ID_Casa', 'Casa', 'Categoria', 'Data Evento', 'Valor Bruto', 'Desconto', 'Valor Liquido']]
     
-    return df_parc_receit_extr, df_parc_receit_extr_dia
+    return df_parc_receit_extr #, df_parc_receit_extr_dia
  
 
 # Concatena todos os tipos de faturamento (Zig, Eventos e Receitas Extraordinárias)
@@ -244,17 +247,17 @@ def GET_PARCELAS_RECEIT_EXTR():
 def GET_TODOS_FATURAMENTOS_DIA():
     faturamento_agregado_diario = GET_ITENS_VENDIDOS_DIA()
     faturamento_eventos_inicial, faturamento_eventos_tratado = GET_FATURAMENTO_EVENTOS()
-    parc_receitas_extr_categoria, parc_receitas_extr_dia = GET_PARCELAS_RECEIT_EXTR() # parcelas com categorias específicas e parcelas agrupadas como 'Outras Receitas'
+    parc_receitas_extr = GET_PARCELAS_RECEIT_EXTR() # 'Gifts' (Lojinha) e 'Outras Receitas' (Coleta de Óleo)
     
     # Concatena todos os tipos de faturamento
-    todos_faturamentos = pd.concat([faturamento_agregado_diario, faturamento_eventos_tratado, parc_receitas_extr_categoria])
+    todos_faturamentos = pd.concat([faturamento_agregado_diario, faturamento_eventos_tratado, parc_receitas_extr])
 
     # Calcula Gifts diário
-    todos_faturamentos['Categoria'] = todos_faturamentos['Categoria'].replace(
-        'Lojinha', 'Gifts'
-    )
+    # todos_faturamentos['Categoria'] = todos_faturamentos['Categoria'].replace(
+    #     'Lojinha', 'Gifts'
+    # )
 
-    return faturamento_agregado_diario, todos_faturamentos, faturamento_eventos_inicial, faturamento_eventos_tratado, parc_receitas_extr_categoria, parc_receitas_extr_dia
+    return faturamento_agregado_diario, todos_faturamentos, faturamento_eventos_inicial, faturamento_eventos_tratado, parc_receitas_extr
 
 
 # Orçamentos mensais
@@ -443,7 +446,7 @@ def FATURAMENTO_MENSAL_AB(df_faturamento_categoria_mensal, df_descontos, df_prom
 # Para obter faturamentos mensais 
 @st.cache_data
 def GET_FATURAMENTO_CATEGORIA_MENSAL(df_faturamento_categoria, df_descontos, df_promocoes, df_faturamento_eventos):
-    df_faturamento_categoria_mensal = df_faturamento_categoria.copy() # Utiliza o mesmo df que já foi carregado na outra tab
+    df_faturamento_categoria_mensal = df_faturamento_categoria.copy() 
 
     # Zera a hora
     df_faturamento_categoria_mensal['Data Evento'] = pd.to_datetime(df_faturamento_categoria_mensal['Data Evento'], errors='coerce').dt.normalize()
