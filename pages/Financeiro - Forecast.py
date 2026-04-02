@@ -28,13 +28,26 @@ with col2:
     st.button(label='Atualizar dados', key='atualizar_forecast', on_click=st.cache_data.clear)
 st.divider()
 
+# Seletores de casa e data
+col1, col2, col3 = st.columns(3)
+with col1: # Casas sem DRE
+    lista_retirar_casas = ['Todas as Casas', 'Bar Brahma Paulista', 'Bar Léo - Vila Madalena', 'Blue Note SP (Novo)', 'Blue Note SP (Sala 2)', 'Brahminha', 'Edificio Rolim', 'Sanduiche comunicação LTDA ', 'Terraço Notie', 'Tempus Fugit  Ltda ', 'The Cavern - Almoço']
+    id_casa, casa, id_zigpay = input_selecao_casas(lista_retirar_casas, key='faturamento_bruto')
+with col2:
+    mes_selecionado = int(seletor_mes('Selecione um mês', 'mes_forecast'))
+with col3:
+    ano_selecionado = seletor_ano(2025, datas['ano_atual'], 'ano_forecast')
+st.divider()
+
+if casa == 'Arcos': st.info('Observação: Arcos sem operação às segundas-feiras.')
+
 
 # Dados - Faturamento Diário
 (df_faturamento_zig, 
  df_faturamento_agregado_dia, 
  df_faturamento_eventos_inicial, 
  df_faturamento_eventos, 
- df_parc_receitas_extr) = GET_TODOS_FATURAMENTOS_DIA()
+ df_parc_receitas_extr) = GET_TODOS_FATURAMENTOS_DIA(id_casa)
 
 # Dados - Descontos e Promoções
 df_descontos = GET_DESCONTOS()
@@ -53,25 +66,12 @@ df_aut_folha = GET_AUT_FOLHA_PAGAMENTO()
 # Filtrando Datas
 datas = calcular_datas()
 
-# Constantes - Impostos (verificar casas)
+# Constantes - Impostos (iguais para todas as casas)
 PORC_ISS = 0.05
 PORC_PIS = 0.0065
 PORC_COFINS = 0.03
 PORC_ICMS = 0.04
 
-
-# Seletores de casa e data
-col1, col2, col3 = st.columns(3)
-with col1:
-    lista_retirar_casas = ['Bar Léo - Vila Madalena', 'Todas as Casas']
-    id_casa, casa, id_zigpay = input_selecao_casas(lista_retirar_casas, key='faturamento_bruto')
-with col2:
-    mes_selecionado = int(seletor_mes('Selecione um mês', 'mes_forecast'))
-with col3:
-    ano_selecionado = seletor_ano(2025, datas['ano_atual'], 'ano_forecast')
-st.divider()
-
-if casa == 'Arcos': st.info('Observação: Arcos sem operação às segundas-feiras.')
 
 ###################### PROJEÇÃO DE FATURAMENTO - MÊS CORRENTE ###################### 
 
@@ -110,7 +110,11 @@ else:
         axis=0
     )   
 
-st.subheader('Faturamento - mês corrente')
+if mes_selecionado == datas['mes_atual'] and ano_selecionado == datas['ano_atual']:
+    st.subheader('Faturamento diário - mês corrente')
+else:
+    st.subheader('Faturamento diário - mês selecionado')
+
 st.dataframe(df_mes_corrente_estilizado, hide_index=True, width='stretch')
 # Exibe legenda
 st.markdown(f'''

@@ -859,6 +859,7 @@ def calcula_cmv_proximos_meses(df_faturamento_meses_futuros, df_calculo_cmv, ano
 
 
 ############################################ PROJEÇÃO DESPESAS - PRÓXIMOS MESES ############################################
+
 def merge_despesas_complexas(df_tabela_primaria, df_tabela_secundaria, casa, class_cont):
     df_tabela_secundaria_filtrada = df_tabela_secundaria[df_tabela_secundaria['Casa'] == casa].copy()
 
