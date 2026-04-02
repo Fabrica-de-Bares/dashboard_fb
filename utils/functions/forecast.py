@@ -35,7 +35,7 @@ def prepara_dados_faturam_agregado_diario(id_casa, df_faturamento_agregado_dia, 
     df_faturamento_agregado_mes_corrente = df_faturamento_agregado_casa[
         (df_faturamento_agregado_casa['Data Evento'] >= dois_meses_antes) &
         (df_faturamento_agregado_casa['Data Evento'] <= fim_do_mes_atual)
-    ]
+    ].copy()
     df_faturamento_agregado_mes_corrente = df_faturamento_agregado_mes_corrente.groupby(['ID_Casa', 'Casa', 'Categoria', 'Data Evento', 'Dia Semana', 'Dia_Mes'], as_index=False)[['Valor Bruto', 'Desconto', 'Valor Liquido']].sum()
     
     return df_faturamento_agregado_mes_corrente
@@ -120,7 +120,7 @@ def cria_projecao_mes_corrente(df_faturamento_agregado_mes_corrente, df_dias_fut
     for categoria in df_dias_futuros_mes['Categoria'].unique():
         df_cat = None
         if categoria not in ('Eventos A&B', 'Eventos Locações', 'Eventos Couvert', 'Outras Receitas'): 
-            df_cat = df_dias_futuros_mes[df_dias_futuros_mes['Categoria'] == categoria]
+            df_cat = df_dias_futuros_mes[df_dias_futuros_mes['Categoria'] == categoria].copy()
         
         if df_cat is not None and not df_cat.empty:
             for i, row in df_cat.iterrows():
@@ -196,7 +196,7 @@ def aplica_layout_mes_corrente(df_dias_futuros_mes, df_faturamento_eventos, df_p
     df_todos_dias_mes['Valor Projetado'] .fillna(0, inplace=True)
     
     # Filtra para mês/ano corrente
-    df_todos_dias_mes_corrente = df_todos_dias_mes[(df_todos_dias_mes['Data Evento'].dt.month == mes_selecionado) & (df_todos_dias_mes['Data Evento'].dt.year == ano_selecionado)]
+    df_todos_dias_mes_corrente = df_todos_dias_mes[(df_todos_dias_mes['Data Evento'].dt.month == mes_selecionado) & (df_todos_dias_mes['Data Evento'].dt.year == ano_selecionado)].copy()
 
     df_todos_dias_mes_corrente['Data Evento'] = df_todos_dias_mes_corrente['Data Evento'].dt.strftime('%d/%m/%Y') 
     
@@ -249,7 +249,10 @@ def destaca_dias_futuros_mes_corrente(row):
     # regra coluna TOTAL 
     if 'Total' in row.index:
         idx_total = row.index.get_loc('Total')
-        estilos[idx_total] = 'background-color: rgba(255,255,224); color: black; font-weight: 500;'
+        if row['Data Evento'] >= hoje:
+            estilos[idx_total] = 'background-color: rgba(255,255,224); color: black; font-weight: 500;'
+        else:
+            estilos[idx_total] = 'color: black; font-weight: 500;'
 
     return estilos
 
@@ -264,13 +267,13 @@ def prepara_dados_faturamento_orcamentos_mensais(id_casa, df_orcamentos, df_fatu
         (df_orcamentos['Ano'] >= ano_passado) &
         (df_orcamentos['Ano'] <= ano_atual) &
         (df_orcamentos['Classificacao_Contabil_1'] == 'Faturamento Bruto')
-    ]
+    ].copy()
     
     df_faturamento_mes_casa = df_faturamento_agregado_mes[
         (df_faturamento_agregado_mes['ID_Casa'] == id_casa) &
         (df_faturamento_agregado_mes['Ano'] >= ano_passado) &
         (df_faturamento_agregado_mes['Ano'] <= ano_atual)
-    ]
+    ].copy()
     
     df_faturamento_mes_casa = df_faturamento_mes_casa.groupby(['ID_Casa', 'Casa', 'Categoria', 'Ano', 'Mês'], as_index=False)[['Valor Bruto', 'Desconto', 'Valor Liquido']].sum()
 
@@ -330,7 +333,7 @@ def projecao_faturamento_meses_seguintes(df_faturamento_orcamento, df_meses_futu
         left_on=['Ano', 'Mês', 'Categoria'],
         right_on=['Ano', 'Meses_Ano', 'Categoria']
     )
-    df_meses_seguintes = df_meses_seguintes[df_meses_seguintes['Categoria'].isin(['Alimentos', 'Bebidas', 'Couvert', 'Delivery', 'Eventos A&B', 'Eventos Couvert', 'Eventos Locações', 'Gifts', 'Outras Receitas', 'Serviço'])]
+    df_meses_seguintes = df_meses_seguintes[df_meses_seguintes['Categoria'].isin(['Alimentos', 'Bebidas', 'Couvert', 'Delivery', 'Eventos A&B', 'Eventos Couvert', 'Eventos Locações', 'Gifts', 'Outras Receitas', 'Serviço'])].copy()
     df_meses_seguintes['Projeção Atingimento'] = None
     df_meses_seguintes['Valor Projetado'] = None
     
@@ -338,7 +341,7 @@ def projecao_faturamento_meses_seguintes(df_faturamento_orcamento, df_meses_futu
     for categoria in df_meses_seguintes['Categoria'].unique():
         if categoria != 'Serviço':
             df_cat = None
-            df_cat = df_meses_seguintes[df_meses_seguintes['Categoria'] == categoria]
+            df_cat = df_meses_seguintes[df_meses_seguintes['Categoria'] == categoria].copy()
             
             if df_cat is not None and not df_cat.empty:
                 for i, row in df_cat.iterrows():
@@ -545,7 +548,7 @@ def config_compras(data_inicio, data_fim, loja):
         (df_compras['Casa'] == loja) &
         (df_compras['Primeiro_Dia_Mes'] >= data_inicio) &
         (df_compras['Primeiro_Dia_Mes'] <= data_fim)
-    ]
+    ].copy()
     
     df_compras = df_compras.groupby(['Casa', 'Mes_Ano']).agg(
         {'BlueMe_Sem_Pedido_Alimentos': 'sum', 
@@ -576,7 +579,7 @@ def processar_transferencias(df, casa_col, loja, data_inicio, data_fim):
         (df[casa_col] == loja) &
         (df['Data_Transferencia'] >= data_inicio) &
         (df['Data_Transferencia'] <= data_fim)
-    ]
+    ].copy()
     
     # Agrupar por casa e categoria, somando os valores
     df_grouped = df.groupby([casa_col, 'Categoria', 'Mes_Ano']).agg({
@@ -614,7 +617,7 @@ def config_transferencias_gastos(data_inicio, data_fim, loja):
         (df_perdas_e_consumo['Loja'] == loja) &
         (df_perdas_e_consumo['Primeiro_Dia_Mes'] >= data_inicio) &
         (df_perdas_e_consumo['Primeiro_Dia_Mes'] <= data_fim)
-    ]
+    ].copy()
     df_perdas_e_consumo.fillna(0, inplace=True)
 
     df_transf_e_gastos = pd.merge(df_entradas_pivot, df_saidas_pivot, on=['Loja', 'Mes_Ano'], how='outer')
@@ -791,7 +794,7 @@ def calcula_cmv_proximos_meses(df_faturamento_meses_futuros, df_calculo_cmv, ano
     df_resgata_faturamento_meses_futuros = df_faturamento_meses_futuros[
         (df_faturamento_meses_futuros['Ano'] >= ano_atual - 1) &
         (df_faturamento_meses_futuros['Categoria'].isin(['Alimentos', 'Bebidas', 'Delivery', 'Eventos A&B']))
-    ]
+    ].copy()
     
     # Resgata faturamentos projetados por mês
     df_resgata_faturamento_meses_futuros = df_resgata_faturamento_meses_futuros.groupby(['Ano', 'Mês'], as_index=False)[['Valor Bruto', 'Valor Projetado']].sum()
@@ -1089,11 +1092,11 @@ def organiza_despesas_orcamentos(df_custos, df_orcamentos, casa, lista_completa_
         how='outer'
     )
     df_resultante['Classificacao_Contabil_2'].fillna(df_resultante['Categoria'], inplace=True)
-    df_resultante = df_resultante[df_resultante['Classificacao_Contabil_2'].isin(lista_completa_class_cont_2)]
+    df_resultante = df_resultante[df_resultante['Classificacao_Contabil_2'].isin(lista_completa_class_cont_2)].copy()
 
-    if class_cont_1 == 'Deduções sobre Venda': df_resultante = df_resultante[~df_resultante['Classificacao_Contabil_2'].isin(['Desconto - Alimentação Escritório', 'Descontos - Marketing', 'Descontos - Operação'])]
-    if class_cont_1 == 'Mão de Obra - PJ': df_resultante = df_resultante[df_resultante['Classificacao_Contabil_2'].isin(['MDO PJ Fixo'])]
-    if class_cont_1 == 'Utilidades': df_resultante = df_resultante[~df_resultante['Classificacao_Contabil_2'].isin(['Conduções/Taxi/Uber', 'Viagens e Estadias - Operação'])]
+    if class_cont_1 == 'Deduções sobre Venda': df_resultante = df_resultante[~df_resultante['Classificacao_Contabil_2'].isin(['Desconto - Alimentação Escritório', 'Descontos - Marketing', 'Descontos - Operação'])].copy()
+    if class_cont_1 == 'Mão de Obra - PJ': df_resultante = df_resultante[df_resultante['Classificacao_Contabil_2'].isin(['MDO PJ Fixo'])].copy()
+    if class_cont_1 == 'Utilidades': df_resultante = df_resultante[~df_resultante['Classificacao_Contabil_2'].isin(['Conduções/Taxi/Uber', 'Viagens e Estadias - Operação'])].copy()
 
     return df_resultante
 
@@ -1112,7 +1115,7 @@ def projecao_custos_proximos_meses(df_merge_custos_faturamentos_mensais, class_c
     if class_cont_custo not in ['PJ', 'Salários', 'Custo de Ocupação', 'Informática e TI', 'Serviços de Terceiros', 'Locação de Equipamentos', 'Sistema de Franquias']:
         # Loop por classificação contábil 2
         for class_cont in df_merge_custos_faturamentos_mensais['Classificacao_Contabil_2'].dropna().unique():
-            df_class_cont = df_merge_custos_faturamentos_mensais[df_merge_custos_faturamentos_mensais['Classificacao_Contabil_2'] == class_cont]
+            df_class_cont = df_merge_custos_faturamentos_mensais[df_merge_custos_faturamentos_mensais['Classificacao_Contabil_2'] == class_cont].copy()
             
             if df_class_cont is not None and not df_class_cont.empty:
                 for i, row in df_class_cont.iterrows():

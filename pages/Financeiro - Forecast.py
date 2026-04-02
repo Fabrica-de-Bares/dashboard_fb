@@ -87,7 +87,7 @@ df_dias_futuros_com_categorias = lista_dias_mes_anterior_atual(datas['ano_atual'
 
 # Gera projeção para prox dias do mês corrente por dia da semana
 df_dias_futuros_mes = cria_projecao_mes_corrente(df_faturamento_agregado_mes_corrente, df_dias_futuros_com_categorias)
-df_dias_mes = df_dias_futuros_com_categorias[df_dias_futuros_com_categorias['Categoria'] != 'Serviço']
+df_dias_mes = df_dias_futuros_com_categorias[df_dias_futuros_com_categorias['Categoria'] != 'Serviço'].copy()
 df_dias_mes = df_dias_mes[['Data Evento', 'Categoria']]
 
 # Aplica layout

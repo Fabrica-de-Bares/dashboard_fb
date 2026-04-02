@@ -1,7 +1,6 @@
 import streamlit as st
 import pandas as pd
 from utils.functions.general_functions import dataframe_query
-from utils.constants.general_constants import casas_validas
 
 
 @st.cache_data
