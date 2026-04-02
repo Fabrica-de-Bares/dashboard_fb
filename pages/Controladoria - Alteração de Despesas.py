@@ -58,7 +58,7 @@ with col2:
     df_class_cont_2 = GET_CLASS_CONT_2()
     if not lista_class_cont_1_selecionadas: lista_class_cont_2 = df_class_cont_2['DESCRICAO_2'].tolist()
     else: 
-        df_class_cont_2 = df_class_cont_2[df_class_cont_2['DESCRICAO_1'].isin(lista_class_cont_1_selecionadas)]
+        df_class_cont_2 = df_class_cont_2[df_class_cont_2['DESCRICAO_1'].isin(lista_class_cont_1_selecionadas)].copy()
         lista_class_cont_2 = df_class_cont_2['DESCRICAO_2'].tolist()
     lista_class_cont_2_selecionadas = st.multiselect(label='Selecione a Classificação Contábil 2', options=lista_class_cont_2, default=None)
 st.divider()
@@ -72,7 +72,7 @@ df_data_fechamento_mes_selecionado = df_datas_fechamento[
     (df_datas_fechamento['MES'] == mes_competencia_selecionado) & 
     (df_datas_fechamento['ANO'] == ano_competencia_selecionado) &
     (df_datas_fechamento['ID Casa'] == id_casa)
-]
+].copy()
 if not df_data_fechamento_mes_selecionado.empty:
     data_fechamento_mes_selecionado = df_data_fechamento_mes_selecionado['DATA_FECHAMENTO'].iloc[0]
     st.write(f'**Data de fechamento da DRE:** {data_fechamento_mes_selecionado.date()}')
@@ -190,7 +190,7 @@ df_despesas_alteracao = df_despesas_alteracao_casa[ # Despesas alteradas para a 
     (df_despesas_alteracao_casa['Data Alteração'] >= data_fechamento_mes_selecionado)
 ].copy()
 lista_ids_alteracao_mes_selecionado = df_despesas_alteracao['ID Despesa'].tolist()
-df_despesas_alteracao_casa = df_despesas_alteracao_casa[df_despesas_alteracao_casa['ID Despesa'].isin(lista_ids_alteracao_mes_selecionado)]
+df_despesas_alteracao_casa = df_despesas_alteracao_casa[df_despesas_alteracao_casa['ID Despesa'].isin(lista_ids_alteracao_mes_selecionado)].copy()
 df_despesas_alteracao_casa['ID Casa'] = pd.to_numeric(df_despesas_alteracao_casa['ID Casa'], errors='coerce').astype('Int64')
 df_despesas_alteracao_casa.sort_values(by=['ID Despesa', 'Data Alteração'], inplace=True)
 

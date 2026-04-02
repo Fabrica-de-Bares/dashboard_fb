@@ -243,6 +243,7 @@ def config_sidebar():
         136: "Controladoria",
         138: "Controladoria",
         139: "Controladoria",
+        141: "Planejamento Anual",
     }
 
     cargo, user_name, email = config_permissoes_user()
@@ -260,10 +261,11 @@ def config_sidebar():
             "KPI's de Faturamento - Eventos",
             "KPI's de Resultado Operacional",
             "KPI's de Resultado Operacional - Suprimentos",
-            'Conciliação',
-            'Fluxo de Caixa',
-            'Controladoria',
-            'Auditoria',
+            "Conciliação",
+            "Fluxo de Caixa",
+            "Controladoria",
+            "Auditoria",
+            "Planejamento Anual",
         ]
 
         ordem_abas = { # Ordena abas nas seções por id
@@ -274,7 +276,8 @@ def config_sidebar():
             "Conciliação": [122, 121, 123],
             "Fluxo de Caixa": [118, 120, 119],
             "Controladoria": [135, 136, 138],
-            "Auditoria": [133, 134]
+            "Auditoria": [133, 134],
+            "Planejamento Anual": [141],
         }
 
         # Organizar abas por secao

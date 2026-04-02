@@ -307,8 +307,8 @@ def GET_COMPRAS_POR_ANO():
       -- tudm.UNIDADE_MEDIDA_NAME AS 'Unidade Medida',                   
       SUM(DRI.QUANTIDADE) AS 'Quantidade',
       SUM(DRI.VALOR) AS 'Valor Total',
-      CONCAT(MONTH(DR.COMPETENCIA), '/', YEAR(DR.COMPETENCIA)) AS 'Mês/Ano'                   
-      -- SUM(DRI.VALOR) / SUM(DRI.QUANTIDADE) AS 'Valor Med Por Insumo'                                
+      SUM(DRI.VALOR) / SUM(DRI.QUANTIDADE) AS 'Valor Médio por Insumo',                   
+      CONCAT(MONTH(DR.COMPETENCIA), '/', YEAR(DR.COMPETENCIA)) AS 'Mês/Ano'                                                 
     FROM T_DESPESA_RAPIDA_ITEM DRI 
       INNER JOIN T_INSUMOS_NIVEL_5 N5 ON (DRI.FK_INSUMO = N5.ID)
       INNER JOIN T_INSUMOS_NIVEL_4 N4 ON (N5.FK_INSUMOS_NIVEL_4 = N4.ID)

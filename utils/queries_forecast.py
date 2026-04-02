@@ -186,7 +186,151 @@ def GET_FATURAMENTO_EVENTOS():
     return df_faturamento_eventos, df_eventos_tratado
 
 
-# Receitas Extraordinárias: 'Outras receitas'
+# Faturamento de Eventos - PRICELESS: Eventos A&B, Locações, Couvert
+@st.cache_data
+def GET_FATURAMENTO_EVENTOS_PRICELESS():
+    df_faturamento_eventos_priceless = dataframe_query(f'''
+    WITH TOTALS AS (
+        SELECT
+            ID,
+            ROUND(
+                COALESCE(VALOR_LOCACAO_AROO_1,0)+
+                COALESCE(VALOR_LOCACAO_AROO_2,0)+
+                COALESCE(VALOR_LOCACAO_AROO_3,0)+
+                COALESCE(VALOR_LOCACAO_ANEXO,0)+
+                COALESCE(VALOR_LOCACAO_NOTIE,0)+
+                COALESCE(VALOR_LOCACAO_MIRANTE,0)+
+                COALESCE(VALOR_LOCACAO_BAR,0),2) AS Valor_Locacao_Total,
+            ROUND(
+                COALESCE(VALOR_TAXA_SERVICO,0)+
+                COALESCE(VALOR_LOCACAO_DECORACAO_MOBILIARIO,0)+
+                COALESCE(VALOR_LOCACAO_GERADOR,0)+
+                COALESCE(VALOR_LOCACAO_UTENSILIOS,0)+
+                COALESCE(VALOR_MAO_DE_OBRA_EXTRA,0)+
+                COALESCE(VALOR_TAXA_ADMINISTRATIVA,0)+
+                COALESCE(VALOR_COMISSAO_BV,0)+
+                COALESCE(VALOR_EXTRAS_GERAIS,0)+
+                COALESCE(VALOR_IMPOSTO,0)+
+                COALESCE(VALOR_ACRESCIMO_FORMA_PAGAMENTO,0),2) AS Valor_Outros_Total
+        FROM T_EVENTOS_PRICELESS
+        )
+        SELECT
+        te.ID AS 'ID_Casa', 
+        tep.ID AS 'ID_Evento',                                                                                             
+        te.NOME_FANTASIA AS 'Casa',
+        tep.DATA_EVENTO AS 'Data Evento',
+        tme.DESCRICAO as 'Modelo_Evento',                                               
+        SUM(
+           (CASE 
+	           WHEN tcep.DESCRICAO='A&B' THEN ROUND(COALESCE(tep.VALOR_AB,0) * COALESCE(tpep.VALOR_PARCELA / NULLIF(tep.VALOR_AB,0),0),2) 
+	           ELSE 0 
+	        END)
+           +
+           (CASE 
+	           WHEN tcep.DESCRICAO='Outros' THEN ROUND(COALESCE(tep.VALOR_TAXA_SERVICO,0) * (tpep.VALOR_PARCELA / NULLIF(t.Valor_Outros_Total,0)),2) 
+	           ELSE 0 
+	        END)                                       
+        ) AS 'Eventos A&B',
+        SUM(
+           (CASE 
+           	   WHEN tcep.DESCRICAO='Outros' THEN ROUND(COALESCE(tep.VALOR_CONTRATACAO_ARTISTICO,0) * (tpep.VALOR_PARCELA / NULLIF(t.Valor_Outros_Total,0)),2) 
+               ELSE 0 
+            END)
+           +
+           (CASE 
+	           WHEN tcep.DESCRICAO='Outros' THEN ROUND(COALESCE(tep.VALOR_CONTRATACAO_TECNICO_SOM,0) * (tpep.VALOR_PARCELA / NULLIF(t.Valor_Outros_Total,0)),2) 
+	           ELSE 0 
+	        END)
+           +
+           (CASE 
+	           WHEN tcep.DESCRICAO='Outros' THEN ROUND(COALESCE(tep.VALOR_CONTRATACAO_COUVERT_ARTISTICO,0) * (tpep.VALOR_PARCELA / NULLIF(t.Valor_Outros_Total,0)),2) 
+	           ELSE 0 
+	        END)                                         
+        ) AS 'Eventos Couvert',
+        SUM(
+           (CASE WHEN tcep.DESCRICAO='Outros' THEN ROUND(COALESCE(tep.VALOR_LOCACAO_GERADOR,0) * (tpep.VALOR_PARCELA / NULLIF(t.Valor_Outros_Total,0)),2) ELSE 0 END)
+           +
+           (CASE WHEN tcep.DESCRICAO='Outros' THEN ROUND(COALESCE(tep.VALOR_LOCACAO_DECORACAO_MOBILIARIO,0) * (tpep.VALOR_PARCELA / NULLIF(t.Valor_Outros_Total,0)),2) ELSE 0 END)
+           +
+           (CASE WHEN tcep.DESCRICAO='Outros' THEN ROUND(COALESCE(tep.VALOR_LOCACAO_UTENSILIOS,0) * (tpep.VALOR_PARCELA / NULLIF(t.Valor_Outros_Total,0)),2) ELSE 0 END)
+           +
+           (CASE WHEN tcep.DESCRICAO='Outros' THEN ROUND(COALESCE(tep.VALOR_MAO_DE_OBRA_EXTRA,0) * (tpep.VALOR_PARCELA / NULLIF(t.Valor_Outros_Total,0)),2) ELSE 0 END)
+           +
+           (CASE WHEN tcep.DESCRICAO='Outros' THEN ROUND(COALESCE(tep.VALOR_COMISSAO_BV,0) * (tpep.VALOR_PARCELA / NULLIF(t.Valor_Outros_Total,0)),2) ELSE 0 END)
+           +
+           (CASE WHEN tcep.DESCRICAO='Outros' THEN ROUND(COALESCE(tep.VALOR_TAXA_ADMINISTRATIVA,0) * (tpep.VALOR_PARCELA / NULLIF(t.Valor_Outros_Total,0)),2) ELSE 0 END)
+           +
+           (CASE WHEN tcep.DESCRICAO='Outros' THEN ROUND(COALESCE(tep.VALOR_EXTRAS_GERAIS,0) * (tpep.VALOR_PARCELA / NULLIF(t.Valor_Outros_Total,0)),2) ELSE 0 END)
+           +
+           (CASE WHEN tcep.DESCRICAO='Outros' THEN ROUND(COALESCE(tep.VALOR_IMPOSTO,0) * (tpep.VALOR_PARCELA / NULLIF(t.Valor_Outros_Total,0)),2) ELSE 0 END)
+           +
+           (CASE WHEN tcep.DESCRICAO='Outros' THEN ROUND(COALESCE(tep.VALOR_ACRESCIMO_FORMA_PAGAMENTO,0) * (tpep.VALOR_PARCELA / NULLIF(t.Valor_Outros_Total,0)),2) ELSE 0 END)
+           +
+           (CASE WHEN tcep.DESCRICAO='Locação' THEN ROUND(COALESCE(tep.VALOR_LOCACAO_AROO_1,0) * (tpep.VALOR_PARCELA / NULLIF(t.Valor_Locacao_Total,0)),2) ELSE 0 END)
+           +
+           (CASE WHEN tcep.DESCRICAO='Locação' THEN ROUND(COALESCE(tep.VALOR_LOCACAO_AROO_2,0) * (tpep.VALOR_PARCELA / NULLIF(t.Valor_Locacao_Total,0)),2) ELSE 0 END)
+           +
+           (CASE WHEN tcep.DESCRICAO='Locação' THEN ROUND(COALESCE(tep.VALOR_LOCACAO_AROO_3,0) * (tpep.VALOR_PARCELA / NULLIF(t.Valor_Locacao_Total,0)),2) ELSE 0 END)
+           +
+           (CASE WHEN tcep.DESCRICAO='Locação' THEN ROUND(COALESCE(tep.VALOR_LOCACAO_ANEXO,0) * (tpep.VALOR_PARCELA / NULLIF(t.Valor_Locacao_Total,0)),2) ELSE 0 END)
+           +
+           (CASE WHEN tcep.DESCRICAO='Locação' THEN ROUND(COALESCE(tep.VALOR_LOCACAO_NOTIE,0) * (tpep.VALOR_PARCELA / NULLIF(t.Valor_Locacao_Total,0)),2) ELSE 0 END)
+           +
+           (CASE WHEN tcep.DESCRICAO='Locação' THEN ROUND(COALESCE(tep.VALOR_LOCACAO_MIRANTE,0) * (tpep.VALOR_PARCELA / NULLIF(t.Valor_Locacao_Total,0)),2) ELSE 0 END)
+           +
+           (CASE WHEN tcep.DESCRICAO='Locação' THEN ROUND(COALESCE(tep.VALOR_LOCACAO_BAR,0) * (tpep.VALOR_PARCELA / NULLIF(t.Valor_Locacao_Total,0)),2) ELSE 0 END)                                        
+        ) AS 'Eventos Locações',
+        MONTH(tep.DATA_EVENTO) AS 'Mês',
+        YEAR(tep.DATA_EVENTO) AS 'Ano'                                                                                                                                                                                      
+        FROM T_PARCELAS_EVENTOS_PRICELESS tpep
+        JOIN T_EVENTOS_PRICELESS tep ON tpep.FK_EVENTO_PRICELESS = tep.ID
+        LEFT JOIN TOTALS t ON t.ID = tep.ID
+        LEFT JOIN T_EMPRESAS te ON tep.FK_EMPRESA = te.ID
+        LEFT JOIN T_MODELO_EVENTO tme ON (tep.FK_MODELO_EVENTO = tme.ID)                                               
+        LEFT JOIN T_STATUS_PAGAMENTO tsp ON tpep.FK_STATUS_PAGAMENTO = tsp.ID
+        LEFT JOIN T_CATEGORIA_EVENTO_PRICELESS tcep ON tpep.FK_CATEGORIA_PARCELA = tcep.ID
+        WHERE te.ID = 149
+        AND tep.FK_STATUS_EVENTO = 101
+        GROUP BY
+	        te.ID,
+	        te.NOME_FANTASIA,
+	        tep.ID,                                      
+	        tep.DATA_EVENTO   
+        ORDER BY tep.DATA_EVENTO DESC;                                            
+    ''') 
+
+    # Mantém essas colunas
+    id_vars = ['ID_Casa', 'Casa', 'Data Evento']
+
+    # Essas viram categoria
+    value_vars = ['Eventos A&B', 'Eventos Couvert', 'Eventos Locações']
+
+    df_eventos_melt = df_faturamento_eventos_priceless.melt(
+        id_vars=id_vars,
+        value_vars=value_vars,
+        var_name='Categoria',
+        value_name='Valor Bruto'
+    )
+
+    # remove zero e null
+    df_eventos_melt = df_eventos_melt[
+        df_eventos_melt['Valor Bruto'].notna() &
+        (df_eventos_melt['Valor Bruto'] != 0)
+    ]
+
+    # cria colunas finais
+    df_eventos_melt['Desconto'] = 0
+    df_eventos_melt['Valor Liquido'] = df_eventos_melt['Valor Bruto']
+
+    df_eventos_tratado_priceless = df_eventos_melt[
+        ['ID_Casa', 'Casa', 'Categoria', 'Data Evento', 'Valor Bruto', 'Desconto', 'Valor Liquido']
+    ]
+    df_eventos_tratado_priceless = df_eventos_tratado_priceless.groupby(['ID_Casa', 'Casa', 'Categoria', 'Data Evento'], as_index=False)[['Valor Bruto', 'Desconto', 'Valor Liquido']].sum()
+
+    return df_faturamento_eventos_priceless, df_eventos_tratado_priceless                                          
+
+
+# Receitas Extraordinárias: 'Outras receitas' (apenas Coleta de Óleo)
 @st.cache_data
 def GET_PARCELAS_RECEIT_EXTR():
     df_parc_receit_extr = dataframe_query(f'''
@@ -209,7 +353,7 @@ def GET_PARCELAS_RECEIT_EXTR():
         LEFT JOIN T_RECEITAS_EXTRAORDINARIAS tre ON (vpa.ID = tre.ID)
         LEFT JOIN T_RECEITAS_EXTRAORDINARIAS_CLASSIFICACAO trec2 ON (tre.FK_CLASSIFICACAO = trec2.ID)
         WHERE YEAR(tre.DATA_OCORRENCIA) > 2024 
-        AND trec2.CLASSIFICACAO NOT IN ('Alimentos', 'Bebidas', 'Delivery')                                  
+        AND trec2.CLASSIFICACAO IN ('Coleta de Óleo', 'Lojinha')                                  
         AND te.NOME_FANTASIA IN ({casas_str})
         ORDER BY te.NOME_FANTASIA ASC, tre.DATA_OCORRENCIA
         ''')
@@ -218,6 +362,10 @@ def GET_PARCELAS_RECEIT_EXTR():
     df_parc_receit_extr['Categoria'] = df_parc_receit_extr['Categoria'].replace(
         'Coleta de Óleo',
         'Outras Receitas'
+    )
+    df_parc_receit_extr['Categoria'] = df_parc_receit_extr['Categoria'].replace(
+        'Lojinha',
+        'Gifts'
     )
     
     # Adequa para poder concatenar ao faturamento agregado
@@ -228,33 +376,40 @@ def GET_PARCELAS_RECEIT_EXTR():
     
     df_parc_receit_extr['Desconto'] = 0
     df_parc_receit_extr['Valor Liquido'] = df_parc_receit_extr['Valor Bruto']
-
     df_parc_receit_extr = df_parc_receit_extr[['ID_Casa', 'Casa', 'Categoria', 'Data Evento', 'Valor Bruto', 'Desconto', 'Valor Liquido']]
     
     # Agrupa por casa e dia (soma todas as categorias)
-    df_parc_receit_extr_dia = df_parc_receit_extr.groupby(['ID_Casa', 'Casa', 'Data Evento'], as_index=False)[['Valor Bruto', 'Desconto', 'Valor Liquido']].sum()    
-    df_parc_receit_extr_dia['Categoria'] = 'Outras Receitas'
-    df_parc_receit_extr_dia = df_parc_receit_extr_dia[['ID_Casa', 'Casa', 'Categoria', 'Data Evento', 'Valor Bruto', 'Desconto', 'Valor Liquido']]
+    # df_parc_receit_extr_dia = df_parc_receit_extr.groupby(['ID_Casa', 'Casa', 'Data Evento'], as_index=False)[['Valor Bruto', 'Desconto', 'Valor Liquido']].sum()    
+    # df_parc_receit_extr_dia['Categoria'] = 'Outras Receitas'
+    # df_parc_receit_extr_dia = df_parc_receit_extr_dia[['ID_Casa', 'Casa', 'Categoria', 'Data Evento', 'Valor Bruto', 'Desconto', 'Valor Liquido']]
     
-    return df_parc_receit_extr, df_parc_receit_extr_dia
+    return df_parc_receit_extr #, df_parc_receit_extr_dia
  
 
 # Concatena todos os tipos de faturamento (Zig, Eventos e Receitas Extraordinárias)
 @st.cache_data
-def GET_TODOS_FATURAMENTOS_DIA():
+def GET_TODOS_FATURAMENTOS_DIA(id_casa):
+    # Faturament - Zig
     faturamento_agregado_diario = GET_ITENS_VENDIDOS_DIA()
-    faturamento_eventos_inicial, faturamento_eventos_tratado = GET_FATURAMENTO_EVENTOS()
-    parc_receitas_extr_categoria, parc_receitas_extr_dia = GET_PARCELAS_RECEIT_EXTR() # parcelas com categorias específicas e parcelas agrupadas como 'Outras Receitas'
+    
+    # Faturamento - Eventos A&B, Couvert e Locações
+    if id_casa == 149:
+        faturamento_eventos_inicial, faturamento_eventos_tratado = GET_FATURAMENTO_EVENTOS_PRICELESS()
+    else:
+        faturamento_eventos_inicial, faturamento_eventos_tratado = GET_FATURAMENTO_EVENTOS()
+    
+    # Faturamento - Receitas Extraordinárias
+    parc_receitas_extr = GET_PARCELAS_RECEIT_EXTR() # 'Gifts' (Lojinha) e 'Outras Receitas' (Coleta de Óleo)
     
     # Concatena todos os tipos de faturamento
-    todos_faturamentos = pd.concat([faturamento_agregado_diario, faturamento_eventos_tratado, parc_receitas_extr_categoria])
+    todos_faturamentos = pd.concat([faturamento_agregado_diario, faturamento_eventos_tratado, parc_receitas_extr])
 
     # Calcula Gifts diário
-    todos_faturamentos['Categoria'] = todos_faturamentos['Categoria'].replace(
-        'Lojinha', 'Gifts'
-    )
+    # todos_faturamentos['Categoria'] = todos_faturamentos['Categoria'].replace(
+    #     'Lojinha', 'Gifts'
+    # )
 
-    return faturamento_agregado_diario, todos_faturamentos, faturamento_eventos_inicial, faturamento_eventos_tratado, parc_receitas_extr_categoria, parc_receitas_extr_dia
+    return faturamento_agregado_diario, todos_faturamentos, faturamento_eventos_inicial, faturamento_eventos_tratado, parc_receitas_extr
 
 
 # Orçamentos mensais
@@ -443,7 +598,7 @@ def FATURAMENTO_MENSAL_AB(df_faturamento_categoria_mensal, df_descontos, df_prom
 # Para obter faturamentos mensais 
 @st.cache_data
 def GET_FATURAMENTO_CATEGORIA_MENSAL(df_faturamento_categoria, df_descontos, df_promocoes, df_faturamento_eventos):
-    df_faturamento_categoria_mensal = df_faturamento_categoria.copy() # Utiliza o mesmo df que já foi carregado na outra tab
+    df_faturamento_categoria_mensal = df_faturamento_categoria.copy() 
 
     # Zera a hora
     df_faturamento_categoria_mensal['Data Evento'] = pd.to_datetime(df_faturamento_categoria_mensal['Data Evento'], errors='coerce').dt.normalize()

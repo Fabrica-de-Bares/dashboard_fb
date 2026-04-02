@@ -56,19 +56,19 @@ def filtragem_classificacao_contabil(df_log_despesas, lista_class_cont_1_selecio
                 (df_log_despesas_filtrado['Class. Cont. 2'].isin(lista_class_cont_2_selecionadas))
             ].copy()
             lista_ids_alteracao_classif_selecionada = df_log_despesas_alteradas['ID Despesa'].tolist()
-            df_log_despesas_filtrado = df_log_despesas_filtrado[df_log_despesas_filtrado['ID Despesa'].isin(lista_ids_alteracao_classif_selecionada)]
+            df_log_despesas_filtrado = df_log_despesas_filtrado[df_log_despesas_filtrado['ID Despesa'].isin(lista_ids_alteracao_classif_selecionada)].copy()
 
     else:
         df_log_despesas_filtrado = df_log_despesas.copy()
         if not lista_class_cont_1_selecionadas and lista_class_cont_2_selecionadas: 
-            df_log_despesas_filtrado = df_log_despesas_filtrado[df_log_despesas_filtrado['Class. Cont. 2'].isin(lista_class_cont_2_selecionadas)]
+            df_log_despesas_filtrado = df_log_despesas_filtrado[df_log_despesas_filtrado['Class. Cont. 2'].isin(lista_class_cont_2_selecionadas)].copy()
         elif lista_class_cont_1_selecionadas and not lista_class_cont_2_selecionadas:
-            df_log_despesas_filtrado = df_log_despesas_filtrado[df_log_despesas_filtrado['Class. Cont. 1'].isin(lista_class_cont_1_selecionadas)]
+            df_log_despesas_filtrado = df_log_despesas_filtrado[df_log_despesas_filtrado['Class. Cont. 1'].isin(lista_class_cont_1_selecionadas)].copy()
         elif lista_class_cont_1_selecionadas and lista_class_cont_2_selecionadas:
             df_log_despesas_filtrado = df_log_despesas_filtrado[
                 (df_log_despesas_filtrado['Class. Cont. 1'].isin(lista_class_cont_1_selecionadas)) &
                 (df_log_despesas_filtrado['Class. Cont. 2'].isin(lista_class_cont_2_selecionadas))
-            ]
+            ].copy()
     return df_log_despesas_filtrado
 
 
@@ -89,13 +89,13 @@ def filtragem_mes_ano_competencia(df, mes_competencia_selecionado, ano_competenc
             (df_filtrado['Data Competência'].dt.year == ano_competencia_selecionado)
         ].copy()
         lista_ids_alteracao_mes_selecionado = df_despesas_alteradas['ID Despesa'].tolist()
-        df_filtrado = df_filtrado[df_filtrado['ID Despesa'].isin(lista_ids_alteracao_mes_selecionado)]
+        df_filtrado = df_filtrado[df_filtrado['ID Despesa'].isin(lista_ids_alteracao_mes_selecionado)].copy()
 
         df_despesas_alteracao = df_filtrado[ # Despesas com data de alteração > data de fechamento
             df_filtrado['Data Alteração'].dt.date > data_fechamento.date()
         ].copy()
         lista_ids_alteracao = df_despesas_alteracao['ID Despesa'].tolist()
-        df_filtrado = df_filtrado[df_filtrado['ID Despesa'].isin(lista_ids_alteracao)]
+        df_filtrado = df_filtrado[df_filtrado['ID Despesa'].isin(lista_ids_alteracao)].copy()
 
     return df_filtrado
 
@@ -107,7 +107,7 @@ def ocorrencia_despesas(df_log_despesas_inicial, id_casa, data_fechamento):
         .transform('min').dt.date > data_fechamento.date() # data do primeiro log é maior que a data de fechamento
     ].copy()
     
-    df_log_despesas_criadas = df_log_despesas_criadas[(df_log_despesas_criadas['Bit Cancelada'] == 0) & (df_log_despesas_criadas['ID Casa'] == id_casa)]
+    df_log_despesas_criadas = df_log_despesas_criadas[(df_log_despesas_criadas['Bit Cancelada'] == 0) & (df_log_despesas_criadas['ID Casa'] == id_casa)].copy()
     df_log_despesas_criadas.drop_duplicates(subset=['ID Despesa'], keep='first', inplace=True) # mantém apenas o primeiro registro da despesa (criação)
     
     return df_log_despesas_criadas
@@ -118,17 +118,17 @@ def despesas_alteradas_por_campo(df_log_despesas, colunas_comparar):
 
     # Seleciona e ordena as colunas para melhor visualização
     if colunas_comparar == ['Data Competência'] or colunas_comparar == ['Data Vencimento'] or colunas_comparar == ['Valor Original', 'Valor Liquido']:
-        df_alteracao = df_alteracao[['Casa', 'ID Despesa', 'Data Alteração', 'Nome Usuário', 'Email Usuário', 'Data Competência', 'Data Vencimento', 'Valor Original', 'Valor Liquido', 'Status Pagamento', 'Class. Cont. 1', 'Class. Cont. 2', 'Bit Cancelada']]
+        df_alteracao = df_alteracao[['Casa', 'ID Despesa', 'Real/Provisão', 'Data Alteração', 'Nome Usuário', 'Email Usuário', 'Data Competência', 'Data Vencimento', 'Valor Original', 'Valor Liquido', 'Status Pagamento', 'Class. Cont. 1', 'Class. Cont. 2', 'Bit Cancelada']]
     elif colunas_comparar == ['Class. Cont. 1', 'Class. Cont. 2']:
-        df_alteracao = df_alteracao[['Casa', 'ID Despesa', 'Data Alteração', 'Nome Usuário', 'Email Usuário', 'Class. Cont. 1', 'Class. Cont. 2', 'Data Competência', 'Data Vencimento', 'Valor Original', 'Valor Liquido', 'Status Pagamento', 'Bit Cancelada']]
-    elif colunas_comparar == ['Status Aprovação Operação']:
-        df_alteracao = df_alteracao[['Casa', 'ID Despesa', 'Data Alteração', 'Nome Usuário', 'Email Usuário', 'Status Aprovação Operação', 'Status Aprovação Diretoria', 'Data Competência', 'Data Vencimento', 'Valor Original', 'Valor Liquido', 'Status Pagamento', 'Class. Cont. 1', 'Class. Cont. 2', 'Bit Cancelada']]
-    elif colunas_comparar == ['Real/Provisão']:
-        df_alteracao = df_alteracao[['Casa', 'ID Despesa', 'Data Alteração', 'Nome Usuário', 'Email Usuário', 'Real/Provisão', 'Data Competência', 'Data Vencimento', 'Valor Original', 'Valor Liquido', 'Status Pagamento', 'Class. Cont. 1', 'Class. Cont. 2', 'Bit Cancelada']]
+        df_alteracao = df_alteracao[['Casa', 'ID Despesa', 'Real/Provisão', 'Data Alteração', 'Nome Usuário', 'Email Usuário', 'Class. Cont. 1', 'Class. Cont. 2', 'Data Competência', 'Data Vencimento', 'Valor Original', 'Valor Liquido', 'Status Pagamento', 'Bit Cancelada']]
+    # elif colunas_comparar == ['Status Aprovação Operação']: # stand-by
+    #     df_alteracao = df_alteracao[['Casa', 'ID Despesa', 'Real/Provisão', 'Data Alteração', 'Nome Usuário', 'Email Usuário', 'Status Aprovação Operação', 'Status Aprovação Diretoria', 'Data Competência', 'Data Vencimento', 'Valor Original', 'Valor Liquido', 'Status Pagamento', 'Class. Cont. 1', 'Class. Cont. 2', 'Bit Cancelada']]
+    # elif colunas_comparar == ['Real/Provisão']: # stand-by
+    #     df_alteracao = df_alteracao[['Casa', 'ID Despesa', 'Real/Provisão', 'Data Alteração', 'Nome Usuário', 'Email Usuário', 'Real/Provisão', 'Data Competência', 'Data Vencimento', 'Valor Original', 'Valor Liquido', 'Status Pagamento', 'Class. Cont. 1', 'Class. Cont. 2', 'Bit Cancelada']]
     elif colunas_comparar == ['Bit Cancelada']:
-        df_alteracao = df_alteracao[['Casa', 'ID Despesa', 'Data Alteração', 'Nome Usuário', 'Email Usuário', 'Bit Cancelada', 'Data Competência', 'Data Vencimento', 'Valor Original', 'Valor Liquido', 'Status Pagamento', 'Class. Cont. 1', 'Class. Cont. 2']]
+        df_alteracao = df_alteracao[['Casa', 'ID Despesa', 'Real/Provisão', 'Data Alteração', 'Nome Usuário', 'Email Usuário', 'Bit Cancelada', 'Data Competência', 'Data Vencimento', 'Valor Original', 'Valor Liquido', 'Status Pagamento', 'Class. Cont. 1', 'Class. Cont. 2']]
     elif colunas_comparar == ['Casa']:
-        df_alteracao = df_alteracao[['ID Casa', 'Casa', 'ID Despesa', 'Data Alteração', 'Nome Usuário', 'Email Usuário', 'Data Competência', 'Data Vencimento', 'Valor Original', 'Valor Liquido', 'Status Pagamento', 'Class. Cont. 1', 'Class. Cont. 2', 'Bit Cancelada']]
+        df_alteracao = df_alteracao[['ID Casa', 'Casa', 'ID Despesa', 'Real/Provisão', 'Data Alteração', 'Nome Usuário', 'Email Usuário', 'Data Competência', 'Data Vencimento', 'Valor Original', 'Valor Liquido', 'Status Pagamento', 'Class. Cont. 1', 'Class. Cont. 2', 'Bit Cancelada']]
 
     ids_com_alteracao = (
         df_alteracao
@@ -157,7 +157,7 @@ def despesas_alteradas_por_campo(df_log_despesas, colunas_comparar):
             .loc[lambda x: x > 1]
             .index
         )
-        df_alteracao = df_alteracao[~df_alteracao['ID Despesa'].isin(ids_com_cancelamento)]
+        df_alteracao = df_alteracao[~df_alteracao['ID Despesa'].isin(ids_com_cancelamento)].copy()
         df_alteracao.drop(columns=['Bit Cancelada'], inplace=True)
     
     return df_alteracao
