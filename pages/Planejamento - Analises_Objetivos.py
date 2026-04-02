@@ -89,7 +89,7 @@ with tab1:
 # Análise Interna
 with tab2:
     st.subheader('Análise da Operação')
-    if casa != 'The Cavern' and casa != 'Escritório Fabrica de Bares':
+    if casa not in ['Escritório Fabrica de Bares', 'The Cavern', 'Bar Léo - Centro', 'Love Cabaret', 'Orfeu', 'Riviera Bar', 'Terraço Notie', 'Ultra Evil Premium Ltda ']:
         st.markdown(f"""
             <div style="display: flex; flex-direction: column; gap:1em; padding:10px; border:1px solid #ccc; border-radius:8px";>
                 <span style="font-size: 16px"><b>1.</b> Análisar se essas responsabilidades são atendidas hoje pela área na FB</span>
@@ -101,3 +101,20 @@ with tab2:
         with st.container(horizontal_alignment="center"):
             st.image(f"assets/images/2026/{id_casa}_Analise_Interna.png")
     else: st.warning(f'{casa} sem dados para Análise Interna.')
+
+
+# Rotinas Gerais
+with tab3:
+    st.subheader('Exemplo de Rotinas e Entregas Gerais Esperadas da Operação')
+    if casa not in ['Escritório Fabrica de Bares', 'The Cavern', 'Bar Léo - Centro', 'Love Cabaret', 'Orfeu', 'Riviera Bar', 'Terraço Notie', 'Ultra Evil Premium Ltda ']:
+        st.markdown(f"""
+            <div style="display: flex; flex-direction: column; gap:1em; padding:10px; border:1px solid #ccc; border-radius:8px";>
+                <span style="font-size: 16px"><b>1.</b> Análisar se essas rotinas são atendidas hoje pela Operação</span>
+                <span style="font-size: 16px"><b>2.</b> Analisar e definir se essas rotinas são ou não um objetivo que deve ser buscado em {ano}</span>
+            </div>
+            """, unsafe_allow_html=True)
+        st.divider()
+    
+        with st.container(horizontal_alignment="center"):
+            st.image(f"assets/images/2026/{id_casa}_Rotinas_Gerais.png")
+    else: st.warning(f'{casa} sem dados para Exemplo de Rotinas Gerais.')
