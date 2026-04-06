@@ -243,6 +243,7 @@ def config_sidebar():
         138: "Controladoria",
         139: "Controladoria",
         141: "Planejamento Anual",
+        142: "Planejamento Anual",
     }
 
     cargo, user_name, email = config_permissoes_user()
@@ -276,7 +277,7 @@ def config_sidebar():
             "Fluxo de Caixa": [118, 120, 119],
             "Controladoria": [135, 136, 138],
             "Auditoria": [133, 134],
-            "Planejamento Anual": [141],
+            "Planejamento Anual": [141, 142],
         }
 
         # Organizar abas por secao

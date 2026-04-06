@@ -1305,10 +1305,10 @@ def calcula_linha_total(df, col_categoria, categoria, col_valor_projetado, col_v
 
 def highlight_titulos_dre(row):
     if row['Categoria'] in [
-        'Faturamento', 'Desconto sobre Venda', 'Custo Mercadoria Vendida', 'Impostos sobre Venda', 'Custos Artístico Geral', 'Custos de Eventos',
+        'Faturamento', 'Faturamento Bruto', 'Desconto sobre Venda', 'Custo Mercadoria Vendida', 'Impostos sobre Venda', 'Custos Artístico Geral', 'Custos de Eventos',
         'Gorjeta', 'Deduções sobre Venda', 'Mão de Obra - PJ', 'Mão de Obra - Salários', 'Mão de Obra - Extra', 'Mão de Obra - Encargos e Provisões', 
         'Mão de Obra - Benefícios', 'Custo de Ocupação', 'Utilidades', 'Informática e TI', 'Manutenção', 'Marketing', 
-        'Serviços de Terceiros', 'Locação de Equipamentos', 'Sistema de Franquias'
+        'Serviços de Terceiros', 'Locação de Equipamentos', 'Sistema de Franquias', 'Patrocínio'
         ]:
         return ['background-color: rgba(255, 165, 0, 0.05); color: #993300; font-weight: 500'] * len(row)
     else:

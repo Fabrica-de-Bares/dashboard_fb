@@ -3,6 +3,7 @@ import pandas as pd
 from utils.functions.general_functions import dataframe_query
 
 
+# Para Descontos - DRE
 @st.cache_data
 def GET_CASAS_SIMPLES():
     return dataframe_query('''
@@ -47,6 +48,7 @@ def GET_PROMOCOES():
   ''')
 
 
+# Para Auditoria de Despesas
 @st.cache_data
 def GET_DATAS_FECHAMENTO():
   return dataframe_query('''
@@ -244,4 +246,28 @@ def GET_ITENS_COM_CADASTRO_DUPLICADO():
         HAVING COUNT(*) > 1
     )
     ORDER BY tivc.ID_ZIGPAY;
+  ''')
+
+
+# Para Orçamento Operacional
+@st.cache_data
+def GET_ORCAMENTO_OPERACIONAL():
+  return dataframe_query('''
+    SELECT
+        te.ID AS 'ID Casa',
+        te.NOME_FANTASIA AS 'Casa',
+        to2.ANO AS 'Ano',
+        to2.MES AS 'Mês',
+        to2.VALOR AS 'Orçamento',
+        CASE
+            WHEN tccg1.DESCRICAO = 'Despesas com Transporte / Hospedagem' THEN 'Manutenção' -- considera como Despesas Gerais  
+            ELSE tccg1.DESCRICAO                            
+        END as 'Classificação Contábil 1',               
+        tccg2.DESCRICAO AS 'Classificação Contábil 2'
+    FROM T_ORCAMENTOS to2
+    JOIN T_EMPRESAS te ON (to2.FK_EMPRESA = te.ID)
+    JOIN T_CLASSIFICACAO_CONTABIL_GRUPO_1 tccg1 ON (to2.FK_CLASSIFICACAO_1 = tccg1.ID)
+    JOIN T_CLASSIFICACAO_CONTABIL_GRUPO_2 tccg2 ON (to2.FK_CLASSIFICACAO_2 = tccg2.ID)
+    WHERE FK_PLANO_DE_CONTAS = 103
+    ORDER BY te.NOME_FANTASIA, to2.MES, to2.ANO;
   ''')

@@ -1,4 +1,5 @@
 import streamlit as st
+import pandas as pd
 
 
 # Análise SWOT
@@ -47,3 +48,22 @@ def render_swot(dados, casa):
         st.markdown(render_swot_box("AMEAÇAS", "ameacas", dados["ameacas"], casa), unsafe_allow_html=True)
         st.markdown('<h6 style="text-align: center; margin-top: 15px;">FATORES EXTERNOS</h6>', unsafe_allow_html=True)
 
+
+# Orçamento Operacional
+def loop_prepara_dados_despesas(lista_categorias_orcamento, df_orcamento_filtrado, lista_df_orcamentos):
+    for categoria_orcamento in lista_categorias_orcamento:        
+        df_orcamentos = df_orcamento_filtrado[df_orcamento_filtrado['Classificação Contábil 1'] == categoria_orcamento].copy()
+        df_orcamentos = calcula_linha_total(df_orcamentos, categoria_orcamento)
+        lista_df_orcamentos.append(df_orcamentos)
+
+    return lista_df_orcamentos
+
+
+def calcula_linha_total(df, categoria):
+    colunas_numericas = df.select_dtypes(include='number').columns
+
+    nova_linha = df[colunas_numericas].sum().to_frame().T # Soma essas colunas
+    nova_linha['Classificação Contábil 2'] = categoria
+
+    df = pd.concat([nova_linha, df], ignore_index=True) # Junta com o df original
+    return df
