@@ -67,3 +67,30 @@ def calcula_linha_total(df, categoria):
 
     df = pd.concat([nova_linha, df], ignore_index=True) # Junta com o df original
     return df
+
+
+def define_linhas_calculadas(df):
+    colunas_meses = df.select_dtypes(include='number').columns
+    receita_liquida = df[df['Categoria'] == 'Faturamento Bruto'][colunas_meses].values \
+                    - df[df['Categoria'] == 'Desconto sobre Venda'][colunas_meses].values \
+                    - df[df['Categoria'] == 'Impostos sobre Venda'][colunas_meses].values
+
+    nova_linha = pd.DataFrame(receita_liquida, columns=colunas_meses)
+    nova_linha['Categoria'] = 'RECEITA LÍQUIDA'
+
+    # Insere na linha correspondente
+    indice = df[
+        df['Categoria'] == 'Impostos sobre Venda'
+    ].index.max()
+
+    df_parte1 = df.loc[:indice]
+    df_parte2 = df.loc[indice+1:]
+
+    df_final = pd.concat([
+        df_parte1,
+        nova_linha,
+        df_parte2
+    ])
+    return df_final
+
+

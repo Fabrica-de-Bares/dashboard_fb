@@ -99,13 +99,17 @@ df_orcamentos_concatenados = pd.concat(lista_df_orcamentos, ignore_index=True)
 df_orcamentos_concatenados = df_orcamentos_concatenados[['Classificação Contábil 2', 'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro']]
 df_orcamentos_concatenados.rename(columns={'Classificação Contábil 2': 'Categoria'}, inplace=True)
 
+# df_orcamentos_resumo = df_orcamentos_concatenados[df_orcamentos_concatenados['Categoria'].isin(lista_categorias_orcamento)].copy()
+# df_orcamentos_resumo = define_linhas_calculadas(df_orcamentos_resumo)
+# st.write(df_orcamentos_resumo)
+
 # Formata colunas numéricas
-df_orcamentos_concatenados = function_format_number_columns(
+df_orcamentos_concatenados_fmt = function_format_number_columns(
     df_orcamentos_concatenados,
     columns_money=[col for col in df_orcamentos_concatenados if col != 'Categoria'],
 )
 
 # Destaca linhas de título
-df_orcamentos_concatenados_styled = df_orcamentos_concatenados.style.apply(highlight_titulos_dre, axis=1) 
-height = (len(df_orcamentos_concatenados) + 1) * 35 # Define altura sem rolagem
+df_orcamentos_concatenados_styled = df_orcamentos_concatenados_fmt.style.apply(highlight_titulos_dre, axis=1) 
+height = (len(df_orcamentos_concatenados_fmt) + 1) * 35 # Define altura sem rolagem
 st.dataframe(df_orcamentos_concatenados_styled, hide_index=True, width='stretch', height=height)

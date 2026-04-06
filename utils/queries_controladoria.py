@@ -261,6 +261,9 @@ def GET_ORCAMENTO_OPERACIONAL():
         to2.VALOR AS 'Orçamento',
         CASE
             WHEN tccg1.DESCRICAO = 'Despesas com Transporte / Hospedagem' THEN 'Manutenção' -- considera como Despesas Gerais  
+            WHEN tccg2.DESCRICAO IN ('Desconto - Alimentação Escritório', 'Descontos - Marketing', 'Descontos - Operação') THEN 'Desconto sobre Venda'  
+            WHEN tccg2.DESCRICAO IN ('MDO Terceirizada - Artístico') THEN 'Custos Artístico Geral'
+            WHEN tccg2.DESCRICAO IN ('MDO Terceirizada - Eventos') THEN 'Custos de Eventos'                 
             ELSE tccg1.DESCRICAO                            
         END as 'Classificação Contábil 1',               
         tccg2.DESCRICAO AS 'Classificação Contábil 2'
