@@ -99,17 +99,80 @@ df_orcamentos_concatenados = pd.concat(lista_df_orcamentos, ignore_index=True)
 df_orcamentos_concatenados = df_orcamentos_concatenados[['Classificação Contábil 2', 'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro']]
 df_orcamentos_concatenados.rename(columns={'Classificação Contábil 2': 'Categoria'}, inplace=True)
 
-# df_orcamentos_resumo = df_orcamentos_concatenados[df_orcamentos_concatenados['Categoria'].isin(lista_categorias_orcamento)].copy()
-# df_orcamentos_resumo = define_linhas_calculadas(df_orcamentos_resumo)
-# st.write(df_orcamentos_resumo)
+# Cria colunas de acumulado do ano e trimestres
+colunas_meses = df_orcamentos_concatenados.select_dtypes(include='number').columns
+df_orcamentos_concatenados[f'Ano {ano}'] = df_orcamentos_concatenados[colunas_meses].sum(axis=1)
+df_orcamentos_concatenados['1º Trimestre'] = df_orcamentos_concatenados[['Janeiro', 'Fevereiro', 'Março']].sum(axis=1)
+df_orcamentos_concatenados['2º Trimestre'] = df_orcamentos_concatenados[['Abril', 'Maio', 'Junho']].sum(axis=1)
+df_orcamentos_concatenados['3º Trimestre'] = df_orcamentos_concatenados[['Julho', 'Agosto', 'Setembro']].sum(axis=1)
+df_orcamentos_concatenados['4º Trimestre'] = df_orcamentos_concatenados[['Outubro', 'Novembro', 'Dezembro']].sum(axis=1)
 
-# Formata colunas numéricas
-df_orcamentos_concatenados_fmt = function_format_number_columns(
-    df_orcamentos_concatenados,
-    columns_money=[col for col in df_orcamentos_concatenados if col != 'Categoria'],
+# Df apenas com os títulos das seções principais
+df_orcamentos_resumo = df_orcamentos_concatenados[df_orcamentos_concatenados['Categoria'].isin(lista_categorias_orcamento)].copy()
+
+# Calcula porcentagens e outros valores
+colunas_numericas = df_orcamentos_resumo.select_dtypes(include='number').columns
+df_orcamentos_resumo = define_linhas_calculadas(df_orcamentos_resumo, df_orcamentos_concatenados, lista_categorias_orcamento, colunas_numericas)
+height = (len(df_orcamentos_resumo) + 1) * 35 # Define altura sem rolagem
+
+st.subheader('Resumo do Orçamento')
+df_orcamentos_resumo_styled = df_orcamentos_resumo.copy()
+df_orcamentos_resumo_styled.loc[df_orcamentos_resumo_styled['Categoria'] == 'Faturamento Bruto', 'Categoria'] = df_orcamentos_resumo_styled['Categoria'].str.upper()
+
+linhas_percentual = df_orcamentos_resumo_styled['Categoria'].str.contains('%')
+linhas_moeda = ~linhas_percentual
+
+colunas_valores = df_orcamentos_resumo_styled.columns.drop('Categoria')
+
+# Aplica estilos e formatação de porcentagens e moeda
+df_orcamentos_resumo_styled = (
+    df_orcamentos_resumo_styled.style
+    .format(formatar_porcentagem, subset=pd.IndexSlice[linhas_percentual, colunas_valores])
+    .format(formatar_moeda_br, subset=pd.IndexSlice[linhas_moeda, colunas_valores])
+    .apply(highlight_secoes_dre, axis=1)
 )
 
-# Destaca linhas de título
-df_orcamentos_concatenados_styled = df_orcamentos_concatenados_fmt.style.apply(highlight_titulos_dre, axis=1) 
-height = (len(df_orcamentos_concatenados_fmt) + 1) * 35 # Define altura sem rolagem
-st.dataframe(df_orcamentos_concatenados_styled, hide_index=True, width='stretch', height=height)
+df_orcamentos_resumo_styled = df_orcamentos_resumo_styled.apply(highlight_secoes_dre, axis=1) 
+st.dataframe(df_orcamentos_resumo_styled, hide_index=True, width='stretch', height=height)
+st.divider()
+
+
+st.subheader('Informações detalhadas por categoria')
+for df in lista_df_orcamentos:
+    class_cont = df['Classificação Contábil 2'].iloc[0]
+    if class_cont == 'Faturamento Bruto': expandido = True
+    else: expandido = False
+
+    with st.expander(f'Visualizar orçamentos de {class_cont}', expanded=expandido):
+        df_formatado = df[['Classificação Contábil 2', 'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro']]
+        df_formatado = df_formatado[df_formatado['Classificação Contábil 2'] != class_cont].copy()
+        df_formatado.rename(columns={'Classificação Contábil 2': 'Categoria'}, inplace=True)
+
+        # Cria colunas de acumulado do ano e trimestres
+        colunas_meses = df_formatado.select_dtypes(include='number').columns
+        df_formatado[f'Ano {ano}'] = df_formatado[colunas_meses].sum(axis=1)
+        df_formatado['1º Trimestre'] = df_formatado[['Janeiro', 'Fevereiro', 'Março']].sum(axis=1)
+        df_formatado['2º Trimestre'] = df_formatado[['Abril', 'Maio', 'Junho']].sum(axis=1)
+        df_formatado['3º Trimestre'] = df_formatado[['Julho', 'Agosto', 'Setembro']].sum(axis=1)
+        df_formatado['4º Trimestre'] = df_formatado[['Outubro', 'Novembro', 'Dezembro']].sum(axis=1)
+
+        # Formata colunas numéricas
+        df_formatado = function_format_number_columns(
+            df_formatado,
+            columns_money=[col for col in df_orcamentos_concatenados if col != 'Categoria'],
+        )
+        height = (len(df_formatado) + 1) * 35 # Define altura sem rolagem
+        st.dataframe(df_formatado, hide_index=True, width='stretch', height=height)
+
+
+
+# # Formata colunas numéricas
+# df_orcamentos_concatenados_fmt = function_format_number_columns(
+#     df_orcamentos_concatenados,
+#     columns_money=[col for col in df_orcamentos_concatenados if col != 'Categoria'],
+# )
+
+# # Destaca linhas de título
+# df_orcamentos_concatenados_styled = df_orcamentos_concatenados_fmt.style.apply(highlight_titulos_dre, axis=1) 
+# height = (len(df_orcamentos_concatenados_fmt) + 1) * 35 # Define altura sem rolagem
+# st.dataframe(df_orcamentos_concatenados_styled, hide_index=True, width='stretch', height=height)
