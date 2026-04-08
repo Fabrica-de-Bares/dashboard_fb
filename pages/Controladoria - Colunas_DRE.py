@@ -43,6 +43,7 @@ col1, col2 = st.columns(2)
 with col1:
     df_casas = GET_CASAS()
     casas = df_casas['Casa'].tolist()
+    casas = [casa for casa in casas if casa not in ['Bar Brahma Paulista', 'Blue Note SP (Novo)', 'Edificio Rolim', 'Sanduiche comunicação LTDA ', 'Tempus Fugit  Ltda ']]
     casa = st.selectbox("Selecione a casa referente ao arquivo:", casas)
     if casa == 'Blue Note - São Paulo':
         nome_casa = 'Blue Note SP'
@@ -56,7 +57,7 @@ with col1:
     id_casa = mapeamento_casas[casa]
     
 with col2:
-    ano = seletor_ano(2024, 2026, 'ano', 'Selecione o ano refente ao arquivo:')
+    ano = seletor_ano(2023, 2026, 'ano', 'Selecione o ano refente ao arquivo:')
 
 st.divider()
 
@@ -190,28 +191,32 @@ elif tipo_formatacao == 'Coluna "Real" DRE':
         df = pd.read_excel(uploaded_file, skiprows=3)
         df_transformado = df.copy()
         st.divider()
-        
-        # Removendo colunas e linhas desnecessárias 
-        df_transformado.drop(columns=['Unnamed: 1', 'Unnamed: 2', 'Unnamed: 3', 'Unnamed: 4', 'Unnamed: 5', 'Unnamed: 6'], inplace=True)
-        for col in df_transformado.columns:
-            if col in ['Unnamed: 20', 'Unnamed: 21']: 
-                df_transformado.drop(columns=col, inplace=True)
-        df_transformado = df_transformado.dropna(subset=['Unnamed: 0'])
 
+        # Removendo colunas e linhas desnecessárias - seleciona pelo índice da coluna em vez do nome
+        if ano == 2025 or ano == 2024: # 2025 vem do arquivo de 2026 e 2024 vem do de 2025
+            df_transformado = df_transformado.iloc[:, [0, 7, 10, 13, 16, 19, 22, 25, 28, 31, 34, 37, 40, 46]]
+            colunas_meses = df_transformado.columns[[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]] # Define quais são as colunas de meses e acumulado do ano
+        
+        elif ano == 2026: # Por enquanto, só temos DRE/2026 até Fevereiro - usa o arquivo do ano atual
+            df_transformado = df_transformado.iloc[:, [0, 9, 12]] # Incluir [[15, 18, 20, 24, 27, 30, 33, 36, 39, 42, 48]]
+            df_transformado.rename(columns={ # Renomeia para ter referência do mês
+                        'Unnamed: 9': '2026-01-01 00:00:00',
+                        'Unnamed: 12': '2026-02-01 00:00:00'
+                    }, inplace=True)
+            colunas_meses = df_transformado.columns[[1, 2]] # Define quais são as colunas de meses e acumulado do ano
+
+        df_transformado = df_transformado.dropna(subset=['Unnamed: 0'])
+        
         # Remove todas as linhas abaixo disso (só considera até Saldo Operacional)
-        if casa != 'Girondino':
-            indice = df_transformado[df_transformado['Unnamed: 0'] == 'Premissas e parâmetros usados...'].index 
-            if not indice.empty:
-                df_transformado = df_transformado.loc[:indice[0] - 1]
-            df_transformado = df_transformado.iloc[:-1]
-        else: 
-            df_transformado = df_transformado.copy()
+        indice = df_transformado[df_transformado['Unnamed: 0'] == 'Premissas e parâmetros usados...'].index 
+        if not indice.empty:
+            df_transformado = df_transformado.loc[:indice[0] - 1]
+        df_transformado = df_transformado.iloc[:-1]
 
         # Aplica tratamentos numéricos
         df_transformado = df_transformado.fillna(0)
 
         # Muda formato do df
-        colunas_meses = df_transformado.columns[[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]]
         df_layout_final = df_transformado.melt(
             id_vars=['Unnamed: 0'],
             value_vars=colunas_meses,
@@ -221,7 +226,7 @@ elif tipo_formatacao == 'Coluna "Real" DRE':
         df_layout_final['Valor'] = df_layout_final['Valor'].astype(float)
 
         # Cria coluna de data
-        condicao = (df_layout_final['Mes'] == 'ANO') | (df_layout_final['Mes'] == 'ANO 2025')
+        condicao = (df_layout_final['Mes'] == 'ANO') | (df_layout_final['Mes'] == 'ANO 2025') | (df_layout_final['Mes'] == 'Ano 2024')
         df_layout_final.loc[condicao, 'Mes_atualizado'] = pd.Timestamp(
             year=int(ano),
             month=12,
@@ -259,13 +264,4 @@ elif tipo_formatacao == 'Coluna "Real" DRE':
 
         st.dataframe(df_download, hide_index=True)
         
-        # Botão para inserir dados do df no epm
-        # if st.button("Inserir dados no banco", type='primary'):
-        #     id_casa_selecionada = id_casa
-        #     ano_selecionado = pd.Timestamp(
-        #         year=int(ano),
-        #         month=1,
-        #         day=1
-        #     )
-        #     inserir_df_no_banco(df_download, conn, id_casa_selecionada, ano_selecionado, casa, ano)
-
+        
