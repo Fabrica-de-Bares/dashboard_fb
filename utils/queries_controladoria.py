@@ -183,7 +183,8 @@ def GET_FATURAMENTO_ZIGPAY_VALIDACAO(lista_ids_zigpay, mes, ano):
             DATE_FORMAT(tiv.EVENT_DATE, '%m/%Y') AS Mes_Texto,
             SUM((tiv.UNIT_VALUE * tiv.COUNT)) AS Soma_Valor_Transacao_Bruto,
             SUM(tiv.DISCOUNT_VALUE) AS Soma_Desconto,
-            SUM((tiv.UNIT_VALUE * tiv.COUNT) - tiv.DISCOUNT_VALUE) AS Soma_Valor_Transacao_Liquido
+            SUM((tiv.UNIT_VALUE * tiv.COUNT) - tiv.DISCOUNT_VALUE) AS Soma_Valor_Transacao_Liquido,
+            tivc2.DESCRICAO AS Categoria
         FROM T_ITENS_VENDIDOS tiv
         LEFT JOIN T_ITENS_VENDIDOS_CADASTROS tivc 
             ON tiv.PRODUCT_ID = tivc.ID_ZIGPAY
@@ -194,9 +195,15 @@ def GET_FATURAMENTO_ZIGPAY_VALIDACAO(lista_ids_zigpay, mes, ano):
         WHERE MONTH(tiv.EVENT_DATE) = %s 
           AND YEAR(tiv.EVENT_DATE) = %s
           AND te.FK_GRUPO_EMPRESA = 100
-          AND tivc2.ID IN (100,101,102,103,104)
+          AND tivc2.ID IN (
+            100, -- Alimentos
+            101, -- Bebidas
+            102, -- Couvert
+            103, -- Gifts
+            104 -- Estacionamento
+          )
           AND te.ID_ZIGPAY IN ({placeholders})
-        GROUP BY te.ID, CAST(tiv.EVENT_DATE AS DATE)
+        GROUP BY te.ID, tivc2.ID, CAST(tiv.EVENT_DATE AS DATE)
         ORDER BY tiv.EVENT_DATE
     '''
 
