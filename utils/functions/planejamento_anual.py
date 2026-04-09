@@ -118,15 +118,15 @@ def define_linhas_calculadas(df_orcamentos_resumo, df_orcamentos_concatenados, l
         df_orcamentos_concatenados[df_orcamentos_concatenados['Categoria'] == 'Eventos A&B'][colunas_meses].sum() +
         df_orcamentos_concatenados[df_orcamentos_concatenados['Categoria'] == 'Delivery'][colunas_meses].sum()
     )
-    porc_receita_bruta_cmv = (cmv / receita_bruta) * 100
+    porc_receita_bruta_cmv = (cmv / receita_bruta)
     df_final = insere_nova_linha(df_final, colunas_meses, porc_receita_bruta_cmv, 'Custo Mercadoria Vendida', '% sobre Receita Bruta')
     
     # % sobre Receita Líquida - CMV
-    porc_receita_liquida_cmv = (cmv / receita_liquida * 100).round(2)
+    porc_receita_liquida_cmv = (cmv / receita_liquida).round(2)
     df_final = insere_nova_linha(df_final, colunas_meses, porc_receita_liquida_cmv, '% sobre Receita Bruta', '% sobre Receita Líquida')
 
     # % sobre Receita Artístico
-    porc_receita_artistico = (custos_artistico / faturamento_artistico * 100).round(2)
+    porc_receita_artistico = (custos_artistico / faturamento_artistico).round(2)
     df_final = insere_nova_linha(df_final, colunas_meses, porc_receita_artistico, 'Custos Artístico Geral', '% sobre Receita Artístico')
 
     # % sobre Receita de Eventos
@@ -135,7 +135,7 @@ def define_linhas_calculadas(df_orcamentos_resumo, df_orcamentos_concatenados, l
         df_orcamentos_concatenados[df_orcamentos_concatenados['Categoria'] == 'Eventos Locações'][colunas_meses].sum() +
         df_orcamentos_concatenados[df_orcamentos_concatenados['Categoria'] == 'Eventos Couvert'][colunas_meses].sum() 
     )
-    porc_receita_eventos = (custos_eventos / faturamento_eventos.replace(0, np.nan) * 100).round(2)
+    porc_receita_eventos = (custos_eventos / faturamento_eventos.replace(0, np.nan)).round(2)
     df_final = insere_nova_linha(df_final, colunas_meses, porc_receita_eventos, 'Custos de Eventos', '% sobre Receita de Eventos')
 
     # PESSOAL
@@ -183,7 +183,7 @@ def define_linhas_calculadas(df_orcamentos_resumo, df_orcamentos_concatenados, l
         # Casos específicos (não pedem o cálculo ou foram calculados acima)
         if categoria not in ['Faturamento Bruto', 'Custo Mercadoria Vendida', 'Impostos sobre Venda', 'Mão de Obra - PJ', 'Mão de Obra - Salários', 'Mão de Obra - Extra', 'Mão de Obra - Encargos e Provisões', 'Mão de Obra - Benefícios', 'Patrocínio']:
             custos_categoria = df_final[df_final['Categoria'] == categoria][colunas_meses].sum()
-            porc_faturamento_bruto_categoria = (custos_categoria / faturamento_bruto * 100).round(2)
+            porc_faturamento_bruto_categoria = (custos_categoria / faturamento_bruto).round(2)
             if categoria == 'PESSOAL':
                 apos_linha = 'Mão de Obra - Benefícios'
             else:
@@ -197,19 +197,25 @@ def define_linhas_calculadas(df_orcamentos_resumo, df_orcamentos_concatenados, l
 # Funções de estilos (cores) e formatações numéricas
 def highlight_secoes_dre(row):
     if row['Categoria'] in [
-        'Desconto sobre Venda', 'Custo Mercadoria Vendida', 'Impostos sobre Venda', 'Custos Artístico Geral', 'Custos de Eventos',
-        'Gorjeta', 'Deduções sobre Venda', 'PESSOAL', 'Custo de Ocupação', 'Utilidades', 'Informática e TI', 'Manutenção', 'Marketing', 
-        'Serviços de Terceiros', 'Locação de Equipamentos', 'Sistema de Franquias', 'TOTAL - DESPESAS OPERATIVAS', 'Patrocínio'
+        'Desconto sobre Venda', '(-) Desconto sobre Venda', 'Custo Mercadoria Vendida', '(-) Custo Mercadoria Vendida', 
+        'Impostos sobre Venda', '(-) Impostos sobre Venda', 'Custos Artístico Geral', '(-) Custos Artístico Geral', 
+        'Custos de Eventos', '(-) Custos Eventos', 'Gorjeta', '(-) Dedução da Gorjeta', 'Deduções sobre Venda', '(-) Deduções sobre Venda', 
+        'PESSOAL', 'Custo de Ocupação', 'Utilidades', 'Informática e TI', 'Manutenção', 'Despesas Gerais', 'Marketing', 
+        'Serviços de Terceiros', 'Locação de Equipamentos', 'Sistema de Franquias', 'TOTAL - DESPESAS OPERATIVAS', 
+        '(+/-) Receitas/Despesas Financeiras', 'Patrocínio', '(+) Receitas de Patrocínio', '(-) Despesas de Patrocínio', '(-) Impostos', 
+        '(-) CAPEX (Investimentos)', '(+/-) Outras variações no fluxo de caixa', 'Total - Variações s/ Resultado Líquido'
         ]:
         return ['background-color: rgba(255, 165, 0, 0.05); color: #993300; font-weight: 500'] * len(row)
     
-    elif row['Categoria'] in ['FATURAMENTO BRUTO', 'RECEITA LÍQUIDA', 'MARGEM BRUTA DE CONTRIBUIÇÃO', 'EBITDA', 'EBIT']:
+    elif row['Categoria'] in ['FATURAMENTO BRUTO', 'RECEITA LÍQUIDA', 'MARGEM BRUTA DE CONTRIBUIÇÃO', 'EBITDA', 'EBIT', 'Resultado Antes do IR', 'Resultado Líquido']:
         return ['background-color: #E8F2FC; color: black; font-weight: 500'] * len(row)
     
-    elif row['Categoria'] in ['% sobre Receita Bruta', '% sobre Receita Líquida', '% sobre Receita Artístico', '% sobre Receita de Eventos']:
+    elif row['Categoria'] in ['% sobre Receita Bruta', '% sobre Receita Líquida', '% sobre Receita Artístico', '% sobre Receita de Eventos', 'FCF', 'Saldo Operacional']:
         return ['background-color: #FFFFFF; color: black; font-weight: 500'] * len(row)
 
-    elif row['Categoria'] in ['Mão de Obra - PJ', 'Mão de Obra - Salários', 'Mão de Obra - Extra', 'Mão de Obra - Encargos e Provisões', 'Mão de Obra - Benefícios',]:
+    elif row['Categoria'] in [
+        'Mão de Obra - PJ', 'PJ', 'Mão de Obra - Salários', 'MDO CLT - Salário', 'Mão de Obra - Extra', 'E-Staff', 
+        'Mão de Obra - Encargos e Provisões', 'Encargos e Provisões', 'Mão de Obra - Benefícios', 'Benefícios', 'Outros B']:
         return ['background-color: #FFFFFF; color: #993300; font-weight: 500'] * len(row)
 
     else:
@@ -225,5 +231,8 @@ def formatar_moeda_br(valor):
 def formatar_porcentagem(valor):
     if pd.isna(valor):
         return ""
-    return f"{valor:,.2f}%".replace(".", ",")
+    elif valor < 0:
+        return f"{valor * (-100):,.2f}%".replace(".", ",")
+    else:
+        return f"{valor * 100:,.2f}%".replace(".", ",")
 

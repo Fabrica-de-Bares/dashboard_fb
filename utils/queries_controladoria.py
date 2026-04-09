@@ -274,3 +274,18 @@ def GET_ORCAMENTO_OPERACIONAL():
     WHERE FK_PLANO_DE_CONTAS = 103
     ORDER BY te.NOME_FANTASIA, to2.MES, to2.ANO;
   ''')
+
+
+@st.cache_data
+def GET_HISTORICO_REAL_DRE():
+  return dataframe_query('''
+    SELECT
+        te.ID AS 'ID Casa',
+        te.NOME_FANTASIA AS 'Casa',
+        tvr.MES AS 'Mês',
+        tvr.CATEGORIA AS 'Categoria',
+        CAST(tvr.VALOR AS DECIMAL(10,2)) AS 'Valor'                                                           
+    FROM T_VALORES_REAIS_DRE AS tvr
+    JOIN T_EMPRESAS te ON (tvr.FK_EMPRESA = te.ID)
+    # ORDER BY te.NOME_FANTASIA, tvr.MES;
+  ''')
