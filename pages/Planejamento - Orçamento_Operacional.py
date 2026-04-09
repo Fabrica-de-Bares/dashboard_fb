@@ -196,7 +196,7 @@ if tipo_valor == 'Orçamento Operacional':
 
 
 else: # Histórico Real
-    if casa == 'The Cavern' and (ano < 2026):
+    if casa == 'The Cavern' and ano < 2026:
         st.warning(f'{casa} sem dados para {ano}.')
         st.stop()
 
@@ -204,13 +204,16 @@ else: # Histórico Real
         (df_historico_real_dre['Casa'] == casa) &
         (df_historico_real_dre['Mês'].dt.year == ano)
     ].copy()
+
+    if df_real_dre_filtrado.empty:
+        st.warning(f'{casa} sem dados para {ano}.')
+        st.stop()
     
     # Para manter categorias com o mesmo nome
     df_real_dre_filtrado['id_linha'] = df_real_dre_filtrado.groupby(['Categoria', 'Mês']).cumcount()
 
     # ordem original das categorias
     df_real_dre_filtrado['ordem'] = range(len(df_real_dre_filtrado))
-    st.write(df_real_dre_filtrado)
 
     # Transforma meses em colunas
     df_real_dre_pivot = df_real_dre_filtrado.pivot_table(
