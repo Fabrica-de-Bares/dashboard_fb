@@ -2,8 +2,8 @@ import streamlit as st
 import pandas as pd
 from utils.functions.general_functions import config_sidebar
 from utils.functions.planejamento_anual import *
-from utils.functions.forecast import highlight_titulos_dre
 from utils.functions.cmv_teorico_fichas_tecnicas import function_format_number_columns
+from utils.functions.general_functions_conciliacao import calcular_datas
 from utils.components import button_download, seletor_ano, input_selecao_casas
 from utils.queries_controladoria import *
 
@@ -237,12 +237,21 @@ else: # Histórico Real
         '10': 'Outubro', '11': 'Novembro', '12': 'Dezembro'
     }
 
-    ultima_data = max([col for col in df_real_dre_formatado.columns if isinstance(col, pd.Timestamp)])
-    df_real_dre_formatado.columns = [
-        'Ano' if col == ultima_data
-        else meses[col.strftime('%m')] if isinstance(col, pd.Timestamp)
-        else col
-        for col in df_real_dre_formatado.columns
+    datas = calcular_datas()
+    if ano != datas['ano_atual']: # Para outros anos, renomeia a última coluna como 'Ano'
+        ultima_data = max([col for col in df_real_dre_formatado.columns if isinstance(col, pd.Timestamp)])
+        df_real_dre_formatado.columns = [
+            'Ano' if col == ultima_data
+            else meses[col.strftime('%m')] if isinstance(col, pd.Timestamp)
+            else col
+            for col in df_real_dre_formatado.columns
+        ]
+    else: # Para não renomear o mês mais recente do ano atual como 'Ano' 
+        df_real_dre_formatado.columns = [
+            col if col == pd.Timestamp('2025-12-31')
+            else meses[col.strftime('%m')] if isinstance(col, pd.Timestamp)
+            else col
+            for col in df_real_dre_formatado.columns
     ]
     
     st.subheader(f'DRE Real - {ano}')
