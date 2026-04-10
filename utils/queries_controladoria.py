@@ -281,3 +281,47 @@ def GET_ORCAMENTO_OPERACIONAL():
     WHERE FK_PLANO_DE_CONTAS = 103
     ORDER BY te.NOME_FANTASIA, to2.MES, to2.ANO;
   ''')
+
+
+# Acessos - Dashboard
+@st.cache_data
+def GET_USUARIOS_CARGOS():
+  return dataframe_query(f'''
+    SELECT 
+      au.ID AS 'ID Usuário',
+      au.LOGIN AS 'Login Usuário',
+      au.FULL_NAME AS 'Nome Usuário',
+      tc.NOME_CARGO AS 'Cargo',
+      te.NOME_FANTASIA AS 'Empresa'
+    FROM T_USUARIOS_EMPRESAS_DASH AS tue
+    LEFT JOIN ADMIN_USERS AS au ON (tue.FK_USUARIO = au.ID)
+    LEFT JOIN T_EMPRESAS AS te ON (tue.FK_EMPRESA = te.ID)
+    LEFT JOIN T_USUARIO_CARGO_DASH AS tuc ON (tue.FK_USUARIO = tuc.FK_USUARIO)
+    LEFT JOIN T_CARGO_DASH AS tc ON (tuc.FK_CARGO = tc.ID);
+  ''')
+
+
+@st.cache_data
+def GET_CARGOS_ABAS():
+  return dataframe_query(f'''
+    SELECT 
+      tc.NOME_CARGO AS 'Cargo',
+      ta.NOME_ABA AS 'Abas Liberadas'
+    FROM T_CARGO_DASH AS tc 
+    RIGHT JOIN T_CARGO_ABA_DASH AS tca ON (tc.ID = tca.FK_CARGO) # Não trazer cargos sem abas definidas
+    LEFT JOIN T_ABAS_DASH AS ta ON (tca.FK_ABA = ta.ID)
+    WHERE tc.NOME_CARGO != 'Teste';
+  ''')
+
+
+@st.cache_data
+def GET_TODAS_CASAS():
+  return dataframe_query(f'''
+    SELECT 
+      te.NOME_FANTASIA AS 'Casa'                
+    FROM T_EMPRESAS AS te
+    LEFT JOIN T_USUARIOS_EMPRESAS_DASH AS tue ON (te.ID = tue.FK_EMPRESA)
+    LEFT JOIN T_USUARIO_CARGO_DASH AS tuc ON (tue.FK_USUARIO = tuc.FK_USUARIO)
+    LEFT JOIN T_CARGO_DASH AS tc ON (tuc.FK_CARGO = tc.ID)                     
+    WHERE tc.NOME_CARGO = 'Dev';
+  ''')
