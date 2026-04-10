@@ -104,7 +104,7 @@ df_producao_total = config_producao_agregada(df_producao_alimentos, df_producao_
 
 # Layout DRE
 valoracao_estoque_atual_alimentos, valoracao_estoque_atual_bebidas, valoracao_estoque_mes_anterior_alimentos, valoracao_estoque_mes_anterior_bebidas = config_valoracao_estoque_valores(df_valoracao_estoque_atual, df_valoracao_estoque_mes_anterior)
-
+st.write(faturamento_bruto_alimentos)
 
 df_producao_alimentos.drop(columns=['ID_Loja', 'Loja'], inplace=True)
 df_producao_bebidas.drop(columns=['ID_Loja', 'Loja'], inplace=True)
@@ -135,13 +135,19 @@ cmv_alimentos_e_bebidas = cmv_alimentos + cmv_bebidas
 faturamento_total_alimentos = faturamento_bruto_alimentos + faturamento_alimentos_delivery + faturamento_alimentos_eventos
 faturamento_total_bebidas = faturamento_bruto_bebidas + faturamento_bebidas_delivery + faturamento_bebidas_eventos
 
-if faturamento_total_alimentos != 0 and faturamento_total_bebidas != 0:
+if faturamento_total_alimentos != 0:
   cmv_percentual_alim = (cmv_alimentos / faturamento_total_alimentos) * 100
-  cmv_percentual_bebidas = (cmv_bebidas / faturamento_total_bebidas) * 100
-  cmv_percentual_geral = ((cmv_alimentos + cmv_bebidas)/(faturamento_total_alimentos+faturamento_total_bebidas)) * 100
 else:
   cmv_percentual_alim = 0
+
+if faturamento_total_bebidas != 0:
+  cmv_percentual_bebidas = (cmv_bebidas / faturamento_total_bebidas) * 100
+else:
   cmv_percentual_bebidas = 0
+
+if faturamento_total_alimentos + faturamento_total_bebidas != 0:
+  cmv_percentual_geral = ((cmv_alimentos + cmv_bebidas)/(faturamento_total_alimentos + faturamento_total_bebidas)) * 100
+else:
   cmv_percentual_geral = 0
 
 df_cmv_dre_download = pd.DataFrame({
