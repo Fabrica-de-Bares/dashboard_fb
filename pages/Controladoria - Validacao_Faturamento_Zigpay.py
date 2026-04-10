@@ -110,6 +110,10 @@ def main():
         'Soma_Valor_Transacao_Liquido': 'Faturamento Itens Líquido',
     }, inplace=True)
 
+    # Se a casa selecionada for o Arcos, remove as linhas de faturamento de Couvert
+    if id_casa == 122:
+        df_itens_vendidos.drop(df_itens_vendidos[df_itens_vendidos['Categoria'] == 'Couvert'].index, inplace=True)
+
     # Agrupa por dia se houver mais de um evento no mesmo dia
     df_itens_vendidos = df_itens_vendidos.groupby(['Data Evento']).agg({
         'Faturamento Itens Bruto': 'sum',

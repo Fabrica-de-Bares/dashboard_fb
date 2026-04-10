@@ -63,13 +63,16 @@ def adiciona_gerentes(vendedores, vendedores_cargos, id_casa):
                 vendedores.append(item['ID - Responsavel'])
     return vendedores
 
-def calcular_comissao_gerente_priceless(df_recebimentos_total_mes, id_responsavel, id_casa):
+def calcular_comissao_gerente_priceless(df_recebimentos_total_mes, id_responsavel, id_casa, meta_atingida):
     if id_casa in [149, -1]:
         df_recebimentos_total_mes = df_recebimentos_total_mes[df_recebimentos_total_mes['ID Casa'] == 149].copy()
 
         if not df_recebimentos_total_mes.empty:
             # Adiciona coluna de porcentagem da comissão de gerente
-            df_recebimentos_total_mes['% Comissão'] = 0.5
+            if meta_atingida:
+                df_recebimentos_total_mes['% Comissão'] = 1.0
+            else:
+                df_recebimentos_total_mes['% Comissão'] = 0.5
             
             # Calcula a comissão para cada recebimento
             df_recebimentos_total_mes['Comissão'] = (df_recebimentos_total_mes['Valor da Parcela'] * 0.005)
