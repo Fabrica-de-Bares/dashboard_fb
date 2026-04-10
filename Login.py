@@ -53,6 +53,7 @@ ABAS = {
     139: {'nome_aba': '✅ Validação de Faturamento Zigpay', 'page_link': 'pages/Controladoria - Validacao_Faturamento_Zigpay.py'},
     141: {'nome_aba': '📜 Análises e Objetivos', 'page_link': 'pages/Planejamento - Analises_Objetivos.py'},
     142: {'nome_aba': '💰 Orçamento Operacional', 'page_link': 'pages/Planejamento - Orçamento_Operacional.py'},
+    143: {'nome_aba': '👥 Acessos Usuários - Dashboard', 'page_link': 'pages/Controladoria - Acessos_Dashboard.py'},
 }
 
 def main():
