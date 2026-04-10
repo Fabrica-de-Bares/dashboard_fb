@@ -193,11 +193,30 @@ elif tipo_formatacao == 'Coluna "Real" DRE':
         st.divider()
 
         # Removendo colunas e linhas desnecessárias - seleciona pelo índice da coluna em vez do nome
-        if ano == 2025 or ano == 2024: # 2025 vem do arquivo de 2026 e 2024 vem do de 2025
+        if ano == 2024: # 2024 vem do arquivo de Jan/2025
             df_transformado = df_transformado.iloc[:, [0, 7, 10, 13, 16, 19, 22, 25, 28, 31, 34, 37, 40, 46]]
             colunas_meses = df_transformado.columns[[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]] # Define quais são as colunas de meses e acumulado do ano
         
-        elif ano == 2026: # Por enquanto, só temos DRE/2026 até Fevereiro - usa o arquivo do ano atual
+        elif ano == 2025: # 2025 vem do arquivo de Dez/2025
+            df_transformado = df_transformado.iloc[:, [0, 9, 12, 15, 18, 21, 24, 27, 30, 33, 36, 39, 42, 48]]
+            df_transformado.rename(columns={ # Renomeia para ter referência do mês
+                        'Unnamed: 9': '2026-01-01 00:00:00',
+                        'Unnamed: 12': '2026-02-01 00:00:00',
+                        'Unnamed: 15': '2026-03-01 00:00:00',
+                        'Unnamed: 18': '2026-04-01 00:00:00',
+                        'Unnamed: 21': '2026-05-01 00:00:00',
+                        'Unnamed: 23': '2026-06-01 00:00:00',
+                        'Unnamed: 27': '2026-07-01 00:00:00',
+                        'Unnamed: 30': '2026-08-01 00:00:00',
+                        'Unnamed: 33': '2026-09-01 00:00:00',
+                        'Unnamed: 36': '2026-10-01 00:00:00',
+                        'Unnamed: 39': '2026-11-01 00:00:00',
+                        'Unnamed: 42': '2026-12-01 00:00:00',
+                        'Unnamed: 48': 'ANO',
+                    }, inplace=True)
+            colunas_meses = df_transformado.columns[[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]] # Define quais são as colunas de meses e acumulado do ano
+
+        elif ano == 2026: # Por enquanto, só temos DRE/2026 até Fevereiro
             df_transformado = df_transformado.iloc[:, [0, 9, 12]] # Incluir [[15, 18, 20, 24, 27, 30, 33, 36, 39, 42, 48]]
             df_transformado.rename(columns={ # Renomeia para ter referência do mês
                         'Unnamed: 9': '2026-01-01 00:00:00',

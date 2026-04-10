@@ -325,3 +325,18 @@ def GET_TODAS_CASAS():
     LEFT JOIN T_CARGO_DASH AS tc ON (tuc.FK_CARGO = tc.ID)                     
     WHERE tc.NOME_CARGO = 'Dev';
   ''')
+       
+                         
+@st.cache_data
+def GET_HISTORICO_REAL_DRE():
+  return dataframe_query('''
+    SELECT
+        te.ID AS 'ID Casa',
+        te.NOME_FANTASIA AS 'Casa',
+        tvr.MES AS 'Mês',
+        tvr.CATEGORIA AS 'Categoria',
+        CAST(tvr.VALOR AS DECIMAL(10,2)) AS 'Valor'                                                           
+    FROM T_VALORES_REAIS_DRE AS tvr
+    JOIN T_EMPRESAS te ON (tvr.FK_EMPRESA = te.ID)
+    # ORDER BY te.NOME_FANTASIA, tvr.MES;
+  ''')
