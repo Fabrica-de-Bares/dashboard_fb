@@ -319,8 +319,6 @@ def config_valoracao_estoque(data_inicio, data_fim, loja):
 
   if loja == 'Blue Note - Agregado':
     loja = 'Blue Note - São Paulo'
-  elif loja == 'Girondino - Agregado':
-    loja = 'Girondino'
   elif loja == 'The Cavern - Agregado':
     loja = 'The Cavern'
 
@@ -369,6 +367,7 @@ def config_diferenca_estoque(df_valoracao_estoque_atual, df_valoracao_estoque_me
 
   df_diferenca_estoque = df_diferenca_estoque[
     [
+      'Loja',
       'Categoria',
       'ID Insumo',
       'Insumo',
