@@ -6,7 +6,7 @@ import json
 from utils.components import *
 from utils.functions.date_functions import *
 from utils.functions.general_functions import *
-from utils.functions.api_zigpay import login_zigpay, id_casa_para_ids_zigpay, request_getEvents_zigpay, request_getProductsSoldAtEventInPeriodV2_zigpay
+from utils.functions.api_zigpay import login_zigpay, request_getEvents_zigpay, request_getProductsSoldAtEventInPeriodV2_zigpay
 from utils.queries_controladoria import GET_FATURAMENTO_ZIGPAY_VALIDACAO, GET_ITENS_SEM_CADASTRO, GET_ITENS_COM_CADASTRO_DUPLICADO
 
 st.set_page_config(
@@ -34,9 +34,8 @@ def main():
     # Seletores
     col_casa, col_datas = st.columns([1, 1])
     with col_casa:
-        lista_retirar_casas = ['Bar Léo - Vila Madalena', 'Todas as Casas', 'Escritório Fabrica de Bares', 'Casa Teste 2', 'Brahminha', 'Bar Brahma Paulista', 'Edificio Rolim', 'Blue Note SP (Novo)', 'Blue Note SP (Sala 2)', 'Terraço Notie', 'The Cavern - Almoço']
+        lista_retirar_casas = ['Bar Léo - Vila Madalena', 'Todas as Casas', 'Escritório Fabrica de Bares', 'Casa Teste 2', 'Brahminha', 'Bar Brahma Paulista', 'Blue Note SP (Sala 2)', 'Tempus Fugit Ltda', 'Sanduiche comunicação LTDA ', 'Ultra Evil Premium Ltda ']
         id_casa, casa, id_zigpay = input_selecao_casas(lista_retirar_casas, 'selecao_casa', adicionar_delivery=True)
-        lista_ids_zigpay = id_casa_para_ids_zigpay(id_casa, id_zigpay)
     with col_datas:
         col1, col2 = st.columns([1, 1])
         with col1:
@@ -51,10 +50,7 @@ def main():
     login_zigpay()
 
     # Obtém Serviço Zigpay da casa agregada
-    df_eventos_zigpay = pd.DataFrame()
-    for id_place in lista_ids_zigpay:
-        df_eventos_place = request_getEvents_zigpay(id_place, mes_numero, ano)
-        df_eventos_zigpay = pd.concat([df_eventos_zigpay, df_eventos_place])
+    df_eventos_zigpay = request_getEvents_zigpay(id_zigpay, mes_numero, ano)
 
     # Tratamento de dados
     df_eventos_zigpay['Casa'] = casa
@@ -101,7 +97,7 @@ def main():
     })
 
     # Faturamento T_ITENS_VENDIDOS
-    df_itens_vendidos = GET_FATURAMENTO_ZIGPAY_VALIDACAO(lista_ids_zigpay, mes_numero, ano)
+    df_itens_vendidos = GET_FATURAMENTO_ZIGPAY_VALIDACAO(id_zigpay, mes_numero, ano)
 
     # Renomeia colunas
     df_itens_vendidos.rename(columns={
@@ -155,7 +151,7 @@ def main():
     st.dataframe(df_merged_zig_bd, width='stretch', hide_index=True)
 
     df_itens_sem_cadastro = GET_ITENS_SEM_CADASTRO()
-    df_itens_sem_cadastro = df_itens_sem_cadastro[df_itens_sem_cadastro['ID Zigpay'].isin(lista_ids_zigpay)]
+    df_itens_sem_cadastro = df_itens_sem_cadastro[df_itens_sem_cadastro['ID Zigpay'] == id_zigpay]
     st.markdown('## Itens sem cadastro')
     st.dataframe(df_itens_sem_cadastro, width='stretch', hide_index=True)
 
