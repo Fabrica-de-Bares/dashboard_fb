@@ -38,14 +38,12 @@ def conciliacao_inicial(id_casa, casa, start_date, end_date, tab):
     df_parc_receit_extr_filtrada, df_parc_receit_extr_formatada = filtra_formata_df(df_parc_receit_extr, "Recebimento_Parcela", id_casa, start_date, end_date)
     df_parc_receit_extr_filtrada_copia = df_parc_receit_extr_filtrada.copy()
 
-    df_parc_receit_extr_filtrada_copia = df_parc_receit_extr_filtrada_copia[ # não vou exibir eventos a partir de setembro/2025
-        ~(
-            (df_parc_receit_extr_filtrada_copia["Classif_Receita"].str.lower() == "eventos") &
-            ((df_parc_receit_extr_filtrada_copia["Recebimento_Parcela"].dt.month >= 9) &
-             (df_parc_receit_extr_filtrada_copia["Recebimento_Parcela"].dt.year >= 2025))
-        )
-    ]
-    
+    cond_eventos = df_parc_receit_extr_filtrada_copia["Classif_Receita"].str.lower() == "eventos"
+    cond_intervalo = (
+        (df_parc_receit_extr_filtrada_copia["Recebimento_Parcela"] >= "2025-09-01") &
+        (df_parc_receit_extr_filtrada_copia["Recebimento_Parcela"] < "2026-01-01")
+    )
+    df_parc_receit_extr_filtrada_copia = df_parc_receit_extr_filtrada_copia[~(cond_eventos & cond_intervalo)]
     df_parc_receit_extr_formatada = formata_df(df_parc_receit_extr_filtrada_copia)
 
     ## Custos BlueMe Sem Parcelamento
@@ -174,13 +172,13 @@ def conciliacao_inicial(id_casa, casa, start_date, end_date, tab):
         # Se data >= setembro, desconsidera eventos como receita extraordinária
         if 'Receitas Extraordinárias' not in df_conciliacao.columns:
             # aplica regra condicional
-            df_parc_receit_extr_filtrada = df_parc_receit_extr_filtrada[
-                (
-                    (df_parc_receit_extr_filtrada['Recebimento_Parcela'] < data_limite) |
-                    (df_parc_receit_extr_filtrada['Classif_Receita'] != 'Eventos')
-                )
-            ]
-
+            cond_eventos = df_parc_receit_extr_filtrada["Classif_Receita"].str.lower() == "eventos"
+            cond_intervalo = (
+                (df_parc_receit_extr_filtrada["Recebimento_Parcela"] >= "2025-09-01") &
+                (df_parc_receit_extr_filtrada["Recebimento_Parcela"] < "2026-01-01")
+            )
+            df_parc_receit_extr_filtrada = df_parc_receit_extr_filtrada[~(cond_eventos & cond_intervalo)]
+            
             # soma final
             df_conciliacao['Receitas Extraordinárias'] = somar_por_data(
                 df_parc_receit_extr_filtrada, "Recebimento_Parcela", "Valor_Parcela", datas

@@ -37,13 +37,13 @@ def conciliacao_casa(df, casa, datas_completas):
     # Receitas Extraordinárias #
     df_parc_receit_extr = GET_PARCELAS_RECEIT_EXTR()
     df_parc_receit_extr_farol = df_parc_receit_extr[df_parc_receit_extr['Casa'] == casa]
-    df_parc_receit_extr_farol = df_parc_receit_extr_farol[ # não vou considerar eventos a partir de setembro/2025
-        ~(
-            (df_parc_receit_extr_farol["Classif_Receita"].str.lower() == "eventos") &
-            ((df_parc_receit_extr_farol["Recebimento_Parcela"].dt.month >= 9) &
-             (df_parc_receit_extr_farol["Recebimento_Parcela"].dt.year >= 2025))
-        )
-    ]
+
+    cond_eventos = df_parc_receit_extr_farol["Classif_Receita"].str.lower() == "eventos"
+    cond_intervalo = (
+        (df_parc_receit_extr_farol["Recebimento_Parcela"] >= "2025-09-01") &
+        (df_parc_receit_extr_farol["Recebimento_Parcela"] < "2026-01-01")
+    )
+    df_parc_receit_extr_farol = df_parc_receit_extr_farol[~(cond_eventos & cond_intervalo)]
 
     if 'Receitas Extraordinárias' not in df_copia.columns:
         df_copia['Receitas Extraordinárias'] = somar_por_data(
