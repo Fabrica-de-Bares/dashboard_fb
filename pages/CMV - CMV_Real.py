@@ -104,18 +104,17 @@ df_producao_total = config_producao_agregada(df_producao_alimentos, df_producao_
 
 # Layout DRE
 valoracao_estoque_atual_alimentos, valoracao_estoque_atual_bebidas, valoracao_estoque_mes_anterior_alimentos, valoracao_estoque_mes_anterior_bebidas = config_valoracao_estoque_valores(df_valoracao_estoque_atual, df_valoracao_estoque_mes_anterior)
-st.write(faturamento_bruto_alimentos)
 
 df_producao_alimentos.drop(columns=['ID_Loja', 'Loja'], inplace=True)
 df_producao_bebidas.drop(columns=['ID_Loja', 'Loja'], inplace=True)
-df_valoracao_estoque_atual.drop(columns=['ID_Loja', 'Loja'], inplace=True)
+df_valoracao_estoque_atual.drop(columns=['ID_Loja'], inplace=True)
 
 df_valoracao_estoque_atual = df_valoracao_estoque_atual.rename(columns={
     'ID_Insumo': 'ID Insumo',
     'Valor_em_Estoque': 'Valor em Estoque',
     'Unidade_Medida': 'Unidade de Medida'
 })
-df_valoracao_estoque_atual = df_valoracao_estoque_atual[['Categoria', 'ID Insumo', 'Insumo', 'Unidade de Medida', 'Quantidade', 'Valor em Estoque']]
+df_valoracao_estoque_atual = df_valoracao_estoque_atual[['Loja', 'Categoria', 'ID Insumo', 'Insumo', 'Unidade de Medida', 'Quantidade', 'Valor em Estoque']]
 
 # Salva valores para download
 df_valoracao_estoque_atual_download = df_valoracao_estoque_atual.copy()
