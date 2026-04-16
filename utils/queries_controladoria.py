@@ -261,8 +261,14 @@ def GET_ITENS_COM_CADASTRO_DUPLICADO():
 def GET_ORCAMENTO_OPERACIONAL():
   return dataframe_query('''
     SELECT
-        te.ID AS 'ID Casa',
-        te.NOME_FANTASIA AS 'Casa',
+      CASE
+        WHEN te.ID = 149 THEN 162
+        ELSE te.ID                                                     
+      END AS 'ID Casa',
+      CASE
+        WHEN te.ID = 149 THEN 'Terraço Notie'
+        ELSE te.NOME_FANTASIA                                                                   
+      END AS 'Casa',
         to2.ANO AS 'Ano',
         to2.MES AS 'Mês',
         to2.VALOR AS 'Orçamento',
@@ -278,8 +284,29 @@ def GET_ORCAMENTO_OPERACIONAL():
     JOIN T_EMPRESAS te ON (to2.FK_EMPRESA = te.ID)
     JOIN T_CLASSIFICACAO_CONTABIL_GRUPO_1 tccg1 ON (to2.FK_CLASSIFICACAO_1 = tccg1.ID)
     JOIN T_CLASSIFICACAO_CONTABIL_GRUPO_2 tccg2 ON (to2.FK_CLASSIFICACAO_2 = tccg2.ID)
-    WHERE FK_PLANO_DE_CONTAS = 103
+    # WHERE FK_PLANO_DE_CONTAS = 103
     ORDER BY te.NOME_FANTASIA, to2.MES, to2.ANO;
+  ''')
+
+
+@st.cache_data
+def GET_HISTORICO_REAL_DRE():
+  return dataframe_query('''
+    SELECT
+        CASE
+        WHEN te.ID = 149 THEN 162
+        ELSE te.ID                                                     
+      END AS 'ID Casa',
+      CASE
+        WHEN te.ID = 149 THEN 'Terraço Notie'
+        ELSE te.NOME_FANTASIA                                                                   
+      END AS 'Casa',
+        tvr.MES AS 'Mês',
+        tvr.CATEGORIA AS 'Categoria',
+        CAST(tvr.VALOR AS DECIMAL(10,2)) AS 'Valor'                                                           
+    FROM T_VALORES_REAIS_DRE AS tvr
+    JOIN T_EMPRESAS te ON (tvr.FK_EMPRESA = te.ID)
+    # ORDER BY te.NOME_FANTASIA, tvr.MES;
   ''')
 
 
@@ -327,16 +354,3 @@ def GET_TODAS_CASAS():
   ''')
        
                          
-@st.cache_data
-def GET_HISTORICO_REAL_DRE():
-  return dataframe_query('''
-    SELECT
-        te.ID AS 'ID Casa',
-        te.NOME_FANTASIA AS 'Casa',
-        tvr.MES AS 'Mês',
-        tvr.CATEGORIA AS 'Categoria',
-        CAST(tvr.VALOR AS DECIMAL(10,2)) AS 'Valor'                                                           
-    FROM T_VALORES_REAIS_DRE AS tvr
-    JOIN T_EMPRESAS te ON (tvr.FK_EMPRESA = te.ID)
-    # ORDER BY te.NOME_FANTASIA, tvr.MES;
-  ''')
