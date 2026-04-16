@@ -32,25 +32,15 @@ with col2:
     st.button(label='Atualizar dados', key='atualizar_forecast', on_click=st.cache_data.clear)
 st.divider()
 
-lista_retirar_casas = ['Todas as Casas', 'Bar Brahma Paulista', 'Bar Léo - Vila Madalena', 'Blue Note SP (Novo)', 'Blue Note SP (Sala 2)', 'The Cavern', 'The Cavern - Almoço', 'Brahminha', 'Edificio Rolim', 'Priceless', 'Sanduiche comunicação LTDA ', 'Tempus Fugit  Ltda ']
+lista_retirar_casas = ['Todas as Casas', 'Bar Brahma Paulista', 'Bar Léo - Vila Madalena', 'Blue Note SP (Novo)', 'Blue Note SP (Sala 2)', 'Escritório Fabrica de Bares', 'The Cavern', 'The Cavern - Almoço', 'Brahminha', 'Edificio Rolim', 'Priceless', 'Sanduiche comunicação LTDA ', 'Tempus Fugit  Ltda ']
 id_casa, casa, id_zigpay = input_selecao_casas(lista_retirar_casas, key='faturamento_bruto')
-    
+
 
 # Recupera dados - Orçamentos e Real
 df_orcamento_operacional = GET_ORCAMENTO_OPERACIONAL()
 df_historico_real_dre = GET_HISTORICO_REAL_DRE()
 datas = calcular_datas()
 
-# tabs = st.tabs([
-#     'Faturamento Bruto', 
-#     'Faturamento Alimentos', 
-#     'Faturamento Bebidas',
-#     # 'Ticket Médio', 
-#     'Eventos',
-#     'Delivery',
-#     'CMV',
-#     # 'EBITDA'
-# ])
 
 categorias_quarter = ['Faturamento Bruto', 'Faturamento Bruto - Alimentos', 'Faturamento Bruto - Bebidas', 'Faturamento Eventos', 'Faturamento Delivery', 'CMV', 'EBITDA']
 i = 1
