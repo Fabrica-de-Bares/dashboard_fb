@@ -89,7 +89,6 @@ def conciliacao_inicial(id_casa, casa, start_date, end_date, tab):
 
     ## Eventos
     df_eventos = GET_EVENTOS()
-    df_eventos = df_eventos[~(df_eventos['Forma_Pgto'] == 'Permuta')] # Desconsdera eventos pagos com 'Permuta'
     df_eventos_filtrada, df_eventos_formatada = filtra_formata_df(df_eventos, "Recebimento_Parcela", id_casa, start_date, end_date)
 
     ## Contas Bancárias
