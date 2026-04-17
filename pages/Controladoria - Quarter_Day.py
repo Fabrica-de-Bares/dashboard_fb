@@ -33,7 +33,7 @@ with col2:
 st.divider()
 
 lista_retirar_casas = ['Todas as Casas', 'Bar Brahma Paulista', 'Bar Léo - Vila Madalena', 'Blue Note SP (Novo)', 'Blue Note SP (Sala 2)', 'Escritório Fabrica de Bares', 'The Cavern', 'The Cavern - Almoço', 'Brahminha', 'Edificio Rolim', 'Priceless', 'Sanduiche comunicação LTDA ', 'Tempus Fugit  Ltda ']
-id_casa, casa, id_zigpay = input_selecao_casas(lista_retirar_casas, key='faturamento_bruto')
+id_casa, casa, id_zigpay = input_selecao_casas(lista_retirar_casas, key='faturamento_bruto', agregado=True)
 
 
 # Recupera dados - Orçamentos e Real
@@ -43,7 +43,6 @@ datas = calcular_datas()
 
 
 categorias_quarter = ['Faturamento Bruto', 'Faturamento Bruto - Alimentos', 'Faturamento Bruto - Bebidas', 'Faturamento Eventos', 'Faturamento Delivery', 'CMV', 'EBITDA']
-i = 1
 
 for categoria in (categorias_quarter):
     if categoria == 'Faturamento Bruto': class_cont = ['FATURAMENTO BRUTO']
@@ -58,8 +57,8 @@ for categoria in (categorias_quarter):
     elif categoria == 'EBITDA': class_cont = ['EBITDA']
 
     with st.container(border=True): 
-        st.subheader(f'{i}. {categoria}')
-        df_faturamento_categoria = prepara_dados_faturamento_orcamento(df_historico_real_dre,df_orcamento_operacional, casa, datas, class_cont)
+        st.subheader(f'{categoria}')
+        df_faturamento_categoria = prepara_dados_faturamento_orcamento(df_historico_real_dre, df_orcamento_operacional, casa, datas, class_cont)
         df_faturamento_categoria_styled = formata_colunas(df_faturamento_categoria, 'Faturamento Total', categoria)
         st.dataframe(df_faturamento_categoria_styled, hide_index=True, width='stretch')
         st.divider()
@@ -153,4 +152,5 @@ for categoria in (categorias_quarter):
             st.divider()
 
         grafico_linhas_faturamento(series, categoria, lista_anos, key=categoria)
-        i += 1
+     
+

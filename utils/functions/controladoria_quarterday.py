@@ -4,10 +4,20 @@ from streamlit_echarts import st_echarts
 import numpy as np
 
 
-def prepara_dados_faturamento_orcamento(df_historico_real_dre, df_orcamento_operacional, casa, datas, class_cont):    
+def prepara_dados_faturamento_orcamento(df_historico_real_dre, df_orcamento_operacional, casa, datas, class_cont): 
+    if casa == 'Girondino - Agregado':
+        df_historico_real_dre['Casa'] = df_historico_real_dre['Casa'].replace('Girondino - CCBB', 'Girondino')
+        nome_casa = 'Girondino'
+    else:
+        nome_casa = casa
+    
     # Filtra histórico real pela categoria
-    df_historico_real_dre = df_historico_real_dre[(df_historico_real_dre['Casa'] == casa) & (df_historico_real_dre['Mês'].dt.day != 31)].copy()
+    df_historico_real_dre = df_historico_real_dre[(df_historico_real_dre['Casa'] == nome_casa) & (df_historico_real_dre['Mês'].dt.day != 31)].copy()
     df_historico_real_dre['Mês'] = df_historico_real_dre['Mês'].fillna('2025-06-01 00:00:00')
+
+    # Tratamento para caso específico
+    if casa == 'Girondino' or casa == 'Girondino - CCBB':
+        df_historico_real_dre.loc[df_historico_real_dre['Mês'].dt.year == 2024, 'Valor'] = 0
 
     if class_cont == 'CMV': # Calcula % do CMV
         df_faturamento_a_b = df_historico_real_dre[df_historico_real_dre['Categoria'].isin(['Alimentação', 'Bebida', 'Eventos A&B', 'Delivery'])].copy()
@@ -39,6 +49,10 @@ def prepara_dados_faturamento_orcamento(df_historico_real_dre, df_orcamento_oper
     ).reset_index().fillna(0)
     
     # Filtra orçamento
+    if casa == 'Girondino - Agregado':
+        df_orcamento_operacional['Casa'] = df_orcamento_operacional['Casa'].replace('Girondino - CCBB', 'Girondino')
+        casa = 'Girondino'
+
     df_orcamento_ano_atual = df_orcamento_operacional[(df_orcamento_operacional['Casa'] == casa) & (df_orcamento_operacional['Ano'] == datas['ano_atual'])].copy()
     
     if class_cont == ['FATURAMENTO BRUTO']:
@@ -131,7 +145,7 @@ def calcula_crescimento_ano(ano_base, df_faturamento_bruto):
 def formatar_moeda_br(valor):
     if pd.isna(valor) or valor == 0:
         return "-"
-    return f"R$ {valor:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+    return f"{valor:,.0f}".replace(",", "X").replace(".", ",").replace("X", ".") # Sem casas decimais e sem 'R$'
 
 
 def formatar_porcentagem(valor):
@@ -144,22 +158,27 @@ def formatar_porcentagem(valor):
     
 
 def formata_colunas(df, kpi, categoria):
-    df_styled = df.rename(columns={
+    df = df.rename(columns={
         1: 'Jan', 2: 'Fev', 3: 'Mar', 4: 'Abr',
         5: 'Mai', 6: 'Jun', 7: 'Jul', 8: 'Ago',
         9: 'Set', 10: 'Out', 11: 'Nov', 12: 'Dez'
     })
-    df_styled = df_styled.fillna('-')
-    colunas_valores = df_styled.columns[1:]
+    df = df.fillna('-')
+    colunas_valores = df.columns[1:]
+    df = df.reset_index(drop=True)
 
+    # Formata valores numéricos
     if categoria == 'CMV': # Todos são porcentagens
-        df_styled = df_styled.style.format(formatar_porcentagem, subset=colunas_valores)
+        df_styled = df.style.format(formatar_porcentagem, subset=colunas_valores)
+        if kpi != 'Faturamento Total':
+            df_styled = df_styled.applymap(highlight_taxas, subset=colunas_valores) # Aplica estilos
     else:
         if kpi == 'Faturamento Total':
-            df_styled = df_styled.style.format(formatar_moeda_br, subset=colunas_valores)
+            df_styled = df.style.format(formatar_moeda_br, subset=colunas_valores)
         else:
-            df_styled = df_styled.style.format(formatar_porcentagem, subset=colunas_valores)
-
+            df_styled = df.style.applymap(highlight_taxas, subset=colunas_valores) # Aplica estilos
+            df_styled = df_styled.format(formatar_porcentagem, subset=colunas_valores)
+    
     return df_styled
 
 
@@ -198,3 +217,16 @@ def grafico_linhas_faturamento(series, titulo, anos, key):
 
     # Renderizar no Streamlit
     return st_echarts(options=options, height="400px", key=key)
+
+
+def highlight_taxas(val):
+    try:
+        if float(val) < 0:
+            return 'color: red;'
+        elif float(val) > 0:
+            return 'color: green;'
+        else:
+            return ''
+    except:
+        return ''
+    
