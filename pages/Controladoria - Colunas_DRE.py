@@ -33,12 +33,15 @@ st.write("Aba que formata a planilha de Orçamento Operacional anual e as coluna
 st.divider()
 
 # Seletor do tipo de formatação
-lista_formatacoes = ['Subir Orçamentos', 'Coluna "Real" DRE']
+lista_formatacoes = ['Inputar - Orçamentos', 'Inputar - Real DRE']
 tipo_formatacao = st.selectbox("Selecione o tipo de formatação:", lista_formatacoes)
 st.divider()
 
 # Seletor de casa e ano
-col1, col2 = st.columns(2)
+if tipo_formatacao == 'Inputar - Real DRE':
+    col1, col2, col3 = st.columns(3)
+else: 
+    col1, col2 = st.columns(2)
 
 with col1:
     df_casas = GET_CASAS()
@@ -52,19 +55,44 @@ with col1:
     else:
         nome_casa = casa
 
-    # Recupera id da casa
-    mapeamento_casas = dict(zip(df_casas["Casa"], df_casas["ID_Casa"]))
-    id_casa = mapeamento_casas[casa]
-    
+    mapeamento_casas = dict(zip(df_casas["Casa"], df_casas["ID_Casa"])) # Recupera id da casa
+    id_casa = mapeamento_casas[casa] 
+
 with col2:
-    ano = seletor_ano(2023, 2026, 'ano', 'Selecione o ano refente ao arquivo:')
+    ano = seletor_ano(2026, 2026, 'ano', 'Selecione o ano refente ao arquivo:')
+
+if tipo_formatacao == 'Inputar - Real DRE':
+    with col3:
+        lista_meses = [
+                    'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro',
+                    '1º Trimestre', '2º Trimestre', '3º Trimestre', '4º Trimestre'
+                ]
+        mes = st.selectbox('Selecione o mês/período que deseja inputar:', lista_meses, help='1º Trimestre é para inputar os meses de Jan, Fev e Mar. E assim por diante.')
+        meses = {
+            "Janeiro": 1,
+            "Fevereiro": 2,
+            "Março": 3,
+            "Abril": 4,
+            "Maio": 5,
+            "Junho": 6,
+            "Julho": 7,
+            "Agosto": 8,
+            "Setembro": 9,
+            "Outubro": 10,
+            "Novembro": 11,
+            "Dezembro": 12
+        }
+        if mes not in ['1º Trimestre', '2º Trimestre', '3º Trimestre', '4º Trimestre']: 
+            mes_selecionado = meses[mes]
+        else:
+            mes_selecionado = mes
 
 st.divider()
 
 # Dar upload em arquivo de orçamento ou planilha DRE
 uploaded_file = st.file_uploader("Selecione um arquivo .xlsx do seu computador:", type="xlsx")
 
-if tipo_formatacao == 'Subir Orçamentos':
+if tipo_formatacao == 'Inputar - Orçamentos':
     if not uploaded_file:
         st.write("Adicione um arquivo .xlsx de Orçamento para transformá-lo")
 
@@ -181,7 +209,7 @@ if tipo_formatacao == 'Subir Orçamentos':
 
         st.dataframe(df_layout_final_ids, hide_index=True)
     
-elif tipo_formatacao == 'Coluna "Real" DRE':
+elif tipo_formatacao == 'Inputar - Real DRE':
     if not uploaded_file:
         st.write("Adicione um arquivo .xlsx para formatá-lo")
 
@@ -193,16 +221,16 @@ elif tipo_formatacao == 'Coluna "Real" DRE':
         st.divider()
 
         # Removendo colunas e linhas desnecessárias - seleciona pelo índice da coluna em vez do nome
-        if ano == 2023: # Planilha personalizada
+        if ano == 2023: # Planilha personalizada - JÁ INSERIDOS
             df_transformado = df_transformado.iloc[:, [0, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 24]]
             df_transformado.rename(columns={'Unnamed: 24': 'ANO'}, inplace=True) # Renomeia para ter referência do mês
             colunas_meses = df_transformado.columns[[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]] # Define quais são as colunas de meses e acumulado do ano
 
-        elif ano == 2024 and casa != 'Girondino': # 2024 vem do arquivo de Jan/2025
+        elif ano == 2024 and casa != 'Girondino': # 2024 vem do arquivo de Jan/2025  - JÁ INSERIDOS
             df_transformado = df_transformado.iloc[:, [0, 7, 10, 13, 16, 19, 22, 25, 28, 31, 34, 37, 40, 46]]
             colunas_meses = df_transformado.columns[[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]] # Define quais são as colunas de meses e acumulado do ano
         
-        elif ano == 2025 or (ano == 2024 and casa == 'Girondino'): # 2025 vem do arquivo de Dez/2025
+        elif ano == 2025 or (ano == 2024 and casa == 'Girondino'): # 2025 vem do arquivo de Dez/2025  - JÁ INSERIDOS
             df_transformado = df_transformado.iloc[:, [0, 9, 12, 15, 18, 21, 24, 27, 30, 33, 36, 39, 42, 48]]
             df_transformado.rename(columns={ # Renomeia para ter referência do mês
                         'Unnamed: 9': f'{ano}-01-01 00:00:00',
@@ -217,20 +245,45 @@ elif tipo_formatacao == 'Coluna "Real" DRE':
                         'Unnamed: 36': f'{ano}-10-01 00:00:00',
                         'Unnamed: 39': f'{ano}-11-01 00:00:00',
                         'Unnamed: 42': f'{ano}-12-01 00:00:00',
-                        'Unnamed: 48': 'ANO',
+                        'Unnamed: 48': 'ANO'
                     }, inplace=True)
             colunas_meses = df_transformado.columns[[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]] # Define quais são as colunas de meses e acumulado do ano
             
-        elif ano == 2026: # Por enquanto, só temos DRE/2026 até Fevereiro
-            df_transformado = df_transformado.iloc[:, [0, 9, 12]] # Incluir [[15, 18, 20, 24, 27, 30, 33, 36, 39, 42, 48]]
+        elif ano >= 2026: 
             df_transformado.rename(columns={ # Renomeia para ter referência do mês
-                        'Unnamed: 9': f'{ano}-01-01 00:00:00',
-                        'Unnamed: 12': f'{ano}-02-01 00:00:00'
-                    }, inplace=True)
-            colunas_meses = df_transformado.columns[[1, 2]] # Define quais são as colunas de meses e acumulado do ano
+                'Unnamed: 9': f'{ano}-01-01 00:00:00',
+                'Unnamed: 12': f'{ano}-02-01 00:00:00',
+                'Unnamed: 15': f'{ano}-03-01 00:00:00',
+                'Unnamed: 18': f'{ano}-04-01 00:00:00',
+                'Unnamed: 21': f'{ano}-05-01 00:00:00',
+                'Unnamed: 24': f'{ano}-06-01 00:00:00',
+                'Unnamed: 27': f'{ano}-07-01 00:00:00',
+                'Unnamed: 30': f'{ano}-08-01 00:00:00',
+                'Unnamed: 33': f'{ano}-09-01 00:00:00',
+                'Unnamed: 36': f'{ano}-10-01 00:00:00',
+                'Unnamed: 39': f'{ano}-11-01 00:00:00',
+                'Unnamed: 42': f'{ano}-12-01 00:00:00',
+                'Unnamed: 48': 'ANO'
+            }, inplace=True)
 
-        df_transformado = df_transformado.dropna(subset=['Unnamed: 0'])
+            # Seleção dinâmica das colunas correspondentes ao mês selecionado
+            if mes_selecionado not in ['1º Trimestre', '2º Trimestre', '3º Trimestre', '4º Trimestre']: 
+                coluna_mes = 9 + (mes_selecionado - 1) * 3
+                df_transformado = df_transformado.iloc[:, [0, coluna_mes]]
+                colunas_meses = df_transformado.columns[[1]]
+            else:
+                if mes_selecionado == '1º Trimestre':
+                    df_transformado = df_transformado.iloc[:, [0, 9, 12, 15]]
+                elif mes_selecionado == '2º Trimestre':
+                    df_transformado = df_transformado.iloc[:, [0, 18, 21, 24]]
+                elif mes_selecionado == '3º Trimestre':
+                    df_transformado = df_transformado.iloc[:, [0, 27, 30, 33]]
+                elif mes_selecionado == '4º Trimestre':
+                    df_transformado = df_transformado.iloc[:, [0, 36, 39, 42]]
+                colunas_meses = df_transformado.columns[[1, 2, 3]]    
         
+        df_transformado = df_transformado.dropna(subset=['Unnamed: 0'])
+            
         # Remove todas as linhas abaixo disso (só considera até Saldo Operacional)
         indice = df_transformado[df_transformado['Unnamed: 0'] == 'Premissas e parâmetros usados...'].index 
         if not indice.empty:
@@ -268,7 +321,7 @@ elif tipo_formatacao == 'Coluna "Real" DRE':
                 'day': df_layout_final.loc[mask_mes, 'Mes_datetime'].dt.day
             }
         )
-        # mes_junho = pd.Timestamp(
+        # mes_junho = pd.Timestamp( # Bug 2025
         #     year=ano,
         #     month=6,
         #     day=1
