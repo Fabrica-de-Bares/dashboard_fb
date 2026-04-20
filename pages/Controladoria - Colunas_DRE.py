@@ -210,7 +210,7 @@ elif tipo_formatacao == 'Coluna "Real" DRE':
                         'Unnamed: 15': f'{ano}-03-01 00:00:00',
                         'Unnamed: 18': f'{ano}-04-01 00:00:00',
                         'Unnamed: 21': f'{ano}-05-01 00:00:00',
-                        'Unnamed: 23': f'{ano}-06-01 00:00:00',
+                        'Unnamed: 24': f'{ano}-06-01 00:00:00',
                         'Unnamed: 27': f'{ano}-07-01 00:00:00',
                         'Unnamed: 30': f'{ano}-08-01 00:00:00',
                         'Unnamed: 33': f'{ano}-09-01 00:00:00',
@@ -220,7 +220,7 @@ elif tipo_formatacao == 'Coluna "Real" DRE':
                         'Unnamed: 48': 'ANO',
                     }, inplace=True)
             colunas_meses = df_transformado.columns[[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]] # Define quais são as colunas de meses e acumulado do ano
-
+            
         elif ano == 2026: # Por enquanto, só temos DRE/2026 até Fevereiro
             df_transformado = df_transformado.iloc[:, [0, 9, 12]] # Incluir [[15, 18, 20, 24, 27, 30, 33, 36, 39, 42, 48]]
             df_transformado.rename(columns={ # Renomeia para ter referência do mês
@@ -268,7 +268,12 @@ elif tipo_formatacao == 'Coluna "Real" DRE':
                 'day': df_layout_final.loc[mask_mes, 'Mes_datetime'].dt.day
             }
         )
-        df_layout_final['Mes_atualizado'] = df_layout_final['Mes_atualizado'].fillna(f'{ano}-06-01 00:00:00')
+        # mes_junho = pd.Timestamp(
+        #     year=ano,
+        #     month=6,
+        #     day=1
+        # )
+        # df_layout_final['Mes_atualizado'] = df_layout_final['Mes_atualizado'].fillna(mes_junho)
 
         # Organiza e renomeia colunas
         df_layout_final['FK_EMPRESA'] = id_casa

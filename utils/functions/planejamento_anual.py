@@ -95,100 +95,158 @@ def insere_nova_linha(df, colunas_meses, valor, apos_linha, categoria):
 
 
 # Calcula porcentagens e outros valores
-def define_linhas_calculadas(df_orcamentos_resumo, df_orcamentos_concatenados, lista_categorias_orcamento, colunas_meses):
-    # Define valores mais usados
-    cmv = df_orcamentos_concatenados[df_orcamentos_concatenados['Categoria'] == 'Custo Mercadoria Vendida'][colunas_meses].sum()
-    custos_artistico = df_orcamentos_concatenados[df_orcamentos_concatenados['Categoria'] == 'Custos Artístico Geral'][colunas_meses].sum()
-    faturamento_artistico = df_orcamentos_concatenados[df_orcamentos_concatenados['Categoria'] == 'Artístico (couvert/shows)'][colunas_meses].sum()
-    faturamento_bruto = df_orcamentos_concatenados[df_orcamentos_concatenados['Categoria'] == 'Faturamento Bruto'][colunas_meses].sum()
-    custos_eventos = df_orcamentos_concatenados[df_orcamentos_concatenados['Categoria'] == 'Custos de Eventos'][colunas_meses].sum()
+def define_linhas_calculadas(df_orcamentos_resumo, df_orcamentos_concatenados, lista_categorias_dre, colunas_meses, tipo, mapa_posicao_percentual=None):
+    if tipo == 'Orçamento':
+        # Define valores mais usados
+        cmv = df_orcamentos_concatenados[df_orcamentos_concatenados['Categoria'] == 'Custo Mercadoria Vendida'][colunas_meses].sum()
+        custos_artistico = df_orcamentos_concatenados[df_orcamentos_concatenados['Categoria'] == 'Custos Artístico Geral'][colunas_meses].sum()
+        faturamento_artistico = df_orcamentos_concatenados[df_orcamentos_concatenados['Categoria'] == 'Artístico (couvert/shows)'][colunas_meses].sum()
+        faturamento_bruto = df_orcamentos_concatenados[df_orcamentos_concatenados['Categoria'] == 'Faturamento Bruto'][colunas_meses].sum()
+        custos_eventos = df_orcamentos_concatenados[df_orcamentos_concatenados['Categoria'] == 'Custos de Eventos'][colunas_meses].sum()
 
-    # RECEITA LIQUIDA
-    receita_liquida = (
-        df_orcamentos_concatenados[df_orcamentos_concatenados['Categoria'] == 'Faturamento Bruto'][colunas_meses].sum() -
-        df_orcamentos_concatenados[df_orcamentos_concatenados['Categoria'] == 'Desconto sobre Venda'][colunas_meses].sum() - 
-        df_orcamentos_concatenados[df_orcamentos_concatenados['Categoria'] == 'Impostos sobre Venda'][colunas_meses].sum()
-    )
-    df_final = insere_nova_linha(df_orcamentos_resumo, colunas_meses, receita_liquida, 'Impostos sobre Venda', 'RECEITA LÍQUIDA')
+        # RECEITA LIQUIDA
+        receita_liquida = (
+            df_orcamentos_concatenados[df_orcamentos_concatenados['Categoria'] == 'Faturamento Bruto'][colunas_meses].sum() -
+            df_orcamentos_concatenados[df_orcamentos_concatenados['Categoria'] == 'Desconto sobre Venda'][colunas_meses].sum() - 
+            df_orcamentos_concatenados[df_orcamentos_concatenados['Categoria'] == 'Impostos sobre Venda'][colunas_meses].sum()
+        )
+        df_final = insere_nova_linha(df_orcamentos_resumo, colunas_meses, receita_liquida, 'Impostos sobre Venda', 'RECEITA LÍQUIDA')
 
-    # % sobre Receita Bruta - CMV
-    receita_bruta = (
-        df_orcamentos_concatenados[df_orcamentos_concatenados['Categoria'] == 'Alimentação'][colunas_meses].sum() +
-        df_orcamentos_concatenados[df_orcamentos_concatenados['Categoria'] == 'Bebida'][colunas_meses].sum() +
-        df_orcamentos_concatenados[df_orcamentos_concatenados['Categoria'] == 'Eventos A&B'][colunas_meses].sum() +
-        df_orcamentos_concatenados[df_orcamentos_concatenados['Categoria'] == 'Delivery'][colunas_meses].sum()
-    )
-    porc_receita_bruta_cmv = (cmv / receita_bruta)
-    df_final = insere_nova_linha(df_final, colunas_meses, porc_receita_bruta_cmv, 'Custo Mercadoria Vendida', '% sobre Receita Bruta')
-    
-    # % sobre Receita Líquida - CMV
-    porc_receita_liquida_cmv = (cmv / receita_liquida).round(2)
-    df_final = insere_nova_linha(df_final, colunas_meses, porc_receita_liquida_cmv, '% sobre Receita Bruta', '% sobre Receita Líquida')
+        # % sobre Receita Bruta - CMV
+        receita_bruta = (
+            df_orcamentos_concatenados[df_orcamentos_concatenados['Categoria'] == 'Alimentação'][colunas_meses].sum() +
+            df_orcamentos_concatenados[df_orcamentos_concatenados['Categoria'] == 'Bebida'][colunas_meses].sum() +
+            df_orcamentos_concatenados[df_orcamentos_concatenados['Categoria'] == 'Eventos A&B'][colunas_meses].sum() +
+            df_orcamentos_concatenados[df_orcamentos_concatenados['Categoria'] == 'Delivery'][colunas_meses].sum()
+        )
+        porc_receita_bruta_cmv = (cmv / receita_bruta)
+        df_final = insere_nova_linha(df_final, colunas_meses, porc_receita_bruta_cmv, 'Custo Mercadoria Vendida', '% sobre Receita Bruta')
+        
+        # % sobre Receita Líquida - CMV
+        porc_receita_liquida_cmv = (cmv / receita_liquida).round(2)
+        df_final = insere_nova_linha(df_final, colunas_meses, porc_receita_liquida_cmv, '% sobre Receita Bruta', '% sobre Receita Líquida')
 
-    # % sobre Receita Artístico
-    porc_receita_artistico = (custos_artistico / faturamento_artistico).round(2)
-    df_final = insere_nova_linha(df_final, colunas_meses, porc_receita_artistico, 'Custos Artístico Geral', '% sobre Receita Artístico')
+        # % sobre Receita Artístico
+        porc_receita_artistico = (custos_artistico / faturamento_artistico).round(2)
+        df_final = insere_nova_linha(df_final, colunas_meses, porc_receita_artistico, 'Custos Artístico Geral', '% sobre Receita Artístico')
 
-    # % sobre Receita de Eventos
-    faturamento_eventos = (
-        df_orcamentos_concatenados[df_orcamentos_concatenados['Categoria'] == 'Eventos A&B'][colunas_meses].sum() +
-        df_orcamentos_concatenados[df_orcamentos_concatenados['Categoria'] == 'Eventos Locações'][colunas_meses].sum() +
-        df_orcamentos_concatenados[df_orcamentos_concatenados['Categoria'] == 'Eventos Couvert'][colunas_meses].sum() 
-    )
-    porc_receita_eventos = (custos_eventos / faturamento_eventos.replace(0, np.nan)).round(2)
-    df_final = insere_nova_linha(df_final, colunas_meses, porc_receita_eventos, 'Custos de Eventos', '% sobre Receita de Eventos')
+        # % sobre Receita de Eventos
+        faturamento_eventos = (
+            df_orcamentos_concatenados[df_orcamentos_concatenados['Categoria'] == 'Eventos A&B'][colunas_meses].sum() +
+            df_orcamentos_concatenados[df_orcamentos_concatenados['Categoria'] == 'Eventos Locações'][colunas_meses].sum() +
+            df_orcamentos_concatenados[df_orcamentos_concatenados['Categoria'] == 'Eventos Couvert'][colunas_meses].sum() 
+        )
+        porc_receita_eventos = (custos_eventos / faturamento_eventos.replace(0, np.nan)).round(2)
+        df_final = insere_nova_linha(df_final, colunas_meses, porc_receita_eventos, 'Custos de Eventos', '% sobre Receita de Eventos')
 
-    # PESSOAL
-    pessoal = 0
-    for categoria in lista_categorias_orcamento:
-        if categoria in ['Mão de Obra - PJ', 'Mão de Obra - Salários', 'Mão de Obra - Extra', 'Mão de Obra - Encargos e Provisões', 'Mão de Obra - Benefícios']:
-            pessoal += df_final[df_final['Categoria'] == categoria][colunas_meses].sum() 
+        # PESSOAL
+        pessoal = 0
+        for categoria in lista_categorias_dre:
+            if categoria in ['Mão de Obra - PJ', 'Mão de Obra - Salários', 'Mão de Obra - Extra', 'Mão de Obra - Encargos e Provisões', 'Mão de Obra - Benefícios']:
+                pessoal += df_final[df_final['Categoria'] == categoria][colunas_meses].sum() 
 
-    df_final = insere_nova_linha(df_final, colunas_meses, pessoal, 'Deduções sobre Venda', 'PESSOAL')
-    lista_categorias_orcamento.append('PESSOAL')
+        df_final = insere_nova_linha(df_final, colunas_meses, pessoal, 'Deduções sobre Venda', 'PESSOAL')
+        lista_categorias_dre.append('PESSOAL')
 
-    # MARGEM BRUTA DE CONTRIBUIÇÃO
-    margem_bruta_contribuicao = (
-        df_final[df_final['Categoria'] == 'RECEITA LÍQUIDA'][colunas_meses].sum() -
-        df_final[df_final['Categoria'] == 'Deduções sobre Venda'][colunas_meses].sum() -
-        df_final[df_final['Categoria'] == 'Gorjeta'][colunas_meses].sum() -
-        df_final[df_final['Categoria'] == 'Custos de Eventos'][colunas_meses].sum() -
-        df_final[df_final['Categoria'] == 'Custos Artístico Geral'][colunas_meses].sum() -
-        df_final[df_final['Categoria'] == 'Custo Mercadoria Vendida'][colunas_meses].sum() 
-    )
-    df_final = insere_nova_linha(df_final, colunas_meses, margem_bruta_contribuicao, 'Deduções sobre Venda', 'MARGEM BRUTA DE CONTRIBUIÇÃO')
-    lista_categorias_orcamento.append('MARGEM BRUTA DE CONTRIBUIÇÃO')
+        # MARGEM BRUTA DE CONTRIBUIÇÃO
+        margem_bruta_contribuicao = (
+            df_final[df_final['Categoria'] == 'RECEITA LÍQUIDA'][colunas_meses].sum() -
+            df_final[df_final['Categoria'] == 'Deduções sobre Venda'][colunas_meses].sum() -
+            df_final[df_final['Categoria'] == 'Gorjeta'][colunas_meses].sum() -
+            df_final[df_final['Categoria'] == 'Custos de Eventos'][colunas_meses].sum() -
+            df_final[df_final['Categoria'] == 'Custos Artístico Geral'][colunas_meses].sum() -
+            df_final[df_final['Categoria'] == 'Custo Mercadoria Vendida'][colunas_meses].sum() 
+        )
+        df_final = insere_nova_linha(df_final, colunas_meses, margem_bruta_contribuicao, 'Deduções sobre Venda', 'MARGEM BRUTA DE CONTRIBUIÇÃO')
+        lista_categorias_dre.append('MARGEM BRUTA DE CONTRIBUIÇÃO')
 
-    # TOTAL - DESPESAS OPERATIVAS
-    total_despesas_operativas = 0
-    for categoria in lista_categorias_orcamento:
-        if categoria in ['PESSOAL', 'Custo de Ocupação', 'Utilidades', 'Informática e TI', 'Manutenção', 'Marketing', 'Serviços de Terceiros', 'Locação de Equipamentos', 'Sistema de Franquias']:
-            total_despesas_operativas += df_final[df_final['Categoria'] == categoria][colunas_meses].sum() 
+        # TOTAL - DESPESAS OPERATIVAS
+        total_despesas_operativas = 0
+        for categoria in lista_categorias_dre:
+            if categoria in ['PESSOAL', 'Custo de Ocupação', 'Utilidades', 'Informática e TI', 'Manutenção', 'Marketing', 'Serviços de Terceiros', 'Locação de Equipamentos', 'Sistema de Franquias']:
+                total_despesas_operativas += df_final[df_final['Categoria'] == categoria][colunas_meses].sum() 
 
-    df_final = insere_nova_linha(df_final, colunas_meses, total_despesas_operativas, 'Sistema de Franquias', 'TOTAL - DESPESAS OPERATIVAS')
-    lista_categorias_orcamento.append('TOTAL - DESPESAS OPERATIVAS')
-    
-    # EBTIDA e EBIT
-    total_despesas_operativas = df_final[df_final['Categoria'] == 'TOTAL - DESPESAS OPERATIVAS'][colunas_meses].sum() 
-    margem_bruta_contribuicao = df_final[df_final['Categoria'] == 'MARGEM BRUTA DE CONTRIBUIÇÃO'][colunas_meses].sum() 
-    ebitda = margem_bruta_contribuicao - total_despesas_operativas
-    df_final = insere_nova_linha(df_final, colunas_meses, ebitda, 'TOTAL - DESPESAS OPERATIVAS', 'EBITDA')
-    lista_categorias_orcamento.append('EBITDA')
-    
-    ebit = ebitda
-    df_final = insere_nova_linha(df_final, colunas_meses, ebit, 'EBITDA', 'EBIT')
+        df_final = insere_nova_linha(df_final, colunas_meses, total_despesas_operativas, 'Sistema de Franquias', 'TOTAL - DESPESAS OPERATIVAS')
+        lista_categorias_dre.append('TOTAL - DESPESAS OPERATIVAS')
+        
+        # EBTIDA e EBIT
+        total_despesas_operativas = df_final[df_final['Categoria'] == 'TOTAL - DESPESAS OPERATIVAS'][colunas_meses].sum() 
+        margem_bruta_contribuicao = df_final[df_final['Categoria'] == 'MARGEM BRUTA DE CONTRIBUIÇÃO'][colunas_meses].sum() 
+        ebitda = margem_bruta_contribuicao - total_despesas_operativas
+        df_final = insere_nova_linha(df_final, colunas_meses, ebitda, 'TOTAL - DESPESAS OPERATIVAS', 'EBITDA')
+        lista_categorias_dre.append('EBITDA')
+        
+        ebit = ebitda
+        df_final = insere_nova_linha(df_final, colunas_meses, ebit, 'EBITDA', 'EBIT')
 
-    # Calcula % sobre Receita Bruta de cada categoria
-    for categoria in lista_categorias_orcamento:
-        # Casos específicos (não pedem o cálculo ou foram calculados acima)
-        if categoria not in ['Faturamento Bruto', 'Custo Mercadoria Vendida', 'Impostos sobre Venda', 'Mão de Obra - PJ', 'Mão de Obra - Salários', 'Mão de Obra - Extra', 'Mão de Obra - Encargos e Provisões', 'Mão de Obra - Benefícios', 'Patrocínio']:
-            custos_categoria = df_final[df_final['Categoria'] == categoria][colunas_meses].sum()
-            porc_faturamento_bruto_categoria = (custos_categoria / faturamento_bruto).round(2)
-            if categoria == 'PESSOAL':
-                apos_linha = 'Mão de Obra - Benefícios'
-            else:
-                apos_linha = categoria
-            df_final = insere_nova_linha(df_final, colunas_meses, porc_faturamento_bruto_categoria, apos_linha, '% sobre Receita Bruta')
+        # Calcula % sobre Receita Bruta de cada categoria
+        for categoria in lista_categorias_dre:
+            # Casos específicos (não pedem o cálculo ou foram calculados acima)
+            if categoria not in ['Faturamento Bruto', 'Custo Mercadoria Vendida', 'Impostos sobre Venda', 'Mão de Obra - PJ', 'Mão de Obra - Salários', 'Mão de Obra - Extra', 'Mão de Obra - Encargos e Provisões', 'Mão de Obra - Benefícios', 'Patrocínio']:
+                custos_categoria = df_final[df_final['Categoria'] == categoria][colunas_meses].sum()
+                porc_faturamento_bruto_categoria = (custos_categoria / faturamento_bruto).round(2)
+                if categoria == 'PESSOAL':
+                    apos_linha = 'Mão de Obra - Benefícios'
+                else:
+                    apos_linha = categoria
+                df_final = insere_nova_linha(df_final, colunas_meses, porc_faturamento_bruto_categoria, apos_linha, '% sobre Receita Bruta')
+
+    elif tipo == 'DRE Real': # Já tem valores definidos
+        lista_categorias_dre.append('PESSOAL')
+        lista_categorias_dre.append('EBITDA')
+        lista_categorias_dre.append('MARGEM BRUTA DE CONTRIBUIÇÃO')
+        lista_categorias_dre.append('TOTAL - DESPESAS OPERATIVAS')
+        lista_categorias_dre.append('Resultado Líquido')
+
+        # Define valores mais usados
+        cmv = df_orcamentos_concatenados[df_orcamentos_concatenados['Categoria'] == '(-) Custo Mercadoria Vendida'][colunas_meses].sum()
+        custos_artistico = df_orcamentos_concatenados[df_orcamentos_concatenados['Categoria'] == '(-) Custos Artístico Geral'][colunas_meses].sum()
+        faturamento_artistico = df_orcamentos_concatenados[df_orcamentos_concatenados['Categoria'] == 'Artístico (couvert/shows)'][colunas_meses].sum()
+        faturamento_bruto = df_orcamentos_concatenados[df_orcamentos_concatenados['Categoria'] == 'FATURAMENTO BRUTO'][colunas_meses].sum()
+        custos_eventos = df_orcamentos_concatenados[df_orcamentos_concatenados['Categoria'] == '(-) Custos de Eventos'][colunas_meses].sum()
+
+        # RECEITA LIQUIDA
+        receita_liquida = df_orcamentos_concatenados[df_orcamentos_concatenados['Categoria'] == 'RECEITA LÍQUIDA'][colunas_meses].sum()
+
+        # % sobre Receita Bruta - CMV
+        receita_bruta = (
+            df_orcamentos_concatenados[df_orcamentos_concatenados['Categoria'] == 'Alimentação'][colunas_meses].sum() +
+            df_orcamentos_concatenados[df_orcamentos_concatenados['Categoria'] == 'Bebida'][colunas_meses].sum() +
+            df_orcamentos_concatenados[df_orcamentos_concatenados['Categoria'] == 'Eventos A&B'][colunas_meses].sum() +
+            df_orcamentos_concatenados[df_orcamentos_concatenados['Categoria'] == 'Delivery'][colunas_meses].sum()
+        )
+        porc_receita_bruta_cmv = (cmv / receita_bruta)
+        apos_linha = mapa_posicao_percentual.get('(-) Custo Mercadoria Vendida')
+        df_final = insere_nova_linha(df_orcamentos_concatenados, colunas_meses, porc_receita_bruta_cmv, apos_linha, '% sobre Receita Bruta')
+        
+        # % sobre Receita Líquida - CMV
+        porc_receita_liquida_cmv = (cmv / receita_liquida).round(2)
+        df_final = insere_nova_linha(df_final, colunas_meses, porc_receita_liquida_cmv, '% sobre Receita Bruta', '% sobre Receita Líquida')
+
+        # % sobre Receita Artístico
+        porc_receita_artistico = (custos_artistico / faturamento_artistico).round(2)
+        apos_linha = mapa_posicao_percentual.get('(-) Custos Artístico Geral')
+        df_final = insere_nova_linha(df_final, colunas_meses, porc_receita_artistico, apos_linha, '% sobre Receita Artístico')
+
+        # % sobre Receita de Eventos
+        faturamento_eventos = (
+            df_orcamentos_concatenados[df_orcamentos_concatenados['Categoria'] == 'Eventos A&B'][colunas_meses].sum() +
+            df_orcamentos_concatenados[df_orcamentos_concatenados['Categoria'] == 'Eventos Locações'][colunas_meses].sum() +
+            df_orcamentos_concatenados[df_orcamentos_concatenados['Categoria'] == 'Eventos Couvert'][colunas_meses].sum() 
+        )
+        porc_receita_eventos = (custos_eventos / faturamento_eventos.replace(0, np.nan)).round(2)
+        apos_linha = mapa_posicao_percentual.get('(-) Custos de Eventos')
+        df_final = insere_nova_linha(df_final, colunas_meses, porc_receita_eventos, apos_linha, '% sobre Receita de Eventos')
+
+        # Calcula % sobre Receita Bruta de cada categoria
+        for categoria in lista_categorias_dre:
+            # Casos específicos (não pedem o cálculo ou foram calculados acima)
+            if categoria not in ['FATURAMENTO BRUTO', '(-) Custo Mercadoria Vendida', '(-) Impostos sobre Venda', 'PJ', 'MDO CLT - Salário', 'Mão de Obra Extra', 'Encargos e Provisões', 'Benefícios', 'Outros B', '(+) Receitas de Patrocínio']:
+                custos_categoria = df_final[df_final['Categoria'] == categoria][colunas_meses].sum()
+                porc_faturamento_bruto_categoria = (custos_categoria / faturamento_bruto).round(2)
+                
+                apos_linha = mapa_posicao_percentual.get(categoria, categoria)
+                df_final = insere_nova_linha(df_final, colunas_meses, porc_faturamento_bruto_categoria, apos_linha, '% sobre Receita Bruta')
 
     df_final = df_final.fillna(0)
     return df_final
@@ -201,7 +259,7 @@ def highlight_secoes_dre(row):
         'Impostos sobre Venda', '(-) Impostos sobre Venda', 'Custos Artístico Geral', '(-) Custos Artístico Geral', 
         'Custos de Eventos', '(-) Custos Eventos', 'Gorjeta', '(-) Dedução da Gorjeta', 'Deduções sobre Venda', '(-) Deduções sobre Venda', 
         'PESSOAL', 'Custo de Ocupação', 'Utilidades', 'Informática e TI', 'Manutenção', 'Despesas Gerais', 'Marketing', 
-        'Serviços de Terceiros', 'Locação de Equipamentos', 'Sistema de Franquias', 'TOTAL - DESPESAS OPERATIVAS', 
+        'Serviços de Terceiros', 'Locação de Equipamentos', 'Sistema de Franquias', 'TOTAL - DESPESAS OPERATIVAS', '(-) Depreciação/Amortização',
         '(+/-) Receitas/Despesas Financeiras', 'Patrocínio', '(+) Receitas de Patrocínio', '(-) Despesas de Patrocínio', '(-) Impostos', 
         '(-) CAPEX (Investimentos)', '(+/-) Outras variações no fluxo de caixa', 'Total - Variações s/ Resultado Líquido'
         ]:
@@ -214,6 +272,8 @@ def highlight_secoes_dre(row):
         return ['background-color: #FFFFFF; color: black; font-weight: 500'] * len(row)
 
     elif row['Categoria'] in [
+        'Custos Artístico', 'Custos Ténico de Som', 'MDO', 'Serviços de Terceiros - Eventos', 'Material de Consumo',
+        'Manutenção Geral', 'Transportes', 'Locações', 'Repasses Locação de Espaço',
         'Mão de Obra - PJ', 'PJ', 'Mão de Obra - Salários', 'MDO CLT - Salário', 'Mão de Obra - Extra', 'E-Staff', 
         'Mão de Obra - Encargos e Provisões', 'Encargos e Provisões', 'Mão de Obra - Benefícios', 'Benefícios', 'Outros B']:
         return ['background-color: #FFFFFF; color: #993300; font-weight: 500'] * len(row)
@@ -235,4 +295,17 @@ def formatar_porcentagem(valor):
         return f"{valor * (-100):,.2f}%".replace(".", ",")
     else:
         return f"{valor * 100:,.2f}%".replace(".", ",")
+    
+
+def altera_pos_item_lista(lista, ref, item_para_mover):
+    # Remove o item da posição atual e guarda ele
+    indice_atual = lista.index(item_para_mover)
+    item = lista.pop(indice_atual)
+    
+    # Descobre a nova posição do item de referência
+    posicao_ref = lista.index(ref)
+    
+    # Insere após a referência
+    lista.insert(posicao_ref + 1, item)
+    return lista
 
