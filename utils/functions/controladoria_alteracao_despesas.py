@@ -29,8 +29,9 @@ def destacar_alteracoes(df, colunas_comparar):
     return df.style.apply(lambda _: df.groupby('ID Despesa', group_keys=False).apply(highlight_group), axis=None)
 
 
-def filtragem_inicial_despesas(df_log_despesas_inicial, id_casa):
-    df_log_despesas_filtrado = df_log_despesas_inicial[df_log_despesas_inicial['ID Casa'] == id_casa].copy() 
+def filtragem_inicial_despesas(df_log_despesas_inicial):
+    df_log_despesas_filtrado = df_log_despesas_inicial.copy()
+    # df_log_despesas_filtrado = df_log_despesas_inicial[df_log_despesas_inicial['ID Casa'] == id_casa].copy() 
 
     df_log_despesas_filtrado.sort_values(by=['ID Despesa', 'Data Alteração'], inplace=True)
 

@@ -35,22 +35,9 @@ st.divider()
 df_log_despesas_inicial = GET_LOGS_DESPESAS()
 df_datas_fechamento = GET_DATAS_FECHAMENTO()
 
-
-col1, col2= st.columns(2)
-
-# Seletor de casa
-with col1:
-    lista_retirar_casas = ['Todas as Casas', 'Bar Brahma Paulista', 'Brahminha', 'Bar Léo - Vila Madalena', 'Blue Note SP (Sala 2)', 'Edificio Rolim', 'Sanduiche comunicação LTDA ', 'Tempus Fugit  Ltda ', 'Terraço Notie', 'The Cavern - Almoço']
-    id_casa, casa, id_zigpay = input_selecao_casas(lista_retirar_casas, key='seletor_casas_despesas')		
-# with col2:
-#     mes_competencia_selecionado = int(seletor_mes("Selecione o mês da DRE", key="seletor_mes_despesas"))
-with col2:
-    ano_competencia_selecionado = seletor_ano(2025, 2026, 'ano', 'Selecione o ano da DRE')
+# Seletor de ano
+ano_competencia_selecionado = seletor_ano(2026, 2026, 'ano', 'Selecione o ano')
 st.divider()
-
-if not id_casa:
-    st.warning('Nenhuma casa selecionada')
-    st.stop()
 
 
 lista_dfs_tipos_alteracao = []
@@ -94,7 +81,7 @@ tipos_alteracao = [
 ]
 
 # Filtra pela casa selecionada
-df_log_despesas_filtrado = filtragem_inicial_despesas(df_log_despesas_inicial, id_casa)
+df_log_despesas_filtrado = filtragem_inicial_despesas(df_log_despesas_inicial)
 
 for tipo in tipos_alteracao:
     df = despesas_alteradas_por_campo(df_log_despesas_filtrado, tipo["colunas_comparar"])
@@ -109,54 +96,125 @@ for tipo in tipos_alteracao:
 
 # 1. Resumo dos ajustes para fechamento (início do mês até data de fechamento)
 with st.container(border=True):
-    df_datas_fechamento_casa = df_datas_fechamento[df_datas_fechamento['Casa'] == casa].copy()
-    lista_datas_fechamento_casa = df_datas_fechamento_casa['DATA_FECHAMENTO'].unique().tolist()
-    df_ajustes_casa = pd.DataFrame(columns=['Casa', 'Mês', 'Ano', 'Tipo', 'Quantidade'])
+    lista_casas = df_datas_fechamento['Casa'].unique().tolist()
+    df_ajustes_casa = pd.DataFrame(columns=['Casa', 'Mês', 'Ano', 'Tipo', 'Quantidade', 'Período de Ajustes'])
     periodos_por_mes = {} # Para armazenar o período de ajustes de cada mês
+    dfs_detalhados = {} # Para exibir depois os df de ajustes
 
-    for data in lista_datas_fechamento_casa:
+    for casa in lista_casas:
         # Define período de ajustes para cada mês de competência da casa
-        data_fim_periodo_ajuste = data.date()
-        data_inicio_periodo_ajuste = pd.Timestamp(day=1, month=data_fim_periodo_ajuste.month, year=data_fim_periodo_ajuste.year).date()
-        mes_competencia_ajuste = df_datas_fechamento_casa[df_datas_fechamento_casa['DATA_FECHAMENTO'] == data]['MES'].iloc[0]
-        ano_competencia_ajuste = df_datas_fechamento_casa[df_datas_fechamento_casa['DATA_FECHAMENTO'] == data]['ANO'].iloc[0]
-        periodos_por_mes[mes_competencia_ajuste] = f"{data_inicio_periodo_ajuste.strftime('%d/%m')} a {data_fim_periodo_ajuste.strftime('%d/%m')}"
+        df_datas_fim_periodo_ajuste = df_datas_fechamento[df_datas_fechamento['Casa'] == casa].copy()
+        if ano_competencia_selecionado == 2026:
+            df_datas_fim_periodo_ajuste = df_datas_fechamento[(df_datas_fechamento['MES'] >= 3) & (df_datas_fechamento['ANO'] >= 2026)].copy()
 
-        # Filtra o df de cada tipo de alteração pelas despesas com alteração dentro do período de ajuste
-        for item in lista_dfs_tipos_alteracao:
-            if item['tipo'] in ['Data de Competência', 'Classificação Contábil', 'Provisão-Real']:
-                df_alteracoes = item['df']
-                df_alteracoes_mes = filtragem_mes_ano_competencia(df_alteracoes, mes_competencia_ajuste, ano_competencia_ajuste, 'Ajustes Fechamento', data_fim_periodo_ajuste)
-                quantidade_alteracoes = exibe_contagem_despesas(df_alteracoes_mes, exibe_res=False) # Calcula quantidade de ajustes por mês e tipo
-                df_ajustes_casa.loc[len(df_ajustes_casa)] = [ # Insere resultados no df
-                    casa,
-                    mes_competencia_ajuste, 
-                    ano_competencia_ajuste,
-                    item['tipo'],
-                    quantidade_alteracoes
-                ]
+        lista_datas_fechamento = df_datas_fim_periodo_ajuste['DATA_FECHAMENTO'].tolist()
         
-    df_ajustes_casa_fmt = df_ajustes_casa[df_ajustes_casa['Ano'] == ano_competencia_selecionado].copy() # Pega ajustes dos meses do ano selecionado
-    df_ajustes_casa_fmt = df_ajustes_casa_fmt.pivot_table( # Transforma meses em colunas
-        index="Tipo", 
-        columns="Mês",
+        for data in lista_datas_fechamento:
+            data_fim_periodo_ajuste = data.date()
+            data_inicio_periodo_ajuste = pd.Timestamp(day=1, month=data_fim_periodo_ajuste.month, year=data_fim_periodo_ajuste.year).date()
+            mes_competencia_ajuste = df_datas_fim_periodo_ajuste[df_datas_fim_periodo_ajuste['DATA_FECHAMENTO'] == data]['MES'].iloc[0]
+            ano_competencia_ajuste = df_datas_fim_periodo_ajuste[df_datas_fim_periodo_ajuste['DATA_FECHAMENTO'] == data]['ANO'].iloc[0]
+            
+            # Dicionário com período de ajustes por mês de cada casa
+            periodos_por_mes.setdefault(casa, {})[int(mes_competencia_ajuste)] = (
+                f"{data_inicio_periodo_ajuste.strftime('%d/%m')} a {data_fim_periodo_ajuste.strftime('%d/%m')}"
+            )  
+        
+            # Filtra o df de cada tipo de alteração pelas despesas com alteração dentro do período de ajuste
+            for item in lista_dfs_tipos_alteracao:
+                if item['tipo'] in ['Data de Competência', 'Classificação Contábil', 'Provisão-Real']:
+                    df_alteracoes = item['df']
+                    df_alteracoes = df_alteracoes[df_alteracoes['Casa'] == casa].copy()
+                    periodo = periodos_por_mes[casa][int(mes_competencia_ajuste)]
+                    
+                    df_alteracoes_mes = filtragem_mes_ano_competencia(df_alteracoes, mes_competencia_ajuste, ano_competencia_ajuste, 'Ajustes Fechamento', data_fim_periodo_ajuste)
+                    dfs_detalhados.setdefault(casa, {}) \
+                    .setdefault(int(mes_competencia_ajuste), {})[item['tipo']] = df_alteracoes_mes
+                    
+                    quantidade_alteracoes = exibe_contagem_despesas(df_alteracoes_mes, exibe_res=False) # Calcula quantidade de ajustes por mês e tipo
+                    df_ajustes_casa.loc[len(df_ajustes_casa)] = [ # Insere resultados no df
+                        casa,
+                        mes_competencia_ajuste, 
+                        ano_competencia_ajuste,
+                        item['tipo'],
+                        quantidade_alteracoes,
+                        periodo
+                    ]
+
+    df_ajustes_casa_fmt = df_ajustes_casa.pivot_table( # Transforma meses em colunas
+        index=["Casa", 'Mês', 'Ano', 'Período de Ajustes'], 
+        columns="Tipo",
         values="Quantidade",
         sort=False
     ).reset_index()
-    
-    df_ajustes_casa_fmt.columns = pd.MultiIndex.from_tuples([ # Insere período de ajustes depois do header
-        (mes, periodos_por_mes.get(mes, 'Período de ajustes')) for mes in df_ajustes_casa_fmt.columns
-    ])
-    
+    df_ajustes_casa_fmt = df_ajustes_casa_fmt.sort_values(by=['Mês', 'Casa'])
+  
     df_ajustes_casa_fmt = df_ajustes_casa_fmt.rename(columns={ # Renomeia meses
         1: 'Jan', 2: 'Fev', 3: 'Mar', 4: 'Abr',
         5: 'Mai', 6: 'Jun', 7: 'Jul', 8: 'Ago',
         9: 'Set', 10: 'Out', 11: 'Nov', 12: 'Dez'
     })
 
-    st.subheader('Resumo - Ajustes para fechamento de cada mês')
+    col1, col2 = st.columns(2)
+    with col1:
+        st.subheader('Resumo - Ajustes para fechamento de cada casa')
+    with col2:
+        lista_meses = ['Todos', 'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro']
+        mes = st.selectbox('Selecione o mês de competência', lista_meses)
+        meses = {
+            "Janeiro": 1,
+            "Fevereiro": 2,
+            "Março": 3,
+            "Abril": 4,
+            "Maio": 5,
+            "Junho": 6,
+            "Julho": 7,
+            "Agosto": 8,
+            "Setembro": 9,
+            "Outubro": 10,
+            "Novembro": 11,
+            "Dezembro": 12
+        }
+        
+    st.write("")
     if not df_ajustes_casa_fmt.empty:
+        if mes != 'Todos': # Filtra pelo mês de competência selecionado
+            mes_competencia = meses[mes]
+            df_ajustes_casa_fmt = df_ajustes_casa_fmt[(df_ajustes_casa_fmt['Mês'] == mes_competencia)].copy()
+        df_ajustes_casa_fmt = df_ajustes_casa_fmt[(df_ajustes_casa_fmt['Ano'] == ano_competencia_selecionado)].copy()
+
+        df_ajustes_casa_fmt.drop(columns={'Ano'}, inplace=True)
+        df_ajustes_casa_fmt.rename(columns={
+            'Mês': 'Mês de Competência', 
+            'Data de Competência': 'Alteração de Data de Competência',
+            'Classificação Contábil': 'Alteração de Classificação Contábil',
+            'Provisão-Real': 'Alteração de Provisão-Real'
+        }, inplace=True)
+        df_ajustes_casa_fmt = df_ajustes_casa_fmt[['Casa', 'Alteração de Data de Competência', 'Alteração de Classificação Contábil', 'Alteração de Provisão-Real', 'Mês de Competência', 'Período de Ajustes']]
         st.dataframe(df_ajustes_casa_fmt, hide_index=True, width='stretch')
+
+        with st.expander('Visualizar detalhamento dos ajustes'):
+            col1, col2 = st.columns(2)
+            with col1:
+                lista_casas.sort()
+                casa_sel = st.selectbox("Casa", lista_casas)
+            with col2:
+                mes_sel = st.selectbox("Mês de competência", list(dfs_detalhados.get(casa_sel, {}).keys()))
+
+            dfs_mes = dfs_detalhados[casa_sel][mes_sel]
+            for tipo, df in dfs_mes.items():
+                st.markdown(f"<h4>{tipo}</h4>", unsafe_allow_html=True)
+                df_styled = format_columns_brazilian(df, ['Valor Original', 'Valor Liquido'])
+                if tipo == 'Data de Competência':
+                    colunas_comparar = ['Data Competência']
+                elif tipo == 'Classificação Contábil':
+                    colunas_comparar = ["Class. Cont. 1", "Class. Cont. 2"]
+                elif tipo == 'Provisão-Real':
+                    colunas_comparar = ['Real/Provisão']
+                
+                df_styled = destacar_alteracoes(df_styled, colunas_comparar)
+                st.dataframe(df_styled, hide_index=True, width='stretch')
+                st.divider()
     else:
         st.warning('Sem resultados.')
         
@@ -166,12 +224,15 @@ st.divider()
 dfs_exportar = {} # Lista de dataframes para excel
 
 with st.container(border=True):
+    st.subheader('Alteração de despesas após data de fechamento da DRE')
     col1, col2 = st.columns(2)
     with col1:
-        st.subheader('Alteração de despesas após data de fechamento da DRE')
+        lista_retirar_casas = ['Todas as Casas', 'Bar Brahma Paulista', 'Brahminha', 'Bar Léo - Vila Madalena', 'Blue Note SP (Sala 2)', 'Edificio Rolim', 'Sanduiche comunicação LTDA ', 'Tempus Fugit  Ltda ', 'Terraço Notie', 'The Cavern - Almoço']
+        id_casa, casa, id_zigpay = input_selecao_casas(lista_retirar_casas, key='seletor_casas_despesas')	
     with col2:
         mes_competencia_selecionado = int(seletor_mes("Selecione o mês da DRE", key="seletor_mes_despesas"))
-    
+
+
     # Recupera data de fechamento para casa, mês e ano de competência selecionados
     df_data_fechamento_mes_selecionado = df_datas_fechamento[
         (df_datas_fechamento['MES'] == mes_competencia_selecionado) & 
@@ -211,6 +272,7 @@ with st.container(border=True):
 
     # Despesas criadas após data de fechamento
     st.markdown(f'''<h4>Despesas criadas</h4>''', unsafe_allow_html=True)
+    df_log_despesas_inicial = df_log_despesas_inicial[df_log_despesas_inicial['ID Casa'] == id_casa].copy() 
     df_log_despesas_criadas = busca_despesas_criadas(df_log_despesas_inicial, id_casa, data_fechamento_mes_selecionado)
     df_log_despesas_criadas = filtragem_classificacao_contabil(df_log_despesas_criadas, lista_class_cont_1_selecionadas, lista_class_cont_2_selecionadas)
     df_log_despesas_criadas = filtragem_mes_ano_competencia(df_log_despesas_criadas, mes_competencia_selecionado, ano_competencia_selecionado, 'Criadas', data_fechamento_mes_selecionado)
@@ -233,6 +295,7 @@ with st.container(border=True):
         colunas_comparar = item["colunas_comparar"]
         
         st.markdown(f'''<h4>{titulo}</h4>''', unsafe_allow_html=True)
+        df = df[df['Casa'] == casa].copy() 
         df = filtragem_classificacao_contabil(df, lista_class_cont_1_selecionadas, lista_class_cont_2_selecionadas)
         # Filtra apenas despesas com data alteração > data fechamento
         df = filtragem_mes_ano_competencia(df, mes_competencia_selecionado, ano_competencia_selecionado, campo_filtro, data_fechamento_mes_selecionado)
