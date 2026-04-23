@@ -42,8 +42,3 @@ with col2:
     ano = seletor_ano(2026, 2026, 'ano')
 st.divider()
 
-local = st.secrets['local_headcount']
-local = local['local']
-df_headcount = pd.read_excel(local + f'\{casa}.xlsx')
-st.write(df_headcount)
-

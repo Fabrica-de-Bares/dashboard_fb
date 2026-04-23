@@ -14,6 +14,4 @@ venv/
 # Ignorar devcontainer
 .devcontainer/
 
-# Ignorar planilhas
-assets/sheets
 

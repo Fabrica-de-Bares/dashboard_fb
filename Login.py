@@ -46,7 +46,7 @@ ABAS = {
     104: {'nome_aba': '🛍️ Relatório de Vendas', 'page_link': 'pages/Faturamento - Relatório de Vendas.py'},
     133: {'nome_aba': '📝 Categorização - Descontos', 'page_link': 'pages/Auditoria - Descontos.py'},
     134: {'nome_aba': '📝 Formatar - Promoções', 'page_link': 'pages/Auditoria - Promoções.py'},
-    135: {'nome_aba': '⬆️ DRE e Orçamento - Input no Sistema', 'page_link': 'pages/Controladoria - Colunas_DRE.py'},
+    135: {'nome_aba': '⬆️ DRE e Planejamento - Input no Sistema', 'page_link': 'pages/Controladoria - Input_Sistema.py'},
     136: {'nome_aba': '🏷️ Descontos - DRE', 'page_link': 'pages/Controladoria - Descontos_DRE.py'},
     137: {'nome_aba': '🪙 Cálculo de Gorjeta', 'page_link': 'pages/Operacional - Cálculo_Gorjeta.py'},
     138: {'nome_aba': '🔎 Auditoria - Alteração de Despesas em Sistema', 'page_link': 'pages/Controladoria - Alteração de Despesas.py'},
