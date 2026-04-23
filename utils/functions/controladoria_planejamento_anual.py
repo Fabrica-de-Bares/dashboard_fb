@@ -60,7 +60,7 @@ def loop_prepara_dados_despesas(lista_categorias_orcamento, df_orcamento_filtrad
     return lista_df_orcamentos
 
 
-# Cria linha no topo do df com valor total e título por class. cont.
+# Cria linha no topo do df com valor total e título por class. cont. - Orçamento e Real DRE
 def calcula_linha_total(df, categoria):
     colunas_numericas = df.select_dtypes(include='number').columns
 
@@ -71,13 +71,28 @@ def calcula_linha_total(df, categoria):
     return df
 
 
-# Insere linhas de porcentagens e outros valores no meio do df
-def insere_nova_linha(df, colunas_meses, valor, apos_linha, categoria):
+# Insere linhas logo após o header (primeira linha do df) - Headcount Pessoas
+def insere_apos_header(df, colunas_meses, valor, col, categoria):
     nova_linha = pd.DataFrame([valor])
     nova_linha = nova_linha[colunas_meses]
-    nova_linha['Categoria'] = categoria
+    nova_linha[col] = categoria
 
-    indices = df.index[df['Categoria'] == apos_linha]
+    df_final = pd.concat([
+        df.iloc[:0],  # header (primeira linha)
+        nova_linha,
+        df.iloc[0:]
+    ]).reset_index(drop=True)
+
+    return df_final
+
+
+# Insere linhas de porcentagens e outros valores no meio do df
+def insere_nova_linha(df, colunas_meses, valor, apos_linha, col, categoria):
+    nova_linha = pd.DataFrame([valor])
+    nova_linha = nova_linha[colunas_meses]
+    nova_linha[col] = categoria
+
+    indices = df.index[df[col] == apos_linha]
 
     if len(indices) == 0:
         return df  # segurança
@@ -94,7 +109,14 @@ def insere_nova_linha(df, colunas_meses, valor, apos_linha, categoria):
     return df_final
 
 
-# Calcula porcentagens e outros valores
+# Seleciona parte do df - Headcount Pessoas
+def fatia_por_categoria(df, coluna, inicio, fim):
+    idx_inicio = df.index[df[coluna] == inicio][0]
+    idx_fim = df.index[df[coluna] == fim][0]
+    return df.loc[idx_inicio:idx_fim]
+
+
+# Calcula porcentagens e outros valores - Orçamento e Real DRE
 def define_linhas_calculadas(df_orcamentos_resumo, df_orcamentos_concatenados, lista_categorias_dre, colunas_meses, tipo, mapa_posicao_percentual=None):
     if tipo == 'Orçamento':
         # Define valores mais usados
@@ -110,7 +132,7 @@ def define_linhas_calculadas(df_orcamentos_resumo, df_orcamentos_concatenados, l
             df_orcamentos_concatenados[df_orcamentos_concatenados['Categoria'] == 'Desconto sobre Venda'][colunas_meses].sum() - 
             df_orcamentos_concatenados[df_orcamentos_concatenados['Categoria'] == 'Impostos sobre Venda'][colunas_meses].sum()
         )
-        df_final = insere_nova_linha(df_orcamentos_resumo, colunas_meses, receita_liquida, 'Impostos sobre Venda', 'RECEITA LÍQUIDA')
+        df_final = insere_nova_linha(df_orcamentos_resumo, colunas_meses, receita_liquida, 'Impostos sobre Venda', 'Categoria', 'RECEITA LÍQUIDA')
 
         # % sobre Receita Bruta - CMV
         receita_bruta = (
@@ -120,15 +142,15 @@ def define_linhas_calculadas(df_orcamentos_resumo, df_orcamentos_concatenados, l
             df_orcamentos_concatenados[df_orcamentos_concatenados['Categoria'] == 'Delivery'][colunas_meses].sum()
         )
         porc_receita_bruta_cmv = (cmv / receita_bruta)
-        df_final = insere_nova_linha(df_final, colunas_meses, porc_receita_bruta_cmv, 'Custo Mercadoria Vendida', '% sobre Receita Bruta')
+        df_final = insere_nova_linha(df_final, colunas_meses, porc_receita_bruta_cmv, 'Custo Mercadoria Vendida', 'Categoria', '% sobre Receita Bruta')
         
         # % sobre Receita Líquida - CMV
         porc_receita_liquida_cmv = (cmv / receita_liquida).round(2)
-        df_final = insere_nova_linha(df_final, colunas_meses, porc_receita_liquida_cmv, '% sobre Receita Bruta', '% sobre Receita Líquida')
+        df_final = insere_nova_linha(df_final, colunas_meses, porc_receita_liquida_cmv, '% sobre Receita Bruta', 'Categoria', '% sobre Receita Líquida')
 
         # % sobre Receita Artístico
         porc_receita_artistico = (custos_artistico / faturamento_artistico).round(2)
-        df_final = insere_nova_linha(df_final, colunas_meses, porc_receita_artistico, 'Custos Artístico Geral', '% sobre Receita Artístico')
+        df_final = insere_nova_linha(df_final, colunas_meses, porc_receita_artistico, 'Custos Artístico Geral', 'Categoria', '% sobre Receita Artístico')
 
         # % sobre Receita de Eventos
         faturamento_eventos = (
@@ -137,7 +159,7 @@ def define_linhas_calculadas(df_orcamentos_resumo, df_orcamentos_concatenados, l
             df_orcamentos_concatenados[df_orcamentos_concatenados['Categoria'] == 'Eventos Couvert'][colunas_meses].sum() 
         )
         porc_receita_eventos = (custos_eventos / faturamento_eventos.replace(0, np.nan)).round(2)
-        df_final = insere_nova_linha(df_final, colunas_meses, porc_receita_eventos, 'Custos de Eventos', '% sobre Receita de Eventos')
+        df_final = insere_nova_linha(df_final, colunas_meses, porc_receita_eventos, 'Custos de Eventos', 'Categoria', '% sobre Receita de Eventos')
 
         # PESSOAL
         pessoal = 0
@@ -145,7 +167,7 @@ def define_linhas_calculadas(df_orcamentos_resumo, df_orcamentos_concatenados, l
             if categoria in ['Mão de Obra - PJ', 'Mão de Obra - Salários', 'Mão de Obra - Extra', 'Mão de Obra - Encargos e Provisões', 'Mão de Obra - Benefícios']:
                 pessoal += df_final[df_final['Categoria'] == categoria][colunas_meses].sum() 
 
-        df_final = insere_nova_linha(df_final, colunas_meses, pessoal, 'Deduções sobre Venda', 'PESSOAL')
+        df_final = insere_nova_linha(df_final, colunas_meses, pessoal, 'Deduções sobre Venda', 'Categoria', 'PESSOAL')
         lista_categorias_dre.append('PESSOAL')
 
         # MARGEM BRUTA DE CONTRIBUIÇÃO
@@ -157,7 +179,7 @@ def define_linhas_calculadas(df_orcamentos_resumo, df_orcamentos_concatenados, l
             df_final[df_final['Categoria'] == 'Custos Artístico Geral'][colunas_meses].sum() -
             df_final[df_final['Categoria'] == 'Custo Mercadoria Vendida'][colunas_meses].sum() 
         )
-        df_final = insere_nova_linha(df_final, colunas_meses, margem_bruta_contribuicao, 'Deduções sobre Venda', 'MARGEM BRUTA DE CONTRIBUIÇÃO')
+        df_final = insere_nova_linha(df_final, colunas_meses, margem_bruta_contribuicao, 'Deduções sobre Venda', 'Categoria', 'MARGEM BRUTA DE CONTRIBUIÇÃO')
         lista_categorias_dre.append('MARGEM BRUTA DE CONTRIBUIÇÃO')
 
         # TOTAL - DESPESAS OPERATIVAS
@@ -166,18 +188,18 @@ def define_linhas_calculadas(df_orcamentos_resumo, df_orcamentos_concatenados, l
             if categoria in ['PESSOAL', 'Custo de Ocupação', 'Utilidades', 'Informática e TI', 'Manutenção', 'Marketing', 'Serviços de Terceiros', 'Locação de Equipamentos', 'Sistema de Franquias']:
                 total_despesas_operativas += df_final[df_final['Categoria'] == categoria][colunas_meses].sum() 
 
-        df_final = insere_nova_linha(df_final, colunas_meses, total_despesas_operativas, 'Sistema de Franquias', 'TOTAL - DESPESAS OPERATIVAS')
+        df_final = insere_nova_linha(df_final, colunas_meses, total_despesas_operativas, 'Sistema de Franquias', 'Categoria', 'TOTAL - DESPESAS OPERATIVAS')
         lista_categorias_dre.append('TOTAL - DESPESAS OPERATIVAS')
         
         # EBTIDA e EBIT
         total_despesas_operativas = df_final[df_final['Categoria'] == 'TOTAL - DESPESAS OPERATIVAS'][colunas_meses].sum() 
         margem_bruta_contribuicao = df_final[df_final['Categoria'] == 'MARGEM BRUTA DE CONTRIBUIÇÃO'][colunas_meses].sum() 
         ebitda = margem_bruta_contribuicao - total_despesas_operativas
-        df_final = insere_nova_linha(df_final, colunas_meses, ebitda, 'TOTAL - DESPESAS OPERATIVAS', 'EBITDA')
+        df_final = insere_nova_linha(df_final, colunas_meses, ebitda, 'TOTAL - DESPESAS OPERATIVAS', 'Categoria', 'EBITDA')
         lista_categorias_dre.append('EBITDA')
         
         ebit = ebitda
-        df_final = insere_nova_linha(df_final, colunas_meses, ebit, 'EBITDA', 'EBIT')
+        df_final = insere_nova_linha(df_final, colunas_meses, ebit, 'EBITDA', 'Categoria', 'EBIT')
 
         # Calcula % sobre Receita Bruta de cada categoria
         for categoria in lista_categorias_dre:
@@ -189,7 +211,7 @@ def define_linhas_calculadas(df_orcamentos_resumo, df_orcamentos_concatenados, l
                     apos_linha = 'Mão de Obra - Benefícios'
                 else:
                     apos_linha = categoria
-                df_final = insere_nova_linha(df_final, colunas_meses, porc_faturamento_bruto_categoria, apos_linha, '% sobre Receita Bruta')
+                df_final = insere_nova_linha(df_final, colunas_meses, porc_faturamento_bruto_categoria, apos_linha, 'Categoria', '% sobre Receita Bruta')
 
     elif tipo == 'DRE Real': # Já tem valores definidos
         lista_categorias_dre.append('PESSOAL')
@@ -217,16 +239,16 @@ def define_linhas_calculadas(df_orcamentos_resumo, df_orcamentos_concatenados, l
         )
         porc_receita_bruta_cmv = (cmv / receita_bruta)
         apos_linha = mapa_posicao_percentual.get('(-) Custo Mercadoria Vendida')
-        df_final = insere_nova_linha(df_orcamentos_concatenados, colunas_meses, porc_receita_bruta_cmv, apos_linha, '% sobre Receita Bruta')
+        df_final = insere_nova_linha(df_orcamentos_concatenados, colunas_meses, porc_receita_bruta_cmv, apos_linha, 'Categoria', '% sobre Receita Bruta')
         
         # % sobre Receita Líquida - CMV
         porc_receita_liquida_cmv = (cmv / receita_liquida).round(2)
-        df_final = insere_nova_linha(df_final, colunas_meses, porc_receita_liquida_cmv, '% sobre Receita Bruta', '% sobre Receita Líquida')
+        df_final = insere_nova_linha(df_final, colunas_meses, porc_receita_liquida_cmv, '% sobre Receita Bruta', 'Categoria', '% sobre Receita Líquida')
 
         # % sobre Receita Artístico
         porc_receita_artistico = (custos_artistico / faturamento_artistico).round(2)
         apos_linha = mapa_posicao_percentual.get('(-) Custos Artístico Geral')
-        df_final = insere_nova_linha(df_final, colunas_meses, porc_receita_artistico, apos_linha, '% sobre Receita Artístico')
+        df_final = insere_nova_linha(df_final, colunas_meses, porc_receita_artistico, apos_linha, 'Categoria', '% sobre Receita Artístico')
 
         # % sobre Receita de Eventos
         faturamento_eventos = (
@@ -236,7 +258,7 @@ def define_linhas_calculadas(df_orcamentos_resumo, df_orcamentos_concatenados, l
         )
         porc_receita_eventos = (custos_eventos / faturamento_eventos.replace(0, np.nan)).round(2)
         apos_linha = mapa_posicao_percentual.get('(-) Custos de Eventos')
-        df_final = insere_nova_linha(df_final, colunas_meses, porc_receita_eventos, apos_linha, '% sobre Receita de Eventos')
+        df_final = insere_nova_linha(df_final, colunas_meses, porc_receita_eventos, apos_linha, 'Categoria', '% sobre Receita de Eventos')
 
         # Calcula % sobre Receita Bruta de cada categoria
         for categoria in lista_categorias_dre:
@@ -246,13 +268,13 @@ def define_linhas_calculadas(df_orcamentos_resumo, df_orcamentos_concatenados, l
                 porc_faturamento_bruto_categoria = (custos_categoria / faturamento_bruto).round(2)
                 
                 apos_linha = mapa_posicao_percentual.get(categoria, categoria)
-                df_final = insere_nova_linha(df_final, colunas_meses, porc_faturamento_bruto_categoria, apos_linha, '% sobre Receita Bruta')
+                df_final = insere_nova_linha(df_final, colunas_meses, porc_faturamento_bruto_categoria, apos_linha, 'Categoria', '% sobre Receita Bruta')
 
     df_final = df_final.fillna(0)
     return df_final
 
 
-# Funções de estilos (cores) e formatações numéricas
+# Funções de estilos (cores) e formatações numéricas - Orçamento e Real DRE
 def highlight_secoes_dre(row):
     if row['Categoria'] in [
         'Desconto sobre Venda', '(-) Desconto sobre Venda', 'Custo Mercadoria Vendida', '(-) Custo Mercadoria Vendida', 
@@ -297,6 +319,7 @@ def formatar_porcentagem(valor):
         return f"{valor * 100:,.2f}%".replace(".", ",")
     
 
+# Real DRE - caso específico
 def altera_pos_item_lista(lista, ref, item_para_mover):
     # Remove o item da posição atual e guarda ele
     indice_atual = lista.index(item_para_mover)
@@ -308,4 +331,36 @@ def altera_pos_item_lista(lista, ref, item_para_mover):
     # Insere após a referência
     lista.insert(posicao_ref + 1, item)
     return lista
+
+
+def prepara_secoes_headcount(df_inicial, colunas_meses):
+    # Squad
+    df_squad = fatia_por_categoria(df_inicial, 'CARGO', 'Líder de Squad', 'Chefe de Manutenção')
+    total_meses = df_squad[colunas_meses].sum()
+    df_squad = insere_apos_header(df_squad, colunas_meses, total_meses, 'CARGO', '- Squad')
+
+    # Operação
+    df_operacao = fatia_por_categoria(df_inicial, 'CARGO', '  - Gerente', '  - Hostess')
+    total_meses = df_operacao[colunas_meses].sum()
+    df_operacao = insere_apos_header(df_operacao, colunas_meses, total_meses, 'CARGO', 'Operação')
+
+    # Quadro/Função
+    df_quadro_funcao = fatia_por_categoria(df_inicial, 'CARGO', '  -  Maitre', '  -  Operador de Delivery')
+    total_meses = df_quadro_funcao[colunas_meses].sum()
+    df_quadro_funcao = insere_apos_header(df_quadro_funcao, colunas_meses, total_meses, 'CARGO', 'Quadro/Função')
+
+    # PJ - Concatena Squad e Operação
+    df_pj = pd.concat([df_squad, df_operacao])
+    total_meses = df_pj[df_pj['CARGO'].isin(['- Squad', 'Operação'])][colunas_meses].sum()
+    df_pj = insere_apos_header(df_pj, colunas_meses, total_meses, 'CARGO', 'PJ')
+
+    df_final = pd.concat([df_pj, df_quadro_funcao]).reset_index(drop=True)
+    return df_final
+
+
+def highlight_secoes_headcount(row):
+    if row['CARGO'] in ['PJ', 'Quadro/Função']:
+        return ['background-color: rgba(255, 165, 0, 0.05); color: black; font-weight: 500'] * len(row)
+    elif row['CARGO'] in ['- Squad', 'Operação']:
+        return ['color: black; font-weight: 500'] * len(row)
 

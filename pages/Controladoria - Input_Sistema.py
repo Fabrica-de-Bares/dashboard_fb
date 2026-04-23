@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 from utils.functions.general_functions import config_sidebar, mysql_connection_fb
 from utils.functions.controladoria_descontos_dre import limpeza_linhas
-from utils.functions.controladoria_input_sistema import *
+from utils.functions.controladoria_input_sistema import prepara_partes_headcount, prepara_colunas_real_dre
 from utils.queries_conciliacao import GET_CASAS
 from utils.components import button_download, seletor_ano
 
@@ -307,6 +307,7 @@ elif tipo_formatacao == 'Inputar - Headcount de Pessoas':
             if col not in lista_cols_manter:
                 df_transformado = df_transformado.drop(columns=[col])
 
+        # Divide o df em dois (num. colaboradores à esquerda e remuneração à direita)
         df_primeira_parte = df_transformado.iloc[:, 0:13]
         df_primeira_parte = prepara_partes_headcount(df_primeira_parte, 'Nº COLABORADORES', ano)
         df_segunda_parte = df_transformado.iloc[:, 13:26]
@@ -335,7 +336,3 @@ elif tipo_formatacao == 'Inputar - Headcount de Pessoas':
             button_download(df_download, f"Input Headcount_{nome_casa}", f"Input Headcount_{nome_casa}")
 
         st.dataframe(df_download, hide_index=True)
-
-
-        
-        

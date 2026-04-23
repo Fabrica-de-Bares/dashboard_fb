@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 from utils.functions.general_functions import config_sidebar
-from utils.functions.planejamento_anual import *
+from utils.functions.controladoria_planejamento_anual import *
 from utils.functions.cmv_teorico_fichas_tecnicas import function_format_number_columns
 from utils.functions.general_functions_conciliacao import calcular_datas
 from utils.components import button_download, seletor_ano, input_selecao_casas
