@@ -10,7 +10,7 @@ from streamlit_echarts import st_echarts
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 from utils.queries_cmv import *
 
-def input_selecao_casas(lista_casas_retirar, key, adicionar_delivery=None):
+def input_selecao_casas(lista_casas_retirar, key, adicionar_delivery=None, agregado=None):
     # Mostra apenas as casas que o usuário tem acesso
     df_permissao_casas = pd.DataFrame(st.session_state['casas_permitidas'], columns=["ID Loja", "Loja", 'ID Zigpay'])
     
@@ -34,17 +34,25 @@ def input_selecao_casas(lista_casas_retirar, key, adicionar_delivery=None):
             df_permissao_casas = pd.concat([df_permissao_casas, df_casas_delivery[df_casas_delivery['ID Loja'] == 139]])
     
     lista_casas_validas = df_permissao_casas['Loja'].unique().tolist()
+    lista_casas_validas.sort()
+
     # Adiciona opção Todas as casas
     if 'Todas as Casas' not in lista_casas_retirar:
         lista_casas_validas.insert(0, "Todas as Casas")
+    if agregado == True: # Caso específico - QuarterDay
+        indice_ref = lista_casas_validas.index('Girondino - CCBB')
+        lista_casas_validas.insert(indice_ref + 1, 'Girondino - Agregado')
 
-    lista_casas_validas.sort()
     casa = st.selectbox("Selecione uma casa", lista_casas_validas, key=key)
 
     if casa == "Todas as Casas":
         id_casa = -1  # Valor padrão para "Todas as Casas"
         casa = "Todas as Casas"
         id_zigpay = -1
+    elif casa == 'Girondino - Agregado':
+        id_casa = None
+        casa = 'Girondino - Agregado'
+        id_zigpay = None
     else:
         # Obtendo o ID da casa selecionada
         id_casa = df_permissao_casas[df_permissao_casas["Loja"] == casa]["ID Loja"].values[0]
