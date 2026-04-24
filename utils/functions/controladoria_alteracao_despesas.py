@@ -227,3 +227,19 @@ def button_download(dfs_exportar):
         type="primary",
         use_container_width=True
     )
+
+
+# Cria coluna e linha de Total
+def somar_total(df):
+    # Coluna
+    df['TOTAL'] = 0
+    for col in ['Alteração de Data de Competência', 'Alteração de Classificação Contábil', 'Alteração de Provisão-Real']:
+        df['TOTAL'] += df[col]
+    
+    # Linha
+    colunas_numericas = [col for col in ['Alteração de Data de Competência', 'Alteração de Classificação Contábil', 'Alteração de Provisão-Real', 'TOTAL'] if col in df.columns]
+    soma_colunas = df[colunas_numericas].sum().to_frame().T
+    soma_colunas['Casa'] = 'TOTAL' 
+    df_com_soma = pd.concat([df, soma_colunas], ignore_index=True)
+    
+    return df_com_soma

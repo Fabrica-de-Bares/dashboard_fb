@@ -90,7 +90,7 @@ for tipo in tipos_alteracao:
         "titulo": tipo["titulo"],
         "campo_filtro": tipo["campo_filtro"],
         "colunas_comparar": tipo["colunas_comparar"],
-        "tipo": tipo["titulo_excel"]
+        "tipo": tipo["titulo_excel"],
     })
 
 
@@ -175,14 +175,16 @@ with st.container(border=True):
             "Novembro": 11,
             "Dezembro": 12
         }
-        
-    st.write("")
-    if not df_ajustes_casa_fmt.empty:
-        if mes != 'Todos': # Filtra pelo mês de competência selecionado
-            mes_competencia = meses[mes]
-            df_ajustes_casa_fmt = df_ajustes_casa_fmt[(df_ajustes_casa_fmt['Mês'] == mes_competencia)].copy()
-        df_ajustes_casa_fmt = df_ajustes_casa_fmt[(df_ajustes_casa_fmt['Ano'] == ano_competencia_selecionado)].copy()
+    
+    st.write("")    
+    if mes != 'Todos': # Filtra pelo mês de competência selecionado
+        mes_competencia = meses[mes]
+        df_ajustes_casa_fmt = df_ajustes_casa_fmt[(df_ajustes_casa_fmt['Mês'] == mes_competencia)].copy()
 
+    if not df_ajustes_casa_fmt.empty:
+        height = (len(df_ajustes_casa_fmt) + 1) * 35 # Define altura sem rolagem
+
+        df_ajustes_casa_fmt = df_ajustes_casa_fmt[(df_ajustes_casa_fmt['Ano'] == ano_competencia_selecionado)].copy()
         df_ajustes_casa_fmt.drop(columns={'Ano'}, inplace=True)
         df_ajustes_casa_fmt.rename(columns={
             'Mês': 'Mês de Competência', 
@@ -191,15 +193,21 @@ with st.container(border=True):
             'Provisão-Real': 'Alteração de Provisão-Real'
         }, inplace=True)
         df_ajustes_casa_fmt = df_ajustes_casa_fmt[['Casa', 'Alteração de Data de Competência', 'Alteração de Classificação Contábil', 'Alteração de Provisão-Real', 'Mês de Competência', 'Período de Ajustes']]
-        st.dataframe(df_ajustes_casa_fmt, hide_index=True, width='stretch')
+        
+        # Cria coluna e linha de Total
+        df_ajustes_casa_fmt = somar_total(df_ajustes_casa_fmt)
+
+        height = min((len(df_ajustes_casa_fmt) + 1) * 35, 600) # Altura padrão
+        st.dataframe(df_ajustes_casa_fmt, hide_index=True, width='stretch', height=height)
 
         with st.expander('Visualizar detalhamento dos ajustes'):
             col1, col2 = st.columns(2)
             with col1:
                 lista_casas.sort()
-                casa_sel = st.selectbox("Casa", lista_casas)
+                casa_sel = st.selectbox("Selecione uma casa", lista_casas)
             with col2:
-                mes_sel = st.selectbox("Mês de competência", list(dfs_detalhados.get(casa_sel, {}).keys()))
+                mes_sel = st.selectbox("Selecione o mês de competência", list(dfs_detalhados.get(casa_sel, {}).keys()))
+            st.divider()
 
             dfs_mes = dfs_detalhados[casa_sel][mes_sel]
             for tipo, df in dfs_mes.items():
@@ -293,6 +301,7 @@ with st.container(border=True):
         df = item["df"]
         campo_filtro = item["campo_filtro"]
         colunas_comparar = item["colunas_comparar"]
+        titulo_excel = item["tipo"]
         
         st.markdown(f'''<h4>{titulo}</h4>''', unsafe_allow_html=True)
         df = df[df['Casa'] == casa].copy() 
@@ -307,7 +316,7 @@ with st.container(border=True):
             exibe_legenda()
 
         quantidade = exibe_contagem_despesas(df)
-        dfs_exportar[tipo["titulo_excel"]] = df
+        dfs_exportar[titulo_excel] = df
         st.divider()
 
 
