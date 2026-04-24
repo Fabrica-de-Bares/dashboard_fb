@@ -125,8 +125,8 @@ if mes_farol == 'Todos os meses':
     st.divider()
     st.subheader('Status Conciliação Bancária - Resumo')
     st.write('Porcentagem (%) de dias conciliados por casa e mês')
-    # st.warning('Falta considerar as diferentes contas bancárias de cada casa')
-    st.dataframe(df_farol_conciliacao_estilo, height=773, hide_index=True)
+    height = (len(df_farol_conciliacao) + 1) * 35
+    st.dataframe(df_farol_conciliacao_estilo, hide_index=True, height=height)
     
     st.write("")
     st.subheader(":material/arrow_downward: Visualizar dias não conciliados")

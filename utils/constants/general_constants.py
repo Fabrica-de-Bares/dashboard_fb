@@ -58,8 +58,8 @@ casas_validas = [
     'Riviera Bar', 
     'Sanduiche comunicação LTDA ', 
     'Tempus Fugit  Ltda ', 
-    'The Cavern',
-    'The Cavern - Almoço',
+    # 'The Cavern',
+    # 'The Cavern - Almoço',
     'Ultra Evil Premium Ltda '
 ]
 
@@ -71,7 +71,7 @@ cores_casas = [
     "#1C6EBA", # Bar Brahma Paulista
     "#E9A700", # Bar Leo - Centro
     "#081F5C", # Blue Note São Paulo
-    "#004080", # Blue Note Novo
+    "#004080", # Blue Note (Novo)
     "#336699", # Edificio Rolim
     "#6699CC", # Escritorio FB
     "#4A5129", # Girondino
@@ -83,8 +83,8 @@ cores_casas = [
     "#C2185B", # Riviera
     "#FF6600", # Sanduiche
     "#9933CC", # Tempus
-    "#03420D", # The Cavern
-    "#D6B98C", # The Cavern - Almoço
+    # "#03420D", # The Cavern
+    # "#D6B98C", # The Cavern - Almoço
     "#3D5771", # Ultra Evil
 ]
 

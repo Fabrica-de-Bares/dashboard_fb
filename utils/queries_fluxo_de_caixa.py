@@ -9,6 +9,7 @@ def GET_BARES_AGRUPADOS():
 SELECT te.NOME_FANTASIA AS 'Empresa'
 FROM T_BARES_AGRUPADOS AS tbg 
 LEFT JOIN T_EMPRESAS AS te ON (te.ID = tbg.FK_EMPRESA) 
+WHERE te.FK_GRUPO_EMPRESA = 100 -- Fabrica de Bares                        
 ORDER BY te.NOME_FANTASIA                                                                       
 """)
 

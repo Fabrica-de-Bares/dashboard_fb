@@ -139,7 +139,8 @@ def GET_LOJAS():
                          'Eshows', 'Espaces', 'Estaff', 'FabLab', 'Filial', 
                          'Hbar participacoes e empreendimentos ', 'Rappi e iFood - Delivery FB', 
                          'Tempus - BTG', 'SIlo participacao ', 'Stella Artois Aeroporto BSB', 
-                         'Vivax  Tv', 'Z Carniceria', 'Zé da Praia')                    
+                         'Vivax  Tv', 'Z Carniceria', 'Zé da Praia')     
+    AND te.FK_GRUPO_EMPRESA = 100 -- Fabrica de Bares                                    
 ''')
 
 
@@ -157,6 +158,7 @@ def GET_LOJAS_USER(login):
 			LEFT JOIN T_EMPRESAS te ON tue.FK_EMPRESA = te.ID
 			LEFT JOIN T_LOJAS tl ON te.ID = tl.ID
 		WHERE au.LOGIN = {loginStr}
+        AND te.FK_GRUPO_EMPRESA = 100 -- Fabrica de Bares
   	''')
 
 def GET_LOJAS_USER_COM_DELIVERY(login):

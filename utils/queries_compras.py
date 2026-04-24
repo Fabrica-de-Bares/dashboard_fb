@@ -249,6 +249,7 @@ def GET_COMPRAS_PRODUTOS_QUANTIA_NOME_COMPRA():
       LEFT JOIN T_EMPRESAS te ON tdr.FK_LOJA = te.ID 
     WHERE tdr.COMPETENCIA > '2024-01-01'
       AND tdr.BIT_CANCELADA = 0
+      AND te.FK_GRUPO_EMPRESA = 100 -- Fabrica de Bares                   
   ''')
     
 
