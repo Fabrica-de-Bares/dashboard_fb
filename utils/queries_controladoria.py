@@ -258,7 +258,7 @@ def GET_ITENS_COM_CADASTRO_DUPLICADO():
   ''')
 
 
-# Para Orçamento Operacional
+# Para Orçamento Operacional e Real DRE
 @st.cache_data
 def GET_ORCAMENTO_OPERACIONAL():
   return dataframe_query('''
@@ -365,4 +365,25 @@ def GET_TODAS_CASAS():
     WHERE tc.NOME_CARGO = 'Dev';
   ''')
        
-                         
+
+# Para Headcount de Pessoas
+@st.cache_data
+def GET_HEADCOUNT_PESSOAS():
+  return dataframe_query(f'''
+    SELECT 
+      CASE
+        WHEN te.ID = 149 THEN 162
+        ELSE te.ID                                    
+      END AS 'ID Casa',
+      CASE
+        WHEN te.NOME_FANTASIA = 'Priceless' THEN 'Terraço Notie'
+        ELSE te.NOME_FANTASIA                                                                                 
+      END AS 'Casa',
+      thp.MES AS 'Mês',
+      thp.ANO AS 'Ano',
+      thp.CARGO,
+      thp.VALOR AS 'Valor',
+      thp.TIPO_DADO AS 'Tipo Dado'                                                                                                               
+    FROM T_HEADCOUNT_PESSOAS AS thp
+    LEFT JOIN T_EMPRESAS AS te ON (thp.FK_EMPRESA = te.ID);       
+  ''')            
