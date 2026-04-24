@@ -333,19 +333,22 @@ def altera_pos_item_lista(lista, ref, item_para_mover):
     return lista
 
 
-def prepara_secoes_headcount(df_inicial, colunas_meses):
+def prepara_secoes_headcount(df_inicial, colunas_meses, casa):
     # Squad
-    df_squad = fatia_por_categoria(df_inicial, 'CARGO', 'Líder de Squad', 'Chefe de Manutenção')
+    if casa == 'Terraço Notie':
+        df_squad = fatia_por_categoria(df_inicial, 'CARGO', 'Líder de Squad', 'Coordenador de Hospitalidade')
+    else:
+        df_squad = fatia_por_categoria(df_inicial, 'CARGO', 'Líder de Squad', 'Chefe de Manutenção')
     total_meses = df_squad[colunas_meses].sum()
     df_squad = insere_apos_header(df_squad, colunas_meses, total_meses, 'CARGO', '- Squad')
 
     # Operação
-    df_operacao = fatia_por_categoria(df_inicial, 'CARGO', '  - Gerente', '  - Hostess')
+    df_operacao = fatia_por_categoria(df_inicial, 'CARGO', '- Gerente', '- Hostess')
     total_meses = df_operacao[colunas_meses].sum()
     df_operacao = insere_apos_header(df_operacao, colunas_meses, total_meses, 'CARGO', 'Operação')
 
     # Quadro/Função
-    df_quadro_funcao = fatia_por_categoria(df_inicial, 'CARGO', '  -  Maitre', '  -  Operador de Delivery')
+    df_quadro_funcao = fatia_por_categoria(df_inicial, 'CARGO', '-  Maitre', '-  Operador de Delivery') # Segunda ocorrência
     total_meses = df_quadro_funcao[colunas_meses].sum()
     df_quadro_funcao = insere_apos_header(df_quadro_funcao, colunas_meses, total_meses, 'CARGO', 'Quadro/Função')
 

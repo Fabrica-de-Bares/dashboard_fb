@@ -56,6 +56,7 @@ ABAS = {
     143: {'nome_aba': '👥 Acessos Usuários - Dashboard', 'page_link': 'pages/Controladoria - Acessos_Dashboard.py'},
     144: {'nome_aba': "📈 KPI's Quarter Day", 'page_link': 'pages/Controladoria - Quarter_Day.py'},
     145: {'nome_aba': "👥 Headcount de Pessoas", 'page_link': 'pages/Planejamento - Headcount_Pessoas.py'},
+    146: {'nome_aba': "👥 Headcount de Pessoas e Remuneração", 'page_link': 'pages/Planejamento - Headcount_Pessoas_Remuneracao.py'},
 }
 
 def main():
