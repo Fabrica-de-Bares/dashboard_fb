@@ -306,7 +306,7 @@ def GET_HISTORICO_REAL_DRE():
         CAST(tvr.VALOR AS DECIMAL(10,2)) AS 'Valor'                                                           
     FROM T_VALORES_REAIS_DRE AS tvr
     JOIN T_EMPRESAS te ON (tvr.FK_EMPRESA = te.ID)
-    WHERE BIT_CANCELADO = 0                     
+    WHERE BIT_CANCELADO = 0 AND tvr.CATEGORIA != 'Eventos'             
     # ORDER BY te.NOME_FANTASIA, tvr.MES;
   ''')
 

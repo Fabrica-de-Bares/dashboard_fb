@@ -291,8 +291,6 @@ def formatar_moeda_br(valor):
 def formatar_porcentagem(valor):
     if pd.isna(valor):
         return ""
-    elif valor < 0:
-        return f"{valor * (-100):,.2f}%".replace(".", ",")
     else:
         return f"{valor * 100:,.2f}%".replace(".", ",")
     

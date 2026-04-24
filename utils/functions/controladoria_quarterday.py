@@ -12,6 +12,7 @@ def prepara_dados_faturamento_orcamento(df_historico_real_dre, df_orcamento_oper
         nome_casa = casa
     
     # Filtra histórico real pela categoria
+    df_historico_real_dre['Mês'] = pd.to_datetime(df_historico_real_dre['Mês'], errors='coerce')
     df_historico_real_dre = df_historico_real_dre[(df_historico_real_dre['Casa'] == nome_casa) & (df_historico_real_dre['Mês'].dt.day != 31)].copy()
     df_historico_real_dre['Mês'] = df_historico_real_dre['Mês'].fillna('2025-06-01 00:00:00')
 

@@ -290,6 +290,10 @@ elif tipo_formatacao == 'Inputar - Real DRE':
             df_transformado = df_transformado.loc[:indice[0] - 1]
         df_transformado = df_transformado.iloc[:-1]
 
+        # Remove linha 'Eventos A&B' inclusa no CMV para não conflitar com a do Faturamento Bruto
+        mask = df_transformado['Unnamed: 0'] == 'Eventos A&B'
+        df_transformado = df_transformado[~(mask & mask.cumsum().gt(1))]
+
         # Aplica tratamentos numéricos
         df_transformado = df_transformado.fillna(0)
 
@@ -336,6 +340,7 @@ elif tipo_formatacao == 'Inputar - Real DRE':
             'Valor': 'VALOR'
         })
         df_layout_final = df_layout_final[['FK_EMPRESA', 'MES', 'CATEGORIA', 'VALOR']]
+        df_layout_final['MES'] = df_layout_final['MES'].dt.date
         df_download = df_layout_final.copy()
 
         # Mostra o resultado

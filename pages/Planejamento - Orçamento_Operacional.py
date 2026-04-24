@@ -199,6 +199,7 @@ else: # Histórico Real
         st.warning(f'{casa} sem dados para {ano}.')
         st.stop()
 
+    df_historico_real_dre['Mês'] = pd.to_datetime(df_historico_real_dre['Mês'], errors='coerce')
     df_real_dre_filtrado = df_historico_real_dre[
         (df_historico_real_dre['Casa'] == casa) &
         (df_historico_real_dre['Mês'].dt.year == ano)
@@ -304,13 +305,12 @@ else: # Histórico Real
     
     # Necessário ter a ordem das linhas de DRE quandp tiver itens com alteração de valor (lógica do BIT_CANCELADO)
     ordem_categorias_dre = df_ordem_categorias_dre['Categoria'].unique().tolist()
+    ordem_categorias_dre = [categoria for categoria in ordem_categorias_dre if '% sobre' not in categoria]
     
     ordem_categorias_dre = altera_pos_item_lista(ordem_categorias_dre, '- Hostess', 'Salários')
     ordem_categorias_dre = altera_pos_item_lista(ordem_categorias_dre, 'Eventos Locações', 'Eventos Rebate Fornecedores - Premium Corp')
     ordem_categorias_dre = altera_pos_item_lista(ordem_categorias_dre, 'Eventos Rebate Fornecedores - Premium Corp', 'Membership')
     ordem_categorias_dre = altera_pos_item_lista(ordem_categorias_dre, 'Alimentação e Transporte', 'Viagens e Estadias - Artístico')
-    ordem_categorias_dre = altera_pos_item_lista(ordem_categorias_dre, 'Embalagens', '% sobre Receita Bruta A&B')
-    ordem_categorias_dre = altera_pos_item_lista(ordem_categorias_dre, 'Embalagens', '% sobre Receita Bruta de A&B')
     ordem_categorias_dre = altera_pos_item_lista(ordem_categorias_dre, 'Recurso Processual', 'Depreciação/Amortização')
     ordem_categorias_dre = altera_pos_item_lista(ordem_categorias_dre, '- Subgerente', '- Coordenador/ Monitor')
     ordem_categorias_dre = altera_pos_item_lista(ordem_categorias_dre, '- Coordenador/ Monitor', '- Atores do Evento')
@@ -328,36 +328,44 @@ else: # Histórico Real
         ordered=True
     )
     df_real_dre_ordenado = df_real_dre_ordenado.sort_values('Categoria')
-    
-    # Remove ocorrência repetida de 'Eventos A&B'
-    mask_eventos = df_real_dre_ordenado['Categoria'] == 'Eventos A&B'
-    indices = df_real_dre_ordenado[mask_eventos].index
-    if len(indices) == 2: # Duas ocorrências
-        df_real_dre_ordenado = df_real_dre_ordenado.drop(indices[0]) # Remove a primeira
-    
-    # Corrige 'Serviços de Terceiros'
-    mask_serv = df_real_dre_ordenado['Categoria'] == 'Serviços de Terceiros'
-    indices_serv = df_real_dre_ordenado[mask_serv].index
-    if len(indices_serv) >= 2:
-        df_real_dre_ordenado.loc[indices_serv[1], 'Categoria'] = 'Serviços de Terceiros - Eventos' # Renomeia a segunda ocorrencia
-    
-        # Reposiciona em 'Custos Eventos'
-        linha_mover = df_real_dre_ordenado[df_real_dre_ordenado['Categoria'] == 'Serviços de Terceiros - Eventos']
-        linha_mover = linha_mover.reset_index(drop=True)
-        linha_referencia = df_real_dre_ordenado[df_real_dre_ordenado['Categoria'] == 'Comissões de Vendas - Eventos']
 
-        # remove a linha que será movida
-        df_temp = df_real_dre_ordenado[df_real_dre_ordenado['Categoria'] != 'Serviços de Terceiros - Eventos']
-        idx = linha_referencia.index[0] # pega índice da referência
-        
-        parte_cima = df_temp.loc[:idx] # divide o df
-        parte_baixo = df_temp.loc[idx+1:]
-        df_real_dre_ordenado = pd.concat([parte_cima, linha_mover, parte_baixo]) # insere no meio
+    # Remove ocorrência repetida de 'Eventos A&B'
+    df_real_dre_ordenado = df_real_dre_ordenado.groupby('Categoria', as_index=False).sum()
+    df_real_dre_ordenado = df_real_dre_ordenado.reset_index(drop=True)
+
+    # Reposiciona 'Serviços de Terceiros'
+    linha_mover = df_real_dre_ordenado[df_real_dre_ordenado['Categoria'] == 'Serviços de Terceiros'].reset_index(drop=True)
+
+    # remove a linha que será movida + reseta índice
+    df_temp = df_real_dre_ordenado[df_real_dre_ordenado['Categoria'] != 'Serviços de Terceiros'].reset_index(drop=True)
+
+    # pega a posição da linha de referência
+    idx = df_temp[df_temp['Categoria'] == 'Ferramentas de Marketing'].index[0]
+
+    # divide usando posição
+    parte_cima = df_temp.iloc[:idx+1]   # até a linha de referência
+    parte_baixo = df_temp.iloc[idx+1:]  # depois dela
+
+    # concatena inserindo no meio
+    df_real_dre_ordenado = pd.concat([parte_cima, linha_mover, parte_baixo]).reset_index(drop=True)
+
+    # Reposiciona 'Serviços de Terceiros - Eventos' em 'Custos Eventos'
+    linha_mover = df_real_dre_ordenado[df_real_dre_ordenado['Categoria'] == 'Serviços de Terceiros - Eventos']
+    linha_mover = linha_mover.reset_index(drop=True)
+    linha_referencia = df_real_dre_ordenado[df_real_dre_ordenado['Categoria'] == 'Comissões de Vendas - Eventos']
+
+    # remove a linha que será movida
+    df_temp = df_real_dre_ordenado[df_real_dre_ordenado['Categoria'] != 'Serviços de Terceiros - Eventos']
+    idx = linha_referencia.index[0] # pega índice da referência
+    
+    parte_cima = df_temp.loc[:idx] # divide o df
+    parte_baixo = df_temp.loc[idx+1:]
+    df_real_dre_ordenado = pd.concat([parte_cima, linha_mover, parte_baixo]) # insere no meio
             
     
     # Calcula porcentagens e outros valores
     colunas_numericas = df_real_dre_ordenado.select_dtypes(include='number').columns
-    df_real_dre_ordenado[colunas_numericas] = df_real_dre_ordenado[colunas_numericas].abs()
+    # df_real_dre_ordenado[colunas_numericas] = df_real_dre_ordenado[colunas_numericas].abs() ###
     df_real_dre_ordenado = define_linhas_calculadas(df_real_dre_ordenado, df_real_dre_ordenado, lista_categorias_dre, colunas_numericas, 'DRE Real', mapa_posicao_percentual=mapa_posicao_percentual)
     
 
