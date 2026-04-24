@@ -24,9 +24,11 @@ if 'loggedIn' not in st.session_state or not st.session_state['loggedIn']:
 # Personaliza menu lateral
 config_sidebar()
 
+datas = calcular_datas()
+
 col1, col2 = st.columns([5, 1], vertical_alignment='center')
 with col1:
-    st.title("📈 KPI's - Quarter Day")
+    st.title(f"📈 KPI's - Quarter Day {datas['ano_atual']}")
     # st.write("Aba para visualizar quais usuários tem acesso ao Dashboard FB, seus cargos, casas e abas que podem visualizar.")
 with col2:
     st.button(label='Atualizar dados', key='atualizar_forecast', on_click=st.cache_data.clear)
@@ -39,7 +41,6 @@ id_casa, casa, id_zigpay = input_selecao_casas(lista_retirar_casas, key='faturam
 # Recupera dados - Orçamentos e Real
 df_orcamento_operacional = GET_ORCAMENTO_OPERACIONAL()
 df_historico_real_dre = GET_HISTORICO_REAL_DRE()
-datas = calcular_datas()
 
 
 categorias_quarter = ['Faturamento Bruto', 'Faturamento Bruto - Alimentos', 'Faturamento Bruto - Bebidas', 'Faturamento Eventos', 'Faturamento Delivery', 'CMV', 'EBITDA']

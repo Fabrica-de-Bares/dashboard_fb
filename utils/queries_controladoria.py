@@ -70,13 +70,15 @@ def GET_LOGS_DESPESAS():
 			tlogdr.ID AS 'ID Despesa',
 			tlogdr.LOG_DATE as 'Data Alteração',
       CASE
-        WHEN te.ID = 177 THEN 176    
-        WHEN te.ID IN (161, 162) THEN 149   
+        WHEN te.ID = 177 THEN 176  -- The Cavern  
+        WHEN te.ID IN (161, 162) THEN 149  -- Priceless
+        WHEN te.ID IN (131, 178) THEN 110  -- Blue Note                  
         ELSE te.ID                                                           
 			END AS 'ID Casa',
       CASE                   
         WHEN te.ID = 177 THEN 'The Cavern'   
-        WHEN te.ID IN (161, 162) THEN 'Priceless'   
+        WHEN te.ID IN (161, 162) THEN 'Priceless'
+        WHEN te.ID IN (131, 178) THEN 'Blue Note - São Paulo'                    
         ELSE te.NOME_FANTASIA           
 			END AS 'Casa',
 			au.FULL_NAME as 'Nome Usuário',
