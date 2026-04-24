@@ -104,9 +104,13 @@ with st.container(border=True):
     for casa in lista_casas:
         # Define período de ajustes para cada mês de competência da casa
         df_datas_fim_periodo_ajuste = df_datas_fechamento[df_datas_fechamento['Casa'] == casa].copy()
+        
         if ano_competencia_selecionado == 2026:
-            df_datas_fim_periodo_ajuste = df_datas_fechamento[(df_datas_fechamento['MES'] >= 3) & (df_datas_fechamento['ANO'] >= 2026)].copy()
-
+            df_datas_fim_periodo_ajuste = df_datas_fechamento[
+                (df_datas_fechamento['MES'] >= 3) & 
+                (df_datas_fechamento['ANO'] >= 2026) &
+                (df_datas_fechamento['Casa'] == casa)
+            ].copy()
         lista_datas_fechamento = df_datas_fim_periodo_ajuste['DATA_FECHAMENTO'].tolist()
         
         for data in lista_datas_fechamento:
