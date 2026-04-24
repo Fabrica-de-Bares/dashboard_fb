@@ -14,7 +14,7 @@ def prepara_dados_faturamento_orcamento(df_historico_real_dre, df_orcamento_oper
     # Filtra histórico real pela categoria
     df_historico_real_dre['Mês'] = pd.to_datetime(df_historico_real_dre['Mês'], errors='coerce')
     df_historico_real_dre = df_historico_real_dre[(df_historico_real_dre['Casa'] == nome_casa) & (df_historico_real_dre['Mês'].dt.day != 31)].copy()
-    df_historico_real_dre['Mês'] = df_historico_real_dre['Mês'].fillna('2025-06-01 00:00:00')
+    # df_historico_real_dre['Mês'] = df_historico_real_dre['Mês'].fillna('2025-06-01 00:00:00')
 
     # Tratamento para caso específico
     if casa == 'Girondino' or casa == 'Girondino - CCBB':
@@ -48,6 +48,10 @@ def prepara_dados_faturamento_orcamento(df_historico_real_dre, df_orcamento_oper
         columns="MesNum",
         values="Valor",
     ).reset_index().fillna(0)
+
+    df_categoria[df_categoria.columns[0]] = pd.to_numeric( # Anos formatados como Int
+        df_categoria.iloc[:, 0], errors='coerce'
+    ).astype('Int64')    
     
     # Filtra orçamento
     if casa == 'Girondino - Agregado':
@@ -155,7 +159,7 @@ def formatar_porcentagem(valor):
     elif valor == '-':
         return valor
     else:
-        return f"{valor * 100:,.2f}%".replace(".", ",")
+        return f"{valor * 100:,.2f}%".replace(",", "X").replace(".", ",").replace("X", ".")
     
 
 def formata_colunas(df, kpi, categoria):

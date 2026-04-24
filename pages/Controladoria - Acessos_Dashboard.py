@@ -69,11 +69,11 @@ with st.container(border=True):
         st.subheader('Usuários x Cargos x Empresas')
     with col2:
         lista_usuarios.sort()
-        usuario_filtrado = st.selectbox('Buscar usuário', lista_usuarios, index=None, key='usuario_filtrado')
+        usuario_filtrado = st.selectbox('Buscar usuário', lista_usuarios, index=None, key='seletor_usuario')
     with col3:
         lista_cargos.sort()
-        cargo_filtrado = st.selectbox('Buscar cargo', lista_cargos, index=None, key='cargo_usuario')
-    
+        cargo_filtrado = st.selectbox('Buscar cargo', lista_cargos, index=None, key='seletor_cargo_usuario')
+
     if usuario_filtrado:
         df_usu_cargo_emp = df_usu_cargo_emp[df_usu_cargo_emp['Nome Usuário'] == usuario_filtrado].copy()
     if cargo_filtrado:
@@ -92,7 +92,7 @@ with st.container(border=True):
         st.subheader('Cargos x Abas')
     with col2:
         lista_cargos.sort()
-        cargo_filtrado = st.selectbox('Buscar cargo', lista_cargos, index=None, key='cargo_aba')
+        cargo_filtrado = st.selectbox('Buscar cargo', lista_cargos, index=None, key='seletor_cargo')
 
     if cargo_filtrado:
         df_cargos_abas = df_cargos_abas[df_cargos_abas['Cargo'] == cargo_filtrado].copy()

@@ -362,7 +362,8 @@ def GET_TODAS_CASAS():
     LEFT JOIN T_USUARIOS_EMPRESAS_DASH AS tue ON (te.ID = tue.FK_EMPRESA)
     LEFT JOIN T_USUARIO_CARGO_DASH AS tuc ON (tue.FK_USUARIO = tuc.FK_USUARIO)
     LEFT JOIN T_CARGO_DASH AS tc ON (tuc.FK_CARGO = tc.ID)                     
-    WHERE tc.NOME_CARGO = 'Dev';
+    WHERE tc.NOME_CARGO = 'Dev'
+    AND te.FK_GRUPO_EMPRESA = 100 -- Fabrica de Bares;
   ''')
        
 
