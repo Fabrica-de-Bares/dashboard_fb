@@ -102,7 +102,7 @@ def prepara_dados_faturamento_orcamento(df_historico_real_dre, df_orcamento_oper
     # Cria colunas de acumulado e trimestres
     cols_meses = [col for col in df_categoria.columns if isinstance(col, (int, float))]
 
-    cols_acumulado = [col for col in cols_meses if col < datas['mes_atual'] - 1]
+    cols_acumulado = [col for col in cols_meses if col <= datas['mes_atual'] - 1]
     cols_1_tri = [col for col in cols_meses if 1 <= col <= 3]
     cols_2_tri = [col for col in cols_meses if 4 <= col <= 6]
     cols_3_tri = [col for col in cols_meses if 7 <= col <= 9]
