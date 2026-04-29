@@ -4,125 +4,162 @@ from streamlit_echarts import st_echarts
 import numpy as np
 
 
-def prepara_dados_faturamento_orcamento(df_historico_real_dre, df_orcamento_operacional, casa, datas, class_cont): 
+def prepara_dados_faturamento_orcamento(df_historico_real_dre, df_orcamento_operacional, casa, datas, class_cont):
+    
+    # --- Normaliza nome da casa ---
     if casa == 'Girondino - Agregado':
         df_historico_real_dre['Casa'] = df_historico_real_dre['Casa'].replace('Girondino - CCBB', 'Girondino')
+        df_orcamento_operacional['Casa'] = df_orcamento_operacional['Casa'].replace('Girondino - CCBB', 'Girondino')
         nome_casa = 'Girondino'
     else:
         nome_casa = casa
-    
-    # Filtra histórico real pela categoria
-    df_historico_real_dre['Mês'] = pd.to_datetime(df_historico_real_dre['Mês'], errors='coerce')
-    df_historico_real_dre = df_historico_real_dre[(df_historico_real_dre['Casa'] == nome_casa) & (df_historico_real_dre['Mês'].dt.day != 31)].copy()
-    # df_historico_real_dre['Mês'] = df_historico_real_dre['Mês'].fillna('2025-06-01 00:00:00')
 
-    # Tratamento para caso específico
-    if casa == 'Girondino' or casa == 'Girondino - CCBB':
+    # --- Filtra e prepara histórico real ---
+    df_historico_real_dre['Mês'] = pd.to_datetime(df_historico_real_dre['Mês'], errors='coerce')
+    df_historico_real_dre = df_historico_real_dre[
+        (df_historico_real_dre['Casa'] == nome_casa) &
+        (df_historico_real_dre['Mês'].dt.day != 31)
+    ].copy()
+
+    if casa in ('Girondino', 'Girondino - CCBB'):
         df_historico_real_dre.loc[df_historico_real_dre['Mês'].dt.year == 2024, 'Valor'] = 0
 
-    if class_cont == 'CMV': # Calcula % do CMV
-        df_faturamento_a_b = df_historico_real_dre[df_historico_real_dre['Categoria'].isin(['Alimentação', 'Bebida', 'Eventos A&B', 'Delivery'])].copy()
-        df_faturamento_a_b = df_faturamento_a_b.groupby(['Mês'], as_index=False)['Valor'].sum()
-        df_cmv = df_historico_real_dre[df_historico_real_dre['Categoria'].isin(['(-) Custo Mercadoria Vendida'])].copy()
-        df_categoria = pd.merge(
-            df_faturamento_a_b[['Mês', 'Valor']],
-            df_cmv[['Mês', 'Valor']],
-            on=['Mês'],
-            how='left'
-        )
-        df_categoria['Valor_y'] = df_categoria['Valor_y'] * (-1)
-        df_categoria['Valor'] = df_categoria['Valor_y'] / df_categoria['Valor_x'].replace(0, np.nan) # Calcula CMV de cada mês/ano
+    # --- Monta df_categoria real ---
+    if class_cont == 'CMV':
+        df_fat = df_historico_real_dre[df_historico_real_dre['Categoria'].isin(['Alimentação', 'Bebida', 'Eventos A&B', 'Delivery'])].copy()
+        df_fat = df_fat.groupby('Mês', as_index=False)['Valor'].sum()
+        df_cmv = df_historico_real_dre[df_historico_real_dre['Categoria'] == '(-) Custo Mercadoria Vendida'].copy()
+        df_categoria = pd.merge(df_fat[['Mês', 'Valor']], df_cmv[['Mês', 'Valor']], on='Mês', how='left')
+        df_categoria['Valor_y'] *= -1
+        df_categoria['Valor'] = df_categoria['Valor_y'] / df_categoria['Valor_x'].replace(0, np.nan)
+        df_cmv_acumulado = df_categoria.copy()
     else:
         df_categoria = df_historico_real_dre[df_historico_real_dre['Categoria'].isin(class_cont)].copy()
-        
-    # Cria colunas de mês e ano
+
+    # --- Pivot do histórico real ---
     df_categoria['Ano'] = df_categoria['Mês'].dt.year
     df_categoria['MesNum'] = df_categoria['Mês'].dt.month
-    
-    # Agrupa por mês e ano (no caso de Eventos, por ex)
     df_categoria = df_categoria.groupby(['Ano', 'MesNum'], as_index=False)['Valor'].sum()
-    
-    # Transforma meses em colunas
-    df_categoria = df_categoria.pivot_table(
-        index="Ano", 
-        columns="MesNum",
-        values="Valor",
-    ).reset_index().fillna(0)
+    df_categoria = df_categoria.pivot_table(index='Ano', columns='MesNum', values='Valor').reset_index().fillna(0)
+    df_categoria[df_categoria.columns[0]] = pd.to_numeric(df_categoria.iloc[:, 0], errors='coerce').astype('Int64')
 
-    df_categoria[df_categoria.columns[0]] = pd.to_numeric( # Anos formatados como Int
-        df_categoria.iloc[:, 0], errors='coerce'
-    ).astype('Int64')    
-    
-    # Filtra orçamento
-    if casa == 'Girondino - Agregado':
-        df_orcamento_operacional['Casa'] = df_orcamento_operacional['Casa'].replace('Girondino - CCBB', 'Girondino')
-        casa = 'Girondino'
-
-    df_orcamento_ano_atual = df_orcamento_operacional[(df_orcamento_operacional['Casa'] == casa) & (df_orcamento_operacional['Ano'] == datas['ano_atual'])].copy()
-    
-    if class_cont == ['FATURAMENTO BRUTO']:
-        df_orcamento_categoria = df_orcamento_ano_atual[df_orcamento_ano_atual['Classificação Contábil 1'] == 'Faturamento Bruto'].copy()
-    elif class_cont == 'CMV': # Calcula % do orçamento do CMV
-        df_orcamento_a_b = df_orcamento_ano_atual[df_orcamento_ano_atual['Classificação Contábil 2'].isin(['Alimentação', 'Bebida', 'Eventos A&B', 'Delivery'])].copy()
-        df_orcamento_a_b = df_orcamento_a_b.groupby(['Ano', 'Mês'], as_index=False)['Orçamento'].sum()
-        df_orcamento_cmv = df_orcamento_ano_atual[df_orcamento_ano_atual['Classificação Contábil 1'] == 'Custo Mercadoria Vendida'].copy()
-        df_orcamento_cmv = df_orcamento_cmv.groupby(['Ano', 'Mês'], as_index=False)['Orçamento'].sum()
-        df_orcamento_categoria = pd.merge(
-            df_orcamento_a_b,
-            df_orcamento_cmv,
-            on=['Ano', 'Mês'],
-            how='left'
-        )
-        df_orcamento_categoria['Orçamento'] = df_orcamento_categoria['Orçamento_y'] / df_orcamento_categoria['Orçamento_x'] # Calcula orçamento CMV
-    elif class_cont == ['EBITDA']:
-        df_orcamento_categoria = df_orcamento_ano_atual[
-            (df_orcamento_ano_atual['Classificação Contábil 1'].isin(
-                ['Faturamento Bruto', 'Desconto sobre Venda', 'Impostos sobre Venda', 'Custo Mercadoria Vendida', 'Custos Artístico Geral',
-                 'Custos de Eventos', 'Gorjeta', 'Deduções sobre Venda', 'Mão de Obra - PJ', 'Mão de Obra - Salários', 'Mão de Obra - Extra',
-                 'Mão de Obra - Encargos e Provisões', 'Mão de Obra - Benefícios', 'Custo de Ocupação', 'Utilidades', 'Informática e TI',
-                 'Manutenção', 'Marketing', 'Serviços de Terceiros', 'Locação de Equipamentos', 'Sistema de Franquias']))
-                ].copy()
-        df_orcamento_categoria.loc[df_orcamento_categoria['Classificação Contábil 1'] != 'Faturamento Bruto', 'Orçamento'] *= -1
-    else:
-        df_orcamento_categoria = df_orcamento_ano_atual[df_orcamento_ano_atual['Classificação Contábil 2'].isin(class_cont)].copy()
-    
-    df_orcamento_categoria = df_orcamento_categoria.groupby(['Mês', 'Ano'], as_index=False)['Orçamento'].sum()
-
-    # Transforma meses em colunas
-    df_orcamento_categoria = df_orcamento_categoria.pivot_table(
-        index="Ano", 
-        columns="Mês",
-        values="Orçamento",
-    ).reset_index().fillna(0)
-    df_orcamento_categoria.loc[0, 'Ano'] = f"Orçamento {datas['ano_atual']}"
-
-    # Concatena
-    df_categoria = pd.concat([df_categoria, df_orcamento_categoria])
-
-    # Cria colunas de acumulado e trimestres
+    # --- Colunas auxiliares ---
     cols_meses = [col for col in df_categoria.columns if isinstance(col, (int, float))]
-
     cols_acumulado = [col for col in cols_meses if col <= datas['mes_atual'] - 1]
     cols_1_tri = [col for col in cols_meses if 1 <= col <= 3]
     cols_2_tri = [col for col in cols_meses if 4 <= col <= 6]
     cols_3_tri = [col for col in cols_meses if 7 <= col <= 9]
     cols_4_tri = [col for col in cols_meses if 10 <= col <= 12]
+    cols_resumo = ['Acumulado', 'ANO', '1 TRI', '2 TRI', '3 TRI', '4 TRI']
+
+    def adiciona_resumo(df):
+        df['Acumulado'] = df[cols_acumulado].sum(axis=1)
+        df['ANO']       = df[cols_meses].sum(axis=1)
+        df['1 TRI']     = df[cols_1_tri].sum(axis=1)
+        df['2 TRI']     = df[cols_2_tri].sum(axis=1)
+        df['3 TRI']     = df[cols_3_tri].sum(axis=1)
+        df['4 TRI']     = df[cols_4_tri].sum(axis=1)
+        return df
+
+    # --- Filtra orçamento ---
+    df_orcamento_ano_atual = df_orcamento_operacional[
+        (df_orcamento_operacional['Casa'] == nome_casa) &
+        (df_orcamento_operacional['Ano'] == datas['ano_atual'])
+    ].copy()
+
+    # --- Monta df_orcamento_categoria ---
+    if class_cont == ['FATURAMENTO BRUTO']:
+        df_orcamento_categoria = df_orcamento_ano_atual[df_orcamento_ano_atual['Classificação Contábil 1'] == 'Faturamento Bruto'].copy()
+
+    elif class_cont == 'CMV':
+        df_orc_fat = df_orcamento_ano_atual[df_orcamento_ano_atual['Classificação Contábil 2'].isin(['Alimentação', 'Bebida', 'Eventos A&B', 'Delivery'])]
+        df_orc_fat = df_orc_fat.groupby(['Ano', 'Mês'], as_index=False)['Orçamento'].sum()
+        df_orc_cmv = df_orcamento_ano_atual[df_orcamento_ano_atual['Classificação Contábil 1'] == 'Custo Mercadoria Vendida']
+        df_orc_cmv = df_orc_cmv.groupby(['Ano', 'Mês'], as_index=False)['Orçamento'].sum()
+
+        df_orcamento_categoria = pd.merge(df_orc_fat, df_orc_cmv, on=['Ano', 'Mês'], how='left')
+        df_orcamento_categoria['Orçamento'] = df_orcamento_categoria['Orçamento_y'] / df_orcamento_categoria['Orçamento_x']
+
+        def pivot_orc(col):
+            return (
+                df_orcamento_categoria.pivot_table(index='Ano', columns='Mês', values=col, aggfunc='sum')
+                .reindex(columns=range(1, 13))
+                .reset_index()
+            )
+
+        df_orc_fat_pivot  = adiciona_resumo(pivot_orc('Orçamento_x'))
+        df_orc_custo_pivot = adiciona_resumo(pivot_orc('Orçamento_y'))
+
+        df_resultado = df_orc_custo_pivot.copy()
+        df_resultado[cols_resumo] = (
+            df_orc_custo_pivot[cols_resumo].values /
+            df_orc_fat_pivot[cols_resumo].replace(0, np.nan).values
+        )
+
+    elif class_cont == ['EBITDA']:
+        cats_ebitda = [
+            'Faturamento Bruto', 'Desconto sobre Venda', 'Impostos sobre Venda', 'Custo Mercadoria Vendida',
+            'Custos Artístico Geral', 'Custos de Eventos', 'Gorjeta', 'Deduções sobre Venda',
+            'Mão de Obra - PJ', 'Mão de Obra - Salários', 'Mão de Obra - Extra',
+            'Mão de Obra - Encargos e Provisões', 'Mão de Obra - Benefícios', 'Custo de Ocupação',
+            'Utilidades', 'Informática e TI', 'Manutenção', 'Marketing', 'Serviços de Terceiros',
+            'Locação de Equipamentos', 'Sistema de Franquias'
+        ]
+        df_orcamento_categoria = df_orcamento_ano_atual[df_orcamento_ano_atual['Classificação Contábil 1'].isin(cats_ebitda)].copy()
+        df_orcamento_categoria.loc[df_orcamento_categoria['Classificação Contábil 1'] != 'Faturamento Bruto', 'Orçamento'] *= -1
+
+    else:
+        df_orcamento_categoria = df_orcamento_ano_atual[df_orcamento_ano_atual['Classificação Contábil 2'].isin(class_cont)].copy()
+
+    # --- Pivot do orçamento e concatena ---
+    df_orcamento_categoria = (
+        df_orcamento_categoria
+        .groupby(['Mês', 'Ano'], as_index=False)['Orçamento'].sum()
+        .pivot_table(index='Ano', columns='Mês', values='Orçamento')
+        .reset_index()
+        .fillna(0)
+    )
+    df_orcamento_categoria.loc[0, 'Ano'] = f"Orçamento {datas['ano_atual']}"
 
     if class_cont == 'CMV':
-        df_categoria[cols_meses] = df_categoria[cols_meses].replace(0, np.nan)
-        df_categoria['Acumulado'] = df_categoria[cols_acumulado].mean(axis=1)
-        df_categoria['ANO'] = df_categoria[cols_meses].mean(axis=1)
-        df_categoria['1 TRI'] = df_categoria[cols_1_tri].mean(axis=1)
-        df_categoria['2 TRI'] = df_categoria[cols_2_tri].mean(axis=1)
-        df_categoria['3 TRI'] = df_categoria[cols_3_tri].mean(axis=1)
-        df_categoria['4 TRI'] = df_categoria[cols_4_tri].mean(axis=1)
+        df_orcamento_categoria.loc[
+            df_orcamento_categoria['Ano'].str.startswith('Orçamento'), cols_resumo
+        ] = df_resultado[cols_resumo].values
+
+    df_categoria = pd.concat([df_categoria, df_orcamento_categoria])
+
+    # --- Calcula colunas de resumo ---
+    if class_cont == 'CMV':
+        df_cmv_acumulado['Ano'] = df_cmv_acumulado['Mês'].dt.year
+        df_cmv_acumulado['Mes'] = df_cmv_acumulado['Mês'].dt.month
+
+        df_ac_custo = adiciona_resumo(
+            df_cmv_acumulado.pivot_table(index='Ano', columns='Mes', values='Valor_y', aggfunc='sum')
+            .reindex(columns=range(1, 13)).reset_index()
+        )
+        df_ac_fat = adiciona_resumo(
+            df_cmv_acumulado.pivot_table(index='Ano', columns='Mes', values='Valor_x', aggfunc='sum')
+            .reindex(columns=range(1, 13)).reset_index()
+        )
+
+        df_acumulado_porcentagem = pd.merge(
+            df_ac_custo[['Ano'] + cols_resumo],
+            df_ac_fat[['Ano'] + cols_resumo],
+            on='Ano', how='left'
+        )
+        for col in cols_resumo:
+            df_acumulado_porcentagem[col] = (
+                df_acumulado_porcentagem[f'{col}_x'].astype(float)
+                .div(df_acumulado_porcentagem[f'{col}_y'].astype(float).replace(0, np.nan))
+            )
+
+        cols_numericas = [c for c in df_categoria.columns if c != 'Ano']
+        df_categoria[cols_numericas] = df_categoria[cols_numericas].apply(pd.to_numeric, errors='coerce')
+
+        mask = ~df_categoria['Ano'].astype(str).str.startswith('Orçamento')
+        df_categoria.loc[mask, cols_resumo] = df_acumulado_porcentagem[cols_resumo].astype(float).values
     else:
-        df_categoria['Acumulado'] = df_categoria[cols_acumulado].sum(axis=1)
-        df_categoria['ANO'] = df_categoria[cols_meses].sum(axis=1)
-        df_categoria['1 TRI'] = df_categoria[cols_1_tri].sum(axis=1)
-        df_categoria['2 TRI'] = df_categoria[cols_2_tri].sum(axis=1)
-        df_categoria['3 TRI'] = df_categoria[cols_3_tri].sum(axis=1)
-        df_categoria['4 TRI'] = df_categoria[cols_4_tri].sum(axis=1)
+        df_categoria = adiciona_resumo(df_categoria)
 
     return df_categoria
 
