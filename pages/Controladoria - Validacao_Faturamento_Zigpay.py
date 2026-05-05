@@ -34,7 +34,7 @@ def main():
     # Seletores
     col_casa, col_datas = st.columns([1, 1])
     with col_casa:
-        lista_retirar_casas = ['Bar Léo - Vila Madalena', 'Todas as Casas', 'Escritório Fabrica de Bares', 'Casa Teste 2', 'Brahminha', 'Bar Brahma Paulista', 'Blue Note SP (Sala 2)', 'Tempus Fugit  Ltda ', 'Sanduiche comunicação LTDA ', 'Edificio Rolim']
+        lista_retirar_casas = ['Priceless', 'Bar Léo - Vila Madalena', 'Todas as Casas', 'Escritório Fabrica de Bares', 'Casa Teste 2', 'Brahminha', 'Bar Brahma Paulista', 'Blue Note SP (Sala 2)', 'Tempus Fugit  Ltda ', 'Sanduiche comunicação LTDA ', 'Edificio Rolim']
         id_casa, casa, id_zigpay = input_selecao_casas(lista_retirar_casas, 'selecao_casa', adicionar_delivery=True)
     with col_datas:
         col1, col2 = st.columns([1, 1])
@@ -96,7 +96,7 @@ def main():
         'desconto': 'sum'
     })
 
-    # Faturamento T_ITENS_VENDIDOS
+    # Faturamento T_ITENS_VENDIDOS  
     df_itens_vendidos = GET_FATURAMENTO_ZIGPAY_VALIDACAO(id_zigpay, mes_numero, ano)
 
     # Renomeia colunas
