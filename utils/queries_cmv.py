@@ -509,6 +509,34 @@ def GET_FATURAM_ZIG_ALIM_BEB_MENSAL(data_inicio, data_fim):
   GROUP BY 
     ID_Loja,
     Categoria,
+    Primeiro_Dia_Mes
+  UNION ALL
+  SELECT
+    te.ID AS ID_Loja,
+    te.NOME_FANTASIA AS Loja,
+    tivc2.DESCRICAO AS Categoria,
+    CASE 
+      WHEN te.ID IN (103, 112, 118, 139, 169) THEN 1
+      ELSE 0 
+    END AS Delivery,
+    cast(date_format(cast(tivd.EVENT_DATE AS date), '%Y-%m-01') AS date) AS Primeiro_Dia_Mes,
+    concat(year(cast(tivd.EVENT_DATE AS date)), '-', month(cast(tivd.EVENT_DATE AS date))) AS Ano_Mes,
+    cast(tivd.EVENT_DATE AS date) AS Data_Evento,
+    SUM((tivd.VALOR_UNITARIO  * tivd.QUANTIDADE)) AS Valor_Bruto,
+    SUM(tivd.DESCONTO) AS Desconto,
+    SUM((tivd.VALOR_UNITARIO * tivd.QUANTIDADE) - tivd.DESCONTO) AS Valor_Liquido
+  FROM T_ITENS_VENDIDOS_DIA tivd
+  LEFT JOIN T_ITENS_VENDIDOS_CADASTROS tivc ON tivd.PRODUCT_ID = tivc.ID_ZIGPAY
+  LEFT JOIN T_ITENS_VENDIDOS_CATEGORIAS tivc2 ON tivc.FK_CATEGORIA = tivc2.ID
+  LEFT JOIN T_ITENS_VENDIDOS_TIPOS tivt ON tivc.FK_TIPO = tivt.ID
+  LEFT JOIN T_EMPRESAS te ON tivd.LOJA_ID = te.ID_ZIGPAY
+  WHERE cast(tivd.EVENT_DATE AS date) >= '{data_inicio}'
+    AND cast(tivd.EVENT_DATE AS date) <= '{data_fim}'
+    AND tivc2.DESCRICAO IN ('Serviço')
+    AND te.ID IN (103, 112, 118, 139, 169)
+  GROUP BY 
+    ID_Loja,
+    Categoria,
     Primeiro_Dia_Mes;
 ''')
 

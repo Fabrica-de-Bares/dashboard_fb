@@ -100,8 +100,15 @@ def config_faturamento_bruto_zig(data_inicio, data_fim, loja):
 
   faturamento_bruto_alimentos = df_zig[(df_zig['Categoria'] == 'Alimentos')]['Valor_Bruto'].sum()
   faturamento_bruto_bebidas = df_zig[(df_zig['Categoria'] == 'Bebidas')]['Valor_Bruto'].sum()
+  
+  # Faturamento de serviço de deliver é distribuído entre alimentos e bebidas na mesma proporção do faturamento bruto do zig para cada categoria
+  faturamento_servico_delivery = df_delivery[df_delivery['Categoria'] == 'Serviço']['Valor_Bruto'].sum()
   faturamento_alimentos_delivery = df_delivery[(df_delivery['Categoria'] == 'Alimentos')]['Valor_Bruto'].sum()
   faturamento_bebidas_delivery = df_delivery[(df_delivery['Categoria'] == 'Bebidas')]['Valor_Bruto'].sum()
+
+  if faturamento_servico_delivery > 0:
+    faturamento_alimentos_delivery = faturamento_alimentos_delivery + faturamento_servico_delivery * (faturamento_bruto_alimentos / (faturamento_bruto_alimentos + faturamento_bruto_bebidas))
+    faturamento_bebidas_delivery = faturamento_bebidas_delivery + faturamento_servico_delivery * (faturamento_bruto_bebidas / (faturamento_bruto_alimentos + faturamento_bruto_bebidas))
   
   return df_delivery, df_zig, faturamento_bruto_alimentos, faturamento_bruto_bebidas, faturamento_alimentos_delivery, faturamento_bebidas_delivery
 
