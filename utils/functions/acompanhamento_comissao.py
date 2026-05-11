@@ -75,7 +75,7 @@ def calcular_comissao_gerente_priceless(df_recebimentos_total_mes, id_responsave
                 df_recebimentos_total_mes['% Comissão'] = 0.5
             
             # Calcula a comissão para cada recebimento
-            df_recebimentos_total_mes['Comissão'] = (df_recebimentos_total_mes['Valor da Parcela'] * 0.005)
+            df_recebimentos_total_mes['Comissão'] = (df_recebimentos_total_mes['Valor da Parcela'] * df_recebimentos_total_mes['% Comissão'] / 100)
             df_recebimentos_total_mes.drop(columns=['ID - Responsavel', 'Cargo', 'Comissão Com Meta Atingida', 'Comissão Sem Meta Atingida', 'Ano Recebimento', 'Mês Recebimento'], inplace=True)
             df_recebimentos_total_mes['Dedução Imposto'] = 0.0
             df_recebimentos_total_mes['Valor Líquido'] = df_recebimentos_total_mes['Valor da Parcela'] - df_recebimentos_total_mes['Dedução Imposto']
