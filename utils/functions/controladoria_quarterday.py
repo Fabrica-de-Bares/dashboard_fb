@@ -26,7 +26,7 @@ def prepara_dados_faturamento_orcamento(df_historico_real_dre, df_orcamento_oper
 
     # --- Monta df_categoria real ---
     if class_cont == 'CMV':
-        df_fat = df_historico_real_dre[df_historico_real_dre['Categoria'].isin(['Alimentação', 'Bebida', 'Eventos A&B', 'Delivery'])].copy()
+        df_fat = df_historico_real_dre[df_historico_real_dre['Categoria'].isin(['Alimentação', 'Bebida', 'Eventos A&B', 'Delivery', 'Membership'])].copy()
         df_fat = df_fat.groupby('Mês', as_index=False)['Valor'].sum()
         df_cmv = df_historico_real_dre[df_historico_real_dre['Categoria'] == '(-) Custo Mercadoria Vendida'].copy()
         df_categoria = pd.merge(df_fat[['Mês', 'Valor']], df_cmv[['Mês', 'Valor']], on='Mês', how='left')
@@ -72,7 +72,7 @@ def prepara_dados_faturamento_orcamento(df_historico_real_dre, df_orcamento_oper
         df_orcamento_categoria = df_orcamento_ano_atual[df_orcamento_ano_atual['Classificação Contábil 1'] == 'Faturamento Bruto'].copy()
 
     elif class_cont == 'CMV':
-        df_orc_fat = df_orcamento_ano_atual[df_orcamento_ano_atual['Classificação Contábil 2'].isin(['Alimentação', 'Bebida', 'Eventos A&B', 'Delivery'])]
+        df_orc_fat = df_orcamento_ano_atual[df_orcamento_ano_atual['Classificação Contábil 2'].isin(['Alimentação', 'Bebida', 'Eventos A&B', 'Delivery', 'Membership'])]
         df_orc_fat = df_orc_fat.groupby(['Ano', 'Mês'], as_index=False)['Orçamento'].sum()
         df_orc_cmv = df_orcamento_ano_atual[df_orcamento_ano_atual['Classificação Contábil 1'] == 'Custo Mercadoria Vendida']
         df_orc_cmv = df_orc_cmv.groupby(['Ano', 'Mês'], as_index=False)['Orçamento'].sum()
