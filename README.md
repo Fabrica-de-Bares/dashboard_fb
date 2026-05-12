@@ -1,1 +1,1 @@
-# Dashboard - Controle de Eventos
+# Dashboard - Fábrica de Bares
