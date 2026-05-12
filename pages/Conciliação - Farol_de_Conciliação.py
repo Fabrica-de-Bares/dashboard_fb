@@ -115,26 +115,31 @@ df_farol_conciliacao['Casa'] = casas_validas
 # Função que cria a coluna de cada mês da tabela
 df_farol_conciliacao = df_farol_conciliacao_mes(lista_casas_mes, df_farol_conciliacao, ano_farol, datas['mes_atual'])
 
-# Pinta as células de acordo com a porcentagem
-df_farol_conciliacao_estilo = df_farol_conciliacao.style.map(
-    lambda val: estilos_celulas(val, ano_atual, ano_farol, datas['mes_atual'], mes_farol)
-    )
-
-if mes_farol == 'Todos os meses':
-    # Exibe o df
+if mes_farol == 'Todos os meses': # Exibe o farol
     st.divider()
-    st.subheader('Status Conciliação Bancária - Resumo')
-    st.write('Porcentagem (%) de dias conciliados por casa e mês')
-    height = (len(df_farol_conciliacao) + 1) * 35
-    st.dataframe(df_farol_conciliacao_estilo, hide_index=True, height=height)
-    
     st.write("")
-    st.subheader(":material/arrow_downward: Visualizar dias não conciliados")
+    col1, col2 = st.columns(2)
+    with col1:
+        st.subheader('Status Conciliação Bancária - Resumo')
+        st.write('Porcentagem (%) de dias conciliados por casa e mês.')
+    with col2:
+        casa_farol = st.selectbox('Selecione uma casa', casas_validas, index=None, placeholder='Selecione uma casa', label_visibility='hidden', key='casa_farol')
 
+    if casa_farol:
+        df_farol_conciliacao = df_farol_conciliacao[df_farol_conciliacao['Casa'] == casa_farol].copy()
+
+    height = (len(df_farol_conciliacao) + 1) * 35
+    df_farol_conciliacao_styled = df_farol_conciliacao.style.map(lambda val: estilos_celulas(val, ano_atual, ano_farol, datas['mes_atual'], mes_farol))
+    st.dataframe(df_farol_conciliacao_styled, hide_index=True, height=height)
+    
+    st.divider()
+    st.subheader(":material/arrow_downward: Visualização - Dias não conciliados")
     casas = df_casas['Casa'].tolist()
-    # casas.remove("All bar")
 
-    casa_selecionada = st.selectbox("Selecione uma casa:", casas, index=None, placeholder='Selecione uma casa', label_visibility='hidden')
+    if not casa_farol: 
+        casa_selecionada = st.selectbox("Selecione uma casa", casas, index=None, placeholder='Selecione uma casa', label_visibility='hidden', key='casa_visualizacao_dias')
+    else: # Se selecionou uma casa acima, já exibe os dias não conciliados dela
+        casa_selecionada = casa_farol
 
     # Definindo um dicionário para mapear nomes de casas a IDs de casas
     mapeamento_casas = dict(zip(df_casas["Casa"], df_casas["ID_Casa"]))
@@ -143,6 +148,6 @@ if mes_farol == 'Todos os meses':
     if casa_selecionada != None:
         id_casa = mapeamento_casas[casa_selecionada]
         
-        # Exibe dataframe dos dias não conciliados da casa no mês
+        # Exibe dataframes dos dias não conciliados da casa para cada mês
         df_farol_conciliacao_casa_mes(df_conciliacao_farol, casa_selecionada, lista_casas_mes, casas_validas, ano_farol, datas_completas)
 

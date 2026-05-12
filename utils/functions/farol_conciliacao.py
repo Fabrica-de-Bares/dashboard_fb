@@ -572,7 +572,7 @@ def df_farol_conciliacao_casa_mes(df_conciliacao_farol, casa_selecionada, lista_
         lista_meses_nao_conciliados_casa.append(lista_indices)  
 
     for mes_nao_conciliado in lista_meses_nao_conciliados_casa[indice_casa]:
-        st.subheader(f"{nomes_meses[mes_nao_conciliado]}")
+        st.markdown(f"<h4>{nomes_meses[mes_nao_conciliado]}</h4>", unsafe_allow_html=True)
         df_dias_nao_conciliados_casa, qtd_dias_nao_conciliados = dias_nao_conciliados_casa_mes(df_conciliacao_farol, casa_selecionada, mes_nao_conciliado, ano_farol, datas_completas)
         df_dias_nao_conciliados_casa_fmt = formata_df(df_dias_nao_conciliados_casa)
         st.dataframe(df_dias_nao_conciliados_casa_fmt, hide_index=True)
