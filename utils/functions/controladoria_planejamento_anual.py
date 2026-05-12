@@ -98,7 +98,7 @@ def insere_nova_linha(df, colunas_meses, valor, apos_linha, col, categoria):
         return df  # segurança
     
     indice = indices[-1]
-    pos = df.index.get_loc(indice)
+    pos = np.where(df.index == indice)[0][-1]
 
     df_final = pd.concat([
         df.iloc[:pos+1],
@@ -282,12 +282,12 @@ def highlight_secoes_dre(row):
         'Custos de Eventos', '(-) Custos Eventos', 'Gorjeta', '(-) Dedução da Gorjeta', 'Deduções sobre Venda', '(-) Deduções sobre Venda', 
         'PESSOAL', 'Custo de Ocupação', 'Utilidades', 'Informática e TI', 'Manutenção', 'Despesas Gerais', 'Marketing', 
         'Serviços de Terceiros', 'Locação de Equipamentos', 'Sistema de Franquias', 'TOTAL - DESPESAS OPERATIVAS', '(-) Depreciação/Amortização',
-        '(+/-) Receitas/Despesas Financeiras', 'Patrocínio', '(+) Receitas de Patrocínio', '(-) Despesas de Patrocínio', '(-) Impostos', 
-        '(-) CAPEX (Investimentos)', '(+/-) Outras variações no fluxo de caixa', 'Total - Variações s/ Resultado Líquido'
+        '(+/-) Receitas/Despesas Financeiras', 'Despesas Financeiras', 'Patrocínio', '(+) Receitas de Patrocínio', '(-) Despesas de Patrocínio', '(-) Impostos', 
+        '(-) CAPEX (Investimentos)', 'Investimento - CAPEX', '(+/-) Outras variações no fluxo de caixa', 'Total - Variações s/ Resultado Líquido'
         ]:
         return ['background-color: rgba(255, 165, 0, 0.05); color: #993300; font-weight: 500'] * len(row)
     
-    elif row['Categoria'] in ['FATURAMENTO BRUTO', 'RECEITA LÍQUIDA', 'MARGEM BRUTA DE CONTRIBUIÇÃO', 'EBITDA', 'EBIT', 'Resultado Antes do IR', 'Resultado Líquido']:
+    elif row['Categoria'] in ['Faturamento', 'FATURAMENTO BRUTO', 'RECEITA LÍQUIDA', 'MARGEM BRUTA DE CONTRIBUIÇÃO', 'EBITDA', 'EBIT', 'Resultado Antes do IR', 'Resultado Líquido']:
         return ['background-color: #E8F2FC; color: black; font-weight: 500'] * len(row)
     
     elif row['Categoria'] in ['% sobre Receita Bruta', '% sobre Receita Líquida', '% sobre Receita Artístico', '% sobre Receita de Eventos', 'FCF', 'Saldo Operacional']:

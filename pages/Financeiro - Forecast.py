@@ -3,7 +3,8 @@ from utils.components import input_selecao_casas, seletor_ano, seletor_mes
 from utils.functions.forecast import *
 from utils.functions.general_functions import config_sidebar
 from utils.functions.general_functions_conciliacao import *
-from utils.functions.cmv_teorico_fichas_tecnicas import function_format_number_columns
+# from utils.functions.cmv_teorico_fichas_tecnicas import function_format_number_columns
+from utils.functions.controladoria_planejamento_anual import highlight_secoes_dre
 from utils.queries_forecast import *
 
 
@@ -49,6 +50,9 @@ if casa == 'Arcos': st.info('Observação: Arcos sem operação às segundas-fei
  df_faturamento_eventos, 
  df_parc_receitas_extr) = GET_TODOS_FATURAMENTOS_DIA(id_casa)
 
+# Dados - Receitas Extraordinárias (apenas Patrocínios)
+df_parc_receitas_extr_patrocinio = GET_RECEITAS_EXTR_PATROCINIO()
+
 # Dados - Descontos e Promoções
 df_descontos = GET_DESCONTOS()
 df_promocoes = GET_PROMOCOES()
@@ -59,10 +63,9 @@ df_faturamento_agregado_mes = GET_FATURAMENTO_CATEGORIA_MENSAL(df_faturamento_ag
 
 # Dados - Despesas por classificação contábil
 df_aut_blue_me_sem_pedido = GET_AUT_BLUE_ME_SEM_PEDIDO()
-
-# Dados - Folha/Gorjeta
-df_aut_folha = GET_AUT_FOLHA_PAGAMENTO()
-
+df_aut_folha = GET_AUT_FOLHA_PAGAMENTO() # Dados - Folha/Gorjeta
+df_aut_endividamentos = GET_AUT_ENDIVIDAMENTOS() # Dados - Endividamentos
+st.write(df_aut_endividamentos)
 # Filtrando Datas
 datas = calcular_datas()
 
@@ -75,64 +78,64 @@ PORC_ICMS = 0.04
 
 ###################### PROJEÇÃO DE FATURAMENTO - MÊS CORRENTE ###################### 
 
-# Prepara df de faturamento agregado diário para a casa selecionada
-df_faturamento_agregado_mes_corrente = prepara_dados_faturam_agregado_diario(id_casa, df_faturamento_agregado_dia, datas['fim_mes_atual'], datas['inicio_dois_meses_antes'])
-if casa == 'Arcos': 
-    # Não abre de segunda-feira: zera segundas com faturamento de A&B para não impactar na projeção (vêm de Eventos)
-    condicao = (df_faturamento_agregado_mes_corrente['Casa'] == 'Arcos') & (df_faturamento_agregado_mes_corrente['Dia Semana'] == 'Segunda-feira')
-    df_faturamento_agregado_mes_corrente.loc[condicao, 'Valor Bruto'] = 0
+# # Prepara df de faturamento agregado diário para a casa selecionada
+# df_faturamento_agregado_mes_corrente = prepara_dados_faturam_agregado_diario(id_casa, df_faturamento_agregado_dia, datas['fim_mes_atual'], datas['inicio_dois_meses_antes'])
+# if casa == 'Arcos': 
+#     # Não abre de segunda-feira: zera segundas com faturamento de A&B para não impactar na projeção (vêm de Eventos)
+#     condicao = (df_faturamento_agregado_mes_corrente['Casa'] == 'Arcos') & (df_faturamento_agregado_mes_corrente['Dia Semana'] == 'Segunda-feira')
+#     df_faturamento_agregado_mes_corrente.loc[condicao, 'Valor Bruto'] = 0
 
-# --- CRIA COMBINAÇÃO DE TODAS AS CATEGORIAS x DIAS (mês anterior e corrente) ---
-df_dias_futuros_com_categorias = lista_dias_mes_anterior_atual(datas['ano_atual'], datas['mes_atual'], df_faturamento_agregado_mes_corrente)
+# # --- CRIA COMBINAÇÃO DE TODAS AS CATEGORIAS x DIAS (mês anterior e corrente) ---
+# df_dias_futuros_com_categorias = lista_dias_mes_anterior_atual(datas['ano_atual'], datas['mes_atual'], df_faturamento_agregado_mes_corrente)
 
-# Gera projeção para prox dias do mês corrente por dia da semana
-df_dias_futuros_mes = cria_projecao_mes_corrente(df_faturamento_agregado_mes_corrente, df_dias_futuros_com_categorias)
-df_dias_mes = df_dias_futuros_com_categorias[df_dias_futuros_com_categorias['Categoria'] != 'Serviço'].copy()
-df_dias_mes = df_dias_mes[['Data Evento', 'Categoria']]
+# # Gera projeção para prox dias do mês corrente por dia da semana
+# df_dias_futuros_mes = cria_projecao_mes_corrente(df_faturamento_agregado_mes_corrente, df_dias_futuros_com_categorias)
+# df_dias_mes = df_dias_futuros_com_categorias[df_dias_futuros_com_categorias['Categoria'] != 'Serviço'].copy()
+# df_dias_mes = df_dias_mes[['Data Evento', 'Categoria']]
 
-# Aplica layout
-pivot_faturamento_mes_corrente = aplica_layout_mes_corrente(df_dias_futuros_mes, df_faturamento_eventos, df_parc_receitas_extr, df_dias_mes, id_casa, casa, mes_selecionado, ano_selecionado)
-height = (len(pivot_faturamento_mes_corrente) + 1) * 35 # Define altura sem rolagem 
+# # Aplica layout
+# pivot_faturamento_mes_corrente = aplica_layout_mes_corrente(df_dias_futuros_mes, df_faturamento_eventos, df_parc_receitas_extr, df_dias_mes, id_casa, casa, mes_selecionado, ano_selecionado)
+# height = (len(pivot_faturamento_mes_corrente) + 1) * 35 # Define altura sem rolagem 
 
-# Formata colunas numéricas
-df_mes_corrente_estilizado = function_format_number_columns(
-    pivot_faturamento_mes_corrente,
-    columns_money=[col for col in pivot_faturamento_mes_corrente if col not in ['Data Evento', 'Dia Semana']]
-)
+# # Formata colunas numéricas
+# df_mes_corrente_estilizado = function_format_number_columns(
+#     pivot_faturamento_mes_corrente,
+#     columns_money=[col for col in pivot_faturamento_mes_corrente if col not in ['Data Evento', 'Dia Semana']]
+# )
 
-# Pinta os dias apenas se for selecionado o mês corrente
-if mes_selecionado == datas['mes_atual'] and ano_selecionado == datas['ano_atual']:
-    df_mes_corrente_estilizado = pivot_faturamento_mes_corrente.style.apply(destaca_dias_futuros_mes_corrente, axis=1)
-else:
-    df_mes_corrente_estilizado = pivot_faturamento_mes_corrente 
-    df_mes_corrente_estilizado = df_mes_corrente_estilizado.style.apply(
-        lambda col: ['background-color: #f0f2f6; color: black;' if col.name == 'Total' else '' for _ in col],
-        axis=0
-    )   
+# # Pinta os dias apenas se for selecionado o mês corrente
+# if mes_selecionado == datas['mes_atual'] and ano_selecionado == datas['ano_atual']:
+#     df_mes_corrente_estilizado = pivot_faturamento_mes_corrente.style.apply(destaca_dias_futuros_mes_corrente, axis=1)
+# else:
+#     df_mes_corrente_estilizado = pivot_faturamento_mes_corrente 
+#     df_mes_corrente_estilizado = df_mes_corrente_estilizado.style.apply(
+#         lambda col: ['background-color: #f0f2f6; color: black;' if col.name == 'Total' else '' for _ in col],
+#         axis=0
+#     )   
 
-if mes_selecionado == datas['mes_atual'] and ano_selecionado == datas['ano_atual']:
-    st.subheader('Faturamento diário - mês corrente')
-else:
-    st.subheader('Faturamento diário - mês selecionado')
+# if mes_selecionado == datas['mes_atual'] and ano_selecionado == datas['ano_atual']:
+#     st.subheader('Faturamento diário - mês corrente')
+# else:
+#     st.subheader('Faturamento diário - mês selecionado')
 
-st.dataframe(df_mes_corrente_estilizado, hide_index=True, width='stretch')
-# Exibe legenda
-st.markdown(f'''
-    <div style="display: flex; align-items: center; padding:10px; border:1px solid #ccc; border-radius:8px";>
-        <div style="width: 15px; height: 15px; background-color: rgba(255,255,224); border: 1px solid #ccc; margin-right: 10px;"></div>
-        <span style="font-size: 14px">Média de faturamento projetado (não real) para dias futuros.</span>
-    </div>
-''', unsafe_allow_html=True)
-st.write("")
-# Premissas
-st.markdown(f'''
-    <div style="display:flex; flex-direction:column; padding:10px; border:1px solid #ccc; border-radius:8px";>
-        <p><strong>Premissas</strong></p>
-        <span style="font-size: 14px">- Para Alimentos, Bebidas, Couvert, Delivery e Gifts: por dia da semana, é calculada a média de faturamento baseada nas das duas últimas semanas.</span>
-        <span style="font-size: 14px">- Para Eventos e Outras Receitas (coleta de óleo): considerar os lançamentos com competência para o dia correspondente.</span>
-    </div>
-''', unsafe_allow_html=True)
-st.divider()
+# st.dataframe(df_mes_corrente_estilizado, hide_index=True, width='stretch')
+# # Exibe legenda
+# st.markdown(f'''
+#     <div style="display: flex; align-items: center; padding:10px; border:1px solid #ccc; border-radius:8px";>
+#         <div style="width: 15px; height: 15px; background-color: rgba(255,255,224); border: 1px solid #ccc; margin-right: 10px;"></div>
+#         <span style="font-size: 14px">Média de faturamento projetado (não real) para dias futuros.</span>
+#     </div>
+# ''', unsafe_allow_html=True)
+# st.write("")
+# # Premissas
+# st.markdown(f'''
+#     <div style="display:flex; flex-direction:column; padding:10px; border:1px solid #ccc; border-radius:8px";>
+#         <p><strong>Premissas</strong></p>
+#         <span style="font-size: 14px">- Para Alimentos, Bebidas, Couvert, Delivery e Gifts: por dia da semana, é calculada a média de faturamento baseada nas das duas últimas semanas.</span>
+#         <span style="font-size: 14px">- Para Eventos e Outras Receitas (coleta de óleo): considerar os lançamentos com competência para o dia correspondente.</span>
+#     </div>
+# ''', unsafe_allow_html=True)
+# st.divider()
 
 
 ###################### PROJEÇÃO DE FATURAMENTO - PRÓXIMOS MESES ###################### 
@@ -140,6 +143,10 @@ st.divider()
 # Prepara df de faturamento agregado mensal para a casa selecionada
 df_faturamento_mes_casa, df_faturamento_orcamento = prepara_dados_faturamento_orcamentos_mensais(id_casa, df_orcamentos, df_faturamento_agregado_mes, datas['ano_passado'], datas['ano_atual'])
 lista_itens_faturamento = df_faturamento_orcamento['Categoria'].unique().tolist() # Para exibir todos os itens de faturamento, mesmo que não haja valor para a casa
+valor_fat_bruto_mes = (df_faturamento_mes_casa[
+    (df_faturamento_mes_casa['Ano'] == ano_selecionado) &
+    (df_faturamento_mes_casa['Mês'] == mes_selecionado)
+])['Valor Bruto'].sum()
 
 # Cria combinação das categorias de faturamento com meses do ano (desde 2025)
 df_meses_futuros_com_categorias = lista_meses_ano(lista_itens_faturamento)
@@ -157,7 +164,7 @@ df_projecao_impostos = projecao_impostos(df_faturamento_para_impostos, lista_ite
 df_impostos_dre = formata_impostos_para_dre(df_projecao_impostos, df_orcamentos, casa, mes_selecionado, ano_selecionado)
 
 
-# CMV 
+# Itens CMV 
 df_faturamento_zig, faturamento_bruto_alimentos, faturamento_bruto_bebidas, faturamento_delivery = config_faturamento_bruto_zig(df_faturamento_agregado_dia, datas['jan_ano_passado'], datas['dez_ano_atual'], casa)
 df_faturamento_eventos = config_faturamento_eventos(datas['jan_ano_passado'], datas['dez_ano_atual'], casa, faturamento_bruto_alimentos, faturamento_bruto_bebidas)
 df_compras, df_aut_blue_me_com_pedido, compras_alimentos, compras_bebidas = config_compras(datas['jan_ano_passado'], datas['dez_ano_atual'], casa)
@@ -165,7 +172,7 @@ df_valoracao_estoque = config_valoracao_estoque_ou_producao('estoque', datas['ja
 df_transf_e_gastos, saida_alimentos, saida_bebidas, entrada_alimentos, entrada_bebidas, consumo_interno, quebras_e_perdas = config_transferencias_gastos(datas['jan_ano_passado'], datas['dez_ano_atual'], casa)
 df_valoracao_producao = config_valoracao_estoque_ou_producao('producao', datas['jan_ano_passado'], datas['dez_ano_atual'], casa)
 
-# Cálculo CMV e Faturamento Geral para meses anteriores
+# Cálculo CMV meses anteriores
 df_calculo_cmv = merge_e_calculo_para_cmv(
     df_faturamento_zig, 
     df_compras, 
@@ -175,31 +182,49 @@ df_calculo_cmv = merge_e_calculo_para_cmv(
     df_faturamento_eventos
 )
 
+# Projeção CMV próximos meses
 df_cmv_meses_anteriores_seguintes = calcula_cmv_proximos_meses(df_faturamento_meses_futuros, df_calculo_cmv, datas['ano_atual'], datas['mes_atual'])
-# exibe_cmv_meses_anteriores_e_seguintes(df_cmv_meses_anteriores_seguintes, 'meses seguintes', datas['mes_atual'], datas['ano_atual'])
+
+# Merge com CMV Orçado
+df_orcamentos_cmv = df_orcamentos[
+    (df_orcamentos['Casa'] == casa) &
+    (df_orcamentos['Classificacao_Contabil_1'] == 'Custo Mercadoria Vendida') 
+].copy()
+df_orcamentos_cmv = df_orcamentos_cmv.groupby(['Casa', 'Ano', 'Mês'], as_index=False)['Orçamento'].sum()
+
+df_cmv_meses_anteriores_seguintes = pd.merge(
+    df_cmv_meses_anteriores_seguintes,
+    df_orcamentos_cmv,
+    on=['Casa', 'Mês', 'Ano'],
+    how='left'
+)
 
 # Cria lista com todos dfs de despesas projetadas
 lista_df_projecao_despesas = [] 
 
 lista_categorias_despesas = [
-    'Desconto sobre Venda',               # 0
-    'Custos Artístico Geral',             # 1
-    'Custos de Eventos',                  # 2
-    'Gorjeta',                            # 3
-    'Deduções sobre Venda',               # 4
-    'Mão de Obra - PJ',                   # 5
-    'Mão de Obra - Salários',             # 6
-    'Mão de Obra - Extra',                # 7
-    'Mão de Obra - Encargos e Provisões', # 8
-    'Mão de Obra - Benefícios',           # 9
-    'Custo de Ocupação',                  # 10
-    'Utilidades',                         # 11
-    'Informática e TI',                   # 12
-    'Manutenção', # Despesas Gerais       # 13
-    'Marketing',                          # 14
-    'Serviços de Terceiros',              # 15
-    'Locação de Equipamentos',            # 16
-    'Sistema de Franquias'                # 17
+    'Desconto sobre Venda',               
+    'Custos Artístico Geral',             
+    'Custos de Eventos',                  
+    'Gorjeta',                            
+    'Deduções sobre Venda',               
+    'Mão de Obra - PJ',                   
+    'Mão de Obra - Salários',             
+    'Mão de Obra - Extra',                
+    'Mão de Obra - Encargos e Provisões', 
+    'Mão de Obra - Benefícios',           
+    'Custo de Ocupação',                  
+    'Utilidades',                         
+    'Informática e TI',                   
+    'Manutenção', # Despesas Gerais       
+    'Marketing',                          
+    'Serviços de Terceiros',              
+    'Locação de Equipamentos',            
+    'Sistema de Franquias',                
+    'Despesas Financeiras', 
+    'Patrocínio',
+    'Investimento - CAPEX',
+    'Dividendos e Remunerações Variáveis', # (+/-) Outras variações no fluxo de caixa
 ]
 
 lista_df_projecao_despesas = loop_prepara_dados_despesas(
@@ -210,53 +235,80 @@ lista_df_projecao_despesas = loop_prepara_dados_despesas(
     df_faturamento_meses_futuros, 
     df_aut_folha, 
     df_orcamentos, 
+    df_parc_receitas_extr_patrocinio,
     lista_df_projecao_despesas, 
     casa, 
     mes_selecionado, 
-    ano_selecionado
+    ano_selecionado, 
 )
-
 
 st.subheader('Real vs Tendência do mês - Faturamento e Despesas')
 df_despesas_concatenadas = pd.concat(lista_df_projecao_despesas, ignore_index=True)
 
 df_layout_dre = aplica_layout_dre(df_faturamento_meses_futuros, df_impostos_dre, df_cmv_meses_anteriores_seguintes, df_despesas_concatenadas, mes_selecionado, ano_selecionado)
-height = (len(df_layout_dre) + 1) * 35 # Define altura sem rolagem
+
+# Remove linhas que não quero exibir ou renomeia
+df_layout_dre = df_layout_dre[~df_layout_dre['Categoria'].isin(['Patrocínio', 'Endividamento'])].reset_index(drop=True)
+df_layout_dre['Categoria'] = df_layout_dre['Categoria'].replace('Dividendos e Remunerações Variáveis', '(+/-) Outras variações no fluxo de caixa')
+
+mapa_insercao = { # Mapa inserção das linhas de '% sobre Receita' de cada classificação contábil
+    'Desconto sobre Venda': 'Descontos - Operação',              
+    'Custos Artístico Geral': 'Viagens e Estadias - Artístico',             
+    'Custos de Eventos': 'Viagens e Estadias - Eventos',                 
+    'Gorjeta': '  -  Comissões e Gorjeta',                            
+    'Deduções sobre Venda': '',               
+    'Mão de Obra - PJ': 'Outros D',                             
+    'Custo de Ocupação': 'Taxas publicas administrativas - Ocupação',                  
+    'Utilidades': 'Utensilios',                         
+    'Informática e TI': 'Telefone',                   
+    'Manutenção': 'Viagens e Estadias - Operação', # Despesas Gerais       
+    'Marketing': 'Sessão de Fotos/Captação de Vídeo',                          
+    'Serviços de Terceiros': 'Valet/Motoboy',              
+    'Locação de Equipamentos': 'Locações de Equipamentos - Operacionais',            
+    'Sistema de Franquias': 'Royalties',             
+}
+colunas_valores = (df_layout_dre.select_dtypes(include='number').drop(columns=['Percentual Real (do Orçamento)']).columns)
+df_layout_dre = define_linhas_calculadas(df_layout_dre, colunas_valores, lista_categorias_despesas, mapa_insercao)
 
 # Formata colunas numéricas
-df_layout_dre = function_format_number_columns(
-    df_layout_dre,
-    columns_money=['Orçamento', 'Valor Projetado', 'Valor Real'],
-    columns_percent=['Percentual Projetado (do Orçamento)', 'Percentual Real (do Orçamento)']
+colunas_moeda_variavel = [
+    'Orçamento',
+    'Valor Projetado',
+    'Valor Real'
+]
+colunas_percentuais = [
+    'Percentual Projetado',
+    'Percentual Real (do Orçamento)'
+]
+linhas_percentual = df_layout_dre['Categoria'].str.contains('%', na=False) 
+
+df_layout_dre_styled = (
+    df_layout_dre.style
+    .format(formatar_colunas_porcentagem, subset=colunas_percentuais)
+    .format(formatar_linhas_porcentagem, subset=pd.IndexSlice[linhas_percentual, colunas_moeda_variavel])
+    .format(formatar_colunas_moeda_br,subset=pd.IndexSlice[~linhas_percentual, colunas_moeda_variavel])
+    .apply(highlight_secoes_dre, axis=1) # Destaca linhas de título
 )
 
-df_layout_dre.loc[df_layout_dre['Orçamento'] == 'R$ nan', 'Orçamento'] = '-'
-df_layout_dre.loc[(df_layout_dre['Percentual Projetado (do Orçamento)'] == '') | (df_layout_dre['Percentual Projetado (do Orçamento)'] == '0,00%'), 'Percentual Projetado (do Orçamento)'] = '-'
-df_layout_dre.loc[df_layout_dre['Valor Projetado'] == 'R$ nan', 'Valor Projetado'] = '-'
-df_layout_dre.loc[df_layout_dre['Valor Real'] == 'R$ 0,00', 'Valor Real'] = '-'
-df_layout_dre.loc[(df_layout_dre['Percentual Real (do Orçamento)'] == '') | (df_layout_dre['Percentual Real (do Orçamento)'] == '0,00%'), 'Percentual Real (do Orçamento)'] = '-'
-
-# Destaca linhas de título
-df_layout_dre = df_layout_dre.reset_index(drop=True)
-df_layout_dre_styled = df_layout_dre.style.apply(highlight_titulos_dre, axis=1) 
+height = (len(df_layout_dre) + 1) * 35 # Define altura sem rolagem
 st.dataframe(df_layout_dre_styled, hide_index=True, width='stretch', height=height)
 
-# Premissas
-# Falta ajustar Benefícios e Outros B (Mão de Obra - Benefícios)
-st.markdown(f'''
-    <div style="display:flex; flex-direction:column; padding:10px; border:1px solid #ccc; border-radius:8px";>
-        <p><strong>Premissas</strong></p>
-        <span style="font-size: 14px">- Para os itens de faturamento (exceto Serviço): calcula a média do percentual (%) de atingimento do Faturamento Real dos últimos dois meses x Orçamento.</span>
-        <span style="font-size: 14px">- Para Serviço: calcula 13% do Faturamento Projetado para o mês.</span>
-        <span style="font-size: 14px">- Para CMV, Desconto sobre Venda, Custos Artístico Geral, Custos Eventos, Gorjeta, Deduções sobre Venda, Mão de Obra - Extra, Mão de Obra - Encargos e Provisões, Utilidades, Manutenção e Marketing: média da % da despesa em relação ao Faturamento Real dos últimos 2 meses x o Faturamento Projetado para o mês.</span>
-        <span style="font-size: 14px">- Para imposto ISS: soma Faturamento de Eventos e Gifts e aplica taxa de {PORC_ISS*100}%.</span>
-        <span style="font-size: 14px">- Para imposto ICMS: soma Faturamento de A&B, Artístico/Couvert e Delivery e aplica taxa de {PORC_ICMS*100}%.</span>
-        <span style="font-size: 14px">- Para imposto PIS: aplica diferença entre Faturamento Bruto e ICMS aplica taxa de {PORC_PIS*100}%.</span>
-        <span style="font-size: 14px">- Para imposto COFINS: aplica diferença entre Faturamento Bruto e ICMS aplica taxa de {PORC_COFINS*100}%.</span>
-        <span style="font-size: 14px">- Para Mão de Obra - PJ, Mão de Obra - Salários, Custos de Ocupação, Informática e TI, Serviços de Terceiros e Locação de Equipamentos: Valor Fixo, considerar o valor do mês anterior.</span>
-        <span style="font-size: 14px">- Para Mão de Obra - Benefícios: média da % da despesa em relação ao Salário Real dos últimos 2 meses x o Salário Projetado para o mês.</span>
-        <span style="font-size: 14px">- Para Sistema de Franquias: calcula 5% do Faturamento Projetado para o mês.</span>
-    </div>
-''', unsafe_allow_html=True)
+# # Premissas
+# # Falta ajustar Benefícios e Outros B (Mão de Obra - Benefícios)
+# st.markdown(f'''
+#     <div style="display:flex; flex-direction:column; padding:10px; border:1px solid #ccc; border-radius:8px";>
+#         <p><strong>Premissas</strong></p>
+#         <span style="font-size: 14px">- Para os itens de faturamento (exceto Serviço): calcula a média do percentual (%) de atingimento do Faturamento Real dos últimos dois meses x Orçamento.</span>
+#         <span style="font-size: 14px">- Para Serviço: calcula 13% do Faturamento Projetado para o mês.</span>
+#         <span style="font-size: 14px">- Para CMV, Desconto sobre Venda, Custos Artístico Geral, Custos Eventos, Gorjeta, Deduções sobre Venda, Mão de Obra - Extra, Mão de Obra - Encargos e Provisões, Utilidades, Manutenção e Marketing: média da % da despesa em relação ao Faturamento Real dos últimos 2 meses x o Faturamento Projetado para o mês.</span>
+#         <span style="font-size: 14px">- Para imposto ISS: soma Faturamento de Eventos e Gifts e aplica taxa de {PORC_ISS*100}%.</span>
+#         <span style="font-size: 14px">- Para imposto ICMS: soma Faturamento de A&B, Artístico/Couvert e Delivery e aplica taxa de {PORC_ICMS*100}%.</span>
+#         <span style="font-size: 14px">- Para imposto PIS: aplica diferença entre Faturamento Bruto e ICMS aplica taxa de {PORC_PIS*100}%.</span>
+#         <span style="font-size: 14px">- Para imposto COFINS: aplica diferença entre Faturamento Bruto e ICMS aplica taxa de {PORC_COFINS*100}%.</span>
+#         <span style="font-size: 14px">- Para Mão de Obra - PJ, Mão de Obra - Salários, Custos de Ocupação, Informática e TI, Serviços de Terceiros e Locação de Equipamentos: Valor Fixo, considerar o valor do mês anterior.</span>
+#         <span style="font-size: 14px">- Para Mão de Obra - Benefícios: média da % da despesa em relação ao Salário Real dos últimos 2 meses x o Salário Projetado para o mês.</span>
+#         <span style="font-size: 14px">- Para Sistema de Franquias: calcula 5% do Faturamento Projetado para o mês.</span>
+#     </div>
+# ''', unsafe_allow_html=True)
 
 

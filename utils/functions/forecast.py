@@ -4,6 +4,7 @@ import numpy as np
 import calendar
 from datetime import datetime, timedelta
 from utils.functions.general_functions_conciliacao import traduz_semana_mes, calcular_datas
+from utils.functions.controladoria_planejamento_anual import insere_nova_linha
 from utils.queries_cmv import *
 from utils.queries_forecast import *
 
@@ -491,14 +492,14 @@ def formata_impostos_para_dre(df_projecao_impostos, df_orcamentos, casa, mes_sel
         None
     )
     # Cria coluna de Percentual Projetado (apenas para meses futuros)
-    df_orcamentos_impostos["Percentual Projetado (do Orçamento)"] = np.where(
+    df_orcamentos_impostos["Percentual Projetado"] = np.where(
         (df_orcamentos_impostos["Mês"] >= datas['mes_atual']) & (df_orcamentos_impostos['Ano'] == datas['ano_atual']),     
         (df_orcamentos_impostos["Valor"].astype(float) / df_orcamentos_impostos['Orçamento'].astype(float)) * 100,
         None      
     )
 
     df_impostos_dre = df_orcamentos_impostos[(df_orcamentos_impostos['Mês'] == mes_selecionado) & (df_orcamentos_impostos['Ano'] == ano_selecionado)].copy()
-    df_impostos_dre = df_impostos_dre[['Categoria', 'Orçamento', 'Percentual Projetado (do Orçamento)', 'Valor Projetado', 'Valor Real']]
+    df_impostos_dre = df_impostos_dre[['Categoria', 'Orçamento', 'Percentual Projetado', 'Valor Projetado', 'Valor Real']]
     df_impostos_dre = calcula_linha_total(df_impostos_dre, 'Categoria', 'Impostos sobre Venda', 'Valor Projetado', 'Valor Real')
     return df_impostos_dre
 
@@ -911,6 +912,23 @@ def merge_despesas_complexas(df_tabela_primaria, df_tabela_secundaria, casa, cla
             df_tabela_resultante['Custo Real'] = df_tabela_resultante['Custo Real'] - df_tabela_resultante['Valor']
         
         df_tabela_resultante.drop(columns=['Valor'], inplace=True)
+
+    elif class_cont == 'Patrocínio': # merge com Receitas Extraordinárias (Patrocínio)
+        df_tabela_secundaria_filtrada['Mês'] = df_tabela_secundaria_filtrada['Recebimento_Parcela'].dt.month
+        df_tabela_secundaria_filtrada['Ano'] = df_tabela_secundaria_filtrada['Recebimento_Parcela'].dt.year
+        df_tabela_secundaria_filtrada = df_tabela_secundaria_filtrada.groupby(['Casa', 'Mês', 'Ano'], as_index=False)['Valor Bruto'].sum()
+
+        df_tabela_resultante = pd.merge(
+            df_tabela_primaria,
+            df_tabela_secundaria_filtrada,
+            on=['Casa', 'Mês', 'Ano'],
+            how='outer'
+        ).fillna(0)
+
+        condicao = (df_tabela_resultante['Classificacao_Contabil_2'] == 0) & (df_tabela_resultante['Valor Bruto'] != 0)
+        df_tabela_resultante.loc[condicao, 'Classificacao_Contabil_2'] = '(+) Receitas de Patrocínio'
+        df_tabela_resultante.loc[df_tabela_resultante['Custo Real'] == 0, 'Custo Real'] = df_tabela_resultante['Valor Bruto']        
+        df_tabela_resultante.drop(columns=['Valor Bruto'], inplace=True)
     
     return df_tabela_resultante
 
@@ -958,6 +976,21 @@ def prepara_dados_custos_mensais(df_custos_gerais, df_faturamento_meses_futuros,
             ((df_custos_gerais['Classificacao_Contabil_1'] == class_cont) &
             (~df_custos_gerais['Classificacao_Contabil_2'].isin(['  -  INSS Segurados', 'IRRF - MDO CLT - Salário'])))
         ].copy()
+
+    elif class_cont == 'Despesas Financeiras':
+        if casa == 'Arcos':
+            df_custos_filtrado = df_custos_gerais[
+            (df_custos_gerais['Casa'] == casa) &
+            (((df_custos_gerais['Classificacao_Contabil_1'] == class_cont) &
+            (df_custos_gerais['Classificacao_Contabil_2'] == 'Tarifas Bancárias')) |
+            (df_custos_gerais['Fornecedor'] == 'NELSON WILIANS E ADVOGADOS ASSOCIADOS - MATRIZ'))
+        ].copy()
+        else:
+            df_custos_filtrado = df_custos_gerais[
+                (df_custos_gerais['Casa'] == casa) &
+                ((df_custos_gerais['Classificacao_Contabil_1'] == class_cont) &
+                (df_custos_gerais['Classificacao_Contabil_2'] == 'Tarifas Bancárias'))
+            ].copy()
         
     elif class_cont == 'Desconto sobre Venda':
         df_descontos_filtrado = df_custos_gerais[
@@ -997,7 +1030,7 @@ def prepara_dados_custos_mensais(df_custos_gerais, df_faturamento_meses_futuros,
     df_custos_filtrado_mensal = df_custos_filtrado_mensal.rename(columns={col_valor:'Custo Real'})
 
     # Casos em que o custo mensal não depende apenas da aut_blue_me_sem_pedido: merge com outra tabela
-    if class_cont in ['Mão de Obra - Salários', 'Gorjeta', 'Custos Artístico Geral', 'Marketing', 'Mão de Obra - Benefícios']: 
+    if class_cont in ['Mão de Obra - Salários', 'Gorjeta', 'Custos Artístico Geral', 'Marketing', 'Mão de Obra - Benefícios', 'Patrocínio']: 
         df_custos_filtrado_mensal = merge_despesas_complexas(df_custos_filtrado_mensal, df_tabela_secundaria, casa, class_cont)
 
     if class_cont == 'Utilidades':
@@ -1207,7 +1240,7 @@ def filtra_despesas_mes_ano_selecionados(df, mes, ano):
     return df_filtrado
 
 
-def loop_prepara_dados_despesas(lista_categorias_despesas, df_descontos, df_aut_blueme_sem_pedido, df_aut_blue_me_com_pedido, df_faturamento_meses_futuros, df_aut_folha, df_orcamentos, df_resultados, casa, mes_selecionado, ano_selecionado):
+def loop_prepara_dados_despesas(lista_categorias_despesas, df_descontos, df_aut_blueme_sem_pedido, df_aut_blue_me_com_pedido, df_faturamento_meses_futuros, df_aut_folha, df_orcamentos, df_receitas_patrocinio, df_resultados, casa, mes_selecionado, ano_selecionado):
     for categoria_despesa in lista_categorias_despesas:
         # Define df de despesas utilizado pela categoria
         if categoria_despesa == 'Desconto sobre Venda':
@@ -1220,6 +1253,8 @@ def loop_prepara_dados_despesas(lista_categorias_despesas, df_descontos, df_aut_
             df_tabela_secundaria = df_descontos.copy()
         elif categoria_despesa == 'Gorjeta' or categoria_despesa == 'Mão de Obra - Salários':
             df_tabela_secundaria = df_aut_folha.copy()
+        elif categoria_despesa == 'Patrocínio':
+            df_tabela_secundaria = df_receitas_patrocinio
         else: 
             df_tabela_secundaria = None
 
@@ -1247,30 +1282,26 @@ def aplica_layout_dre(df_faturamento_meses_passados_futuros, df_layout_impostos,
         (df_faturamento_meses_passados_futuros['Categoria'].isin(['Alimentos', 'Bebidas', 'Couvert', 'Serviço', 'Gifts', 'Eventos A&B', 'Eventos Couvert', 'Eventos Locações', 'Delivery', 'Outras Receitas']))
     ].copy()
 
-    df_layout_faturamento.rename(columns={'Valor Bruto': 'Valor Real', 'Atingimento Real': 'Percentual Real (do Orçamento)', 'Projeção Atingimento': 'Percentual Projetado (do Orçamento)'}, inplace=True)
+    df_layout_faturamento.rename(columns={'Valor Bruto': 'Valor Real', 'Atingimento Real': 'Percentual Real (do Orçamento)', 'Projeção Atingimento': 'Percentual Projetado'}, inplace=True)
     df_layout_faturamento = calcula_linha_total(df_layout_faturamento, 'Categoria', 'Faturamento', 'Valor Projetado', 'Valor Real')
-    df_layout_faturamento = df_layout_faturamento[['Categoria', 'Orçamento', 'Percentual Projetado (do Orçamento)', 'Valor Projetado', 'Valor Real', 'Percentual Real (do Orçamento)']]
+    df_layout_faturamento = df_layout_faturamento[['Categoria', 'Orçamento', 'Percentual Projetado', 'Valor Projetado', 'Valor Real', 'Percentual Real (do Orçamento)']]
 
     # Formata dados de CMV
     df_layout_cmv = df_cmv_projetado[(df_cmv_projetado['Ano'] == ano_selecionado) & (df_cmv_projetado['Mês'] == mes_selecionado)]
     df_layout_cmv.drop(columns=['Valor Projetado'], inplace=True)
-    df_layout_cmv = df_layout_cmv.rename(columns={'CMV Percentual Projetado': 'Percentual Projetado (do Orçamento)', 'CMV Projetado': 'Valor Projetado', 'CMV Real': 'Valor Real', 'CMV Real Percentual': 'Percentual Real (do Orçamento)'})
+    df_layout_cmv = df_layout_cmv.rename(columns={'CMV Percentual Projetado': 'Percentual Projetado', 'CMV Projetado': 'Valor Projetado', 'CMV Real': 'Valor Real', 'CMV Real Percentual': 'Percentual Real (do Orçamento)', 'CMV Orçado': 'Orçamento'})
     df_layout_cmv['Categoria'] = 'CMV'
-    df_layout_cmv['Orçamento'] = None
     df_layout_cmv = calcula_linha_total(df_layout_cmv, 'Categoria', 'Custo Mercadoria Vendida', 'Valor Projetado', 'Valor Real')
-    df_layout_cmv = df_layout_cmv[['Categoria', 'Orçamento', 'Percentual Projetado (do Orçamento)', 'Valor Projetado', 'Valor Real', 'Percentual Real (do Orçamento)']]
+    df_layout_cmv = df_layout_cmv[['Categoria', 'Orçamento', 'Percentual Projetado', 'Valor Projetado', 'Valor Real', 'Percentual Real (do Orçamento)']]
 
     # Formata dados de despesas
     df_layout_despesas = df_projecao_despesas.copy()
     df_layout_despesas.drop(columns=['Categoria'], inplace=True)
-    df_layout_despesas.rename(columns={'Classificacao_Contabil_2': 'Categoria', 'Custo Percentual Projetado': 'Percentual Projetado (do Orçamento)', 'Custo Projetado': 'Valor Projetado', 'Custo Real': 'Valor Real'}, inplace=True)
-    df_layout_despesas = df_layout_despesas[['Categoria', 'Orçamento', 'Percentual Projetado (do Orçamento)', 'Valor Projetado', 'Valor Real']]
+    df_layout_despesas.rename(columns={'Classificacao_Contabil_2': 'Categoria', 'Custo Percentual Projetado': 'Percentual Projetado', 'Custo Projetado': 'Valor Projetado', 'Custo Real': 'Valor Real'}, inplace=True)
+    df_layout_despesas = df_layout_despesas[['Categoria', 'Orçamento', 'Percentual Projetado', 'Valor Projetado', 'Valor Real']]
 
     # Insere os impostos calculados depois de 'Descontos sobre Venda'
-    indice = df_layout_despesas[
-        df_layout_despesas['Categoria'] == 'Descontos - Operação'
-    ].index.max()
-
+    indice = df_layout_despesas[df_layout_despesas['Categoria'] == 'Descontos - Operação'].index.max()
     df_parte1 = df_layout_despesas.loc[:indice]
     df_parte2 = df_layout_despesas.loc[indice+1:]
 
@@ -1278,15 +1309,27 @@ def aplica_layout_dre(df_faturamento_meses_passados_futuros, df_layout_impostos,
         df_parte1,
         df_layout_impostos,
         df_parte2
-    ])
+    ]).reset_index(drop=True)
+
+    # Insere o CMV depois de 'Impostos sobre Venda'
+    indice = df_layout_despesas_final[df_layout_despesas_final['Categoria'] == 'ISS'].index.max()
+    df_parte1 = df_layout_despesas_final.loc[:indice]
+    df_parte2 = df_layout_despesas_final.loc[indice+1:]
+
+    df_layout_despesas_final = pd.concat([
+        df_parte1,
+        df_layout_cmv,
+        df_parte2
+    ]).reset_index(drop=True)
 
     # Calcula coluna de Percentual Real 
-    df_layout_despesas['Percentual Real (do Orçamento)'] = (df_layout_despesas['Valor Real'] / df_layout_despesas['Orçamento'].replace(0, np.nan)) * 100
+    df_layout_despesas_final['Percentual Real (do Orçamento)'] = (df_layout_despesas_final['Valor Real'] / df_layout_despesas_final['Orçamento'].replace(0, np.nan)) * 100
 
     # Concatena os dados
-    df_layout_dre = pd.concat([df_layout_faturamento, df_layout_cmv, df_layout_despesas_final])
+    df_layout_dre = pd.concat([df_layout_faturamento, df_layout_despesas_final])
     df_layout_dre['Orçamento'].fillna(0, inplace=True)
-    df_layout_dre['Percentual Projetado (do Orçamento)'].fillna(0, inplace=True)
+    df_layout_dre['Percentual Projetado'] = pd.to_numeric(df_layout_dre['Percentual Projetado'], errors='coerce')
+    df_layout_dre['Percentual Projetado'].fillna(0, inplace=True)
 
     return df_layout_dre
 
@@ -1303,15 +1346,129 @@ def calcula_linha_total(df, col_categoria, categoria, col_valor_projetado, col_v
     return df
 
 
-def highlight_titulos_dre(row):
-    if row['Categoria'] in [
-        'Faturamento', 'Faturamento Bruto', 'Desconto sobre Venda', 'Custo Mercadoria Vendida', 'Impostos sobre Venda', 'Custos Artístico Geral', 'Custos de Eventos',
-        'Gorjeta', 'Deduções sobre Venda', 'Mão de Obra - PJ', 'Mão de Obra - Salários', 'Mão de Obra - Extra', 'Mão de Obra - Encargos e Provisões', 
-        'Mão de Obra - Benefícios', 'Custo de Ocupação', 'Utilidades', 'Informática e TI', 'Manutenção', 'Marketing', 
-        'Serviços de Terceiros', 'Locação de Equipamentos', 'Sistema de Franquias', 'Patrocínio'
-        ]:
-        return ['background-color: rgba(255, 165, 0, 0.05); color: #993300; font-weight: 500'] * len(row)
+# Calcula porcentagens e outros valores - Orçamento e Real DRE
+def define_linhas_calculadas(df_dre, colunas_valores, lista_categorias_despesas, mapa_insercao):
+    df_final = df_dre.copy()
+
+    # Define valores mais usados
+    cmv = df_final[df_final['Categoria'] == 'Custo Mercadoria Vendida'][colunas_valores].sum()
+    custos_artistico = df_final[df_final['Categoria'] == 'Custos Artístico Geral'][colunas_valores].sum()
+    faturamento_artistico = df_final[df_final['Categoria'] == 'Artístico (couvert/shows)'][colunas_valores].sum()
+    faturamento_bruto = df_final[df_final['Categoria'] == 'Faturamento'][colunas_valores].sum()
+    custos_eventos = df_final[df_final['Categoria'] == 'Custos de Eventos'][colunas_valores].sum()
+
+    # RECEITA LIQUIDA
+    receita_liquida = (
+        df_final[df_final['Categoria'] == 'Faturamento'][colunas_valores].sum() -
+        df_final[df_final['Categoria'] == 'Desconto sobre Venda'][colunas_valores].sum() - 
+        df_final[df_final['Categoria'] == 'Impostos sobre Venda'][colunas_valores].sum()
+    )
+    df_final = insere_nova_linha(df_final, colunas_valores, receita_liquida, 'ISS', 'Categoria', 'RECEITA LÍQUIDA')
+
+    # % sobre Receita Bruta - CMV
+    receita_bruta = (
+        df_final[df_final['Categoria'] == 'Alimentos'][colunas_valores].sum() +
+        df_final[df_final['Categoria'] == 'Bebidas'][colunas_valores].sum() +
+        df_final[df_final['Categoria'] == 'Eventos A&B'][colunas_valores].sum() +
+        df_final[df_final['Categoria'] == 'Delivery'][colunas_valores].sum()
+    )
+    porc_receita_bruta_cmv = (cmv / receita_bruta)
+    df_final = insere_nova_linha(df_final, colunas_valores, porc_receita_bruta_cmv, 'CMV', 'Categoria', '% sobre Receita Bruta')
+    
+    # % sobre Receita Líquida - CMV
+    porc_receita_liquida_cmv = (cmv / receita_liquida).round(2)
+    df_final = insere_nova_linha(df_final, colunas_valores, porc_receita_liquida_cmv, '% sobre Receita Bruta', 'Categoria', '% sobre Receita Líquida')
+
+    # % sobre Receita Artístico
+    porc_receita_artistico = (custos_artistico / faturamento_artistico).round(2)
+    df_final = insere_nova_linha(df_final, colunas_valores, porc_receita_artistico, 'Viagens e Estadias - Artístico', 'Categoria', '% sobre Receita Artístico')
+
+    # % sobre Receita de Eventos
+    faturamento_eventos = (
+        df_final[df_final['Categoria'] == 'Eventos A&B'][colunas_valores].sum() +
+        df_final[df_final['Categoria'] == 'Eventos Locações'][colunas_valores].sum() +
+        df_final[df_final['Categoria'] == 'Eventos Couvert'][colunas_valores].sum() 
+    )
+    porc_receita_eventos = (custos_eventos / faturamento_eventos.replace(0, np.nan)).round(2)
+    df_final = insere_nova_linha(df_final, colunas_valores, porc_receita_eventos, 'Viagens e Estadias - Eventos', 'Categoria', '% sobre Receita de Eventos')
+
+    # MARGEM BRUTA DE CONTRIBUIÇÃO
+    margem_bruta_contribuicao = (
+        df_final[df_final['Categoria'] == 'RECEITA LÍQUIDA'][colunas_valores].sum() -
+        df_final[df_final['Categoria'] == 'Deduções sobre Venda'][colunas_valores].sum() -
+        df_final[df_final['Categoria'] == 'Gorjeta'][colunas_valores].sum() -
+        df_final[df_final['Categoria'] == 'Custos de Eventos'][colunas_valores].sum() -
+        df_final[df_final['Categoria'] == 'Custos Artístico Geral'][colunas_valores].sum() -
+        df_final[df_final['Categoria'] == 'Custo Mercadoria Vendida'][colunas_valores].sum() 
+    )
+    df_final = insere_nova_linha(df_final, colunas_valores, margem_bruta_contribuicao, 'Outros D', 'Categoria', 'MARGEM BRUTA DE CONTRIBUIÇÃO')
+    lista_categorias_despesas.append('MARGEM BRUTA DE CONTRIBUIÇÃO')
+
+    # PESSOAL
+    pessoal = 0
+    for categoria in lista_categorias_despesas:
+        if categoria in ['Mão de Obra - PJ', 'Mão de Obra - Salários', 'Mão de Obra - Extra', 'Mão de Obra - Encargos e Provisões', 'Mão de Obra - Benefícios']:
+            pessoal += df_final[df_final['Categoria'] == categoria][colunas_valores].sum() 
+
+    df_final = insere_nova_linha(df_final, colunas_valores, pessoal, 'MARGEM BRUTA DE CONTRIBUIÇÃO', 'Categoria', 'PESSOAL')
+    lista_categorias_despesas.append('PESSOAL')
+
+    # TOTAL - DESPESAS OPERATIVAS
+    total_despesas_operativas = 0
+    for categoria in lista_categorias_despesas:
+        if categoria in ['PESSOAL', 'Custo de Ocupação', 'Utilidades', 'Informática e TI', 'Manutenção', 'Marketing', 'Serviços de Terceiros', 'Locação de Equipamentos', 'Sistema de Franquias']:
+            total_despesas_operativas += df_final[df_final['Categoria'] == categoria][colunas_valores].sum() 
+
+    df_final = insere_nova_linha(df_final, colunas_valores, total_despesas_operativas, 'Royalties', 'Categoria', 'TOTAL - DESPESAS OPERATIVAS')
+    lista_categorias_despesas.append('TOTAL - DESPESAS OPERATIVAS')
+    
+    # EBTIDA e EBIT
+    total_despesas_operativas = df_final[df_final['Categoria'] == 'TOTAL - DESPESAS OPERATIVAS'][colunas_valores].sum() 
+    margem_bruta_contribuicao = df_final[df_final['Categoria'] == 'MARGEM BRUTA DE CONTRIBUIÇÃO'][colunas_valores].sum() 
+    ebitda = margem_bruta_contribuicao - total_despesas_operativas
+    df_final = insere_nova_linha(df_final, colunas_valores, ebitda, 'TOTAL - DESPESAS OPERATIVAS', 'Categoria', 'EBITDA')
+    lista_categorias_despesas.append('EBITDA')
+    
+    ebit = ebitda
+    df_final = insere_nova_linha(df_final, colunas_valores, ebit, 'EBITDA', 'Categoria', 'EBIT')
+
+    # Calcula % sobre Receita Bruta de cada categoria
+    for categoria in lista_categorias_despesas:
+        if categoria not in [ # Casos específicos (não pedem o cálculo)
+            'Custo Mercadoria Vendida', 'Impostos sobre Venda', 'Mão de Obra - PJ', 'Mão de Obra - Salários', 'Mão de Obra - Extra', 
+            'Mão de Obra - Encargos e Provisões', 'Mão de Obra - Benefícios', 'Patrocínio', 'Despesas Financeiras', 
+            'Investimento - CAPEX', 'Dividendos e Remunerações Variáveis', 'Endividamento'
+            ]:
+            custos_categoria = df_final[df_final['Categoria'] == categoria][colunas_valores].sum()
+            porc_faturamento_bruto_categoria = (custos_categoria / faturamento_bruto).round(2)
+            if categoria == 'PESSOAL':
+                apos_linha = 'Contribuição Sindical Assistencial   '
+            elif categoria in ['MARGEM BRUTA DE CONTRIBUIÇÃO', 'TOTAL - DESPESAS OPERATIVAS', 'EBITDA']:
+                apos_linha = categoria
+            else:
+                apos_linha = mapa_insercao.get(categoria, categoria)
+            df_final = insere_nova_linha(df_final, colunas_valores, porc_faturamento_bruto_categoria, apos_linha, 'Categoria', '% sobre Receita Bruta')
+
+    df_final = df_final.fillna(0)
+    return df_final
+
+
+def formatar_colunas_moeda_br(valor):
+    if pd.isna(valor) or valor == 0:
+        return "-"
     else:
-        return [''] * len(row)
+        return f"R$ {valor:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+
+
+def formatar_colunas_porcentagem(valor):
+    if pd.isna(valor) or valor == 0:
+        return "-"
+    else:
+        return f"{valor:,.2f}%".replace(".", ",")
     
 
+def formatar_linhas_porcentagem(valor):
+    if pd.isna(valor) or valor == 0:
+        return "-"
+    else:
+        return f"{valor*100:,.2f}%".replace(".", ",")
