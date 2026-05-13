@@ -3,7 +3,6 @@ from utils.components import input_selecao_casas, seletor_ano, seletor_mes
 from utils.functions.forecast import *
 from utils.functions.general_functions import config_sidebar
 from utils.functions.general_functions_conciliacao import *
-# from utils.functions.cmv_teorico_fichas_tecnicas import function_format_number_columns
 from utils.functions.controladoria_planejamento_anual import highlight_secoes_dre
 from utils.queries_forecast import *
 
@@ -61,11 +60,10 @@ df_promocoes = GET_PROMOCOES()
 df_orcamentos = GET_ORCAMENTOS()
 df_faturamento_agregado_mes = GET_FATURAMENTO_CATEGORIA_MENSAL(df_faturamento_agregado_dia, df_descontos, df_promocoes, df_faturamento_eventos_inicial)
 
-# Dados - Despesas por classificação contábil
-df_aut_blue_me_sem_pedido = GET_AUT_BLUE_ME_SEM_PEDIDO()
+df_aut_blue_me_sem_pedido = GET_AUT_BLUE_ME_SEM_PEDIDO() # Dados - Despesas por classificação contábil
 df_aut_folha = GET_AUT_FOLHA_PAGAMENTO() # Dados - Folha/Gorjeta
 df_aut_endividamentos = GET_AUT_ENDIVIDAMENTOS() # Dados - Endividamentos
-st.write(df_aut_endividamentos)
+
 # Filtrando Datas
 datas = calcular_datas()
 
@@ -138,7 +136,7 @@ PORC_ICMS = 0.04
 # st.divider()
 
 
-###################### PROJEÇÃO DE FATURAMENTO - PRÓXIMOS MESES ###################### 
+###################### PROJEÇÃO DE FATURAMENTO - DRE ###################### 
 
 # Prepara df de faturamento agregado mensal para a casa selecionada
 df_faturamento_mes_casa, df_faturamento_orcamento = prepara_dados_faturamento_orcamentos_mensais(id_casa, df_orcamentos, df_faturamento_agregado_mes, datas['ano_passado'], datas['ano_atual'])
@@ -221,7 +219,7 @@ lista_categorias_despesas = [
     'Serviços de Terceiros',              
     'Locação de Equipamentos',            
     'Sistema de Franquias',                
-    'Despesas Financeiras', 
+    'Despesas Financeiras', # (+/-) Receitas/Despesas Financeiras
     'Patrocínio',
     'Investimento - CAPEX',
     'Dividendos e Remunerações Variáveis', # (+/-) Outras variações no fluxo de caixa
@@ -236,10 +234,11 @@ lista_df_projecao_despesas = loop_prepara_dados_despesas(
     df_aut_folha, 
     df_orcamentos, 
     df_parc_receitas_extr_patrocinio,
+    df_aut_endividamentos,
     lista_df_projecao_despesas, 
     casa, 
     mes_selecionado, 
-    ano_selecionado, 
+    ano_selecionado
 )
 
 st.subheader('Real vs Tendência do mês - Faturamento e Despesas')
@@ -249,7 +248,11 @@ df_layout_dre = aplica_layout_dre(df_faturamento_meses_futuros, df_impostos_dre,
 
 # Remove linhas que não quero exibir ou renomeia
 df_layout_dre = df_layout_dre[~df_layout_dre['Categoria'].isin(['Patrocínio', 'Endividamento'])].reset_index(drop=True)
-df_layout_dre['Categoria'] = df_layout_dre['Categoria'].replace('Dividendos e Remunerações Variáveis', '(+/-) Outras variações no fluxo de caixa')
+df_layout_dre['Categoria'] = df_layout_dre['Categoria'].replace({
+    'Dividendos e Remunerações Variáveis': '(+/-) Outras variações no fluxo de caixa',
+    'Despesas Financeiras': '(+/-) Receitas/Despesas Financeiras',
+    'Investimento - CAPEX': '(-) CAPEX (Investimentos)',
+})
 
 mapa_insercao = { # Mapa inserção das linhas de '% sobre Receita' de cada classificação contábil
     'Desconto sobre Venda': 'Descontos - Operação',              

@@ -258,7 +258,7 @@ def destaca_dias_futuros_mes_corrente(row):
     return estilos
 
 
-############################################ PROJEÇÕES PRÓXIMOS MESES ############################################
+############################################ PROJEÇÕES - PRÓXIMOS MESES ############################################
 
 # Une faturamentos e orçamentos mensais para calcular histórico de atingimento (%)
 def prepara_dados_faturamento_orcamentos_mensais(id_casa, df_orcamentos, df_faturamento_agregado_mes, ano_passado, ano_atual):
@@ -378,7 +378,7 @@ def projecao_faturamento_meses_seguintes(df_faturamento_orcamento, df_meses_futu
     return df_meses_seguintes
 
 
-# Função para cálculo da projeção dpo serviço - meses seguintes: 13% do faturamento A&B projetado
+# Função para cálculo da projeção do serviço - meses seguintes: 13% do faturamento A&B projetado
 # Precisa dos faturamentos das outras categorias já calculado
 def projecao_faturamento_servico_meses_seguintes(df_faturamento_meses_futuros, ano_atual, mes_atual):
     # Filtra o df de faturamento para apenas a categoria de Serviço
@@ -1232,6 +1232,7 @@ def projecao_custos_proximos_meses(df_merge_custos_faturamentos_mensais, class_c
     return df_merge_custos_faturamentos_mensais
 
 
+############################################ PREPARA DESPESAS - POR CLASS. CONT. ############################################
 def filtra_despesas_mes_ano_selecionados(df, mes, ano):
     df_filtrado = df[
         (df['Ano'] == ano) &
@@ -1240,7 +1241,7 @@ def filtra_despesas_mes_ano_selecionados(df, mes, ano):
     return df_filtrado
 
 
-def loop_prepara_dados_despesas(lista_categorias_despesas, df_descontos, df_aut_blueme_sem_pedido, df_aut_blue_me_com_pedido, df_faturamento_meses_futuros, df_aut_folha, df_orcamentos, df_receitas_patrocinio, df_resultados, casa, mes_selecionado, ano_selecionado):
+def loop_prepara_dados_despesas(lista_categorias_despesas, df_descontos, df_aut_blueme_sem_pedido, df_aut_blue_me_com_pedido, df_faturamento_meses_futuros, df_aut_folha, df_orcamentos, df_receitas_patrocinio, df_aut_endividamentos, df_resultados, casa, mes_selecionado, ano_selecionado):
     for categoria_despesa in lista_categorias_despesas:
         # Define df de despesas utilizado pela categoria
         if categoria_despesa == 'Desconto sobre Venda':
@@ -1258,12 +1259,19 @@ def loop_prepara_dados_despesas(lista_categorias_despesas, df_descontos, df_aut_
         else: 
             df_tabela_secundaria = None
 
-        # Utilidades utiliza dados de blue me com pedido
+        # Utilidades utiliza também dados de blue me com pedido
         if categoria_despesa == 'Utilidades':
             df_aut_blueme_com_pedido = df_aut_blue_me_com_pedido.copy()
         else:
             df_aut_blueme_com_pedido = None
         
+        # Concatena com outra tabela (Endividamentos)
+        if categoria_despesa == 'Dividendos e Remunerações Variáveis': 
+            df_aut_endividamentos['Cargo_DRE'] = None # Adequar para concatenação
+            df_aut_endividamentos = df_aut_endividamentos[df_aut_endividamentos['Classificacao_Contabil_1'] == 'Endividamento'].copy() # Apenas plano contabil de 2025
+            df_aut_endividamentos['Classificacao_Contabil_1'] = df_aut_endividamentos['Classificacao_Contabil_1'].replace('Endividamento', 'Dividendos e Remunerações Variáveis')
+            df_despesas = pd.concat([df_despesas, df_aut_endividamentos])
+
         df_despesas_mensais_passadas = prepara_dados_custos_mensais(df_despesas, df_faturamento_meses_futuros, casa, categoria_despesa, df_orcamentos, df_aut_blue_me_com_pedido=df_aut_blueme_com_pedido, df_tabela_secundaria=df_tabela_secundaria)
         df_projecao_despesa = projecao_custos_proximos_meses(df_despesas_mensais_passadas, categoria_despesa, datas['ano_atual'], datas['mes_atual'])
         df_projecao_despesa = filtra_despesas_mes_ano_selecionados(df_projecao_despesa, mes_selecionado, ano_selecionado)
@@ -1273,7 +1281,7 @@ def loop_prepara_dados_despesas(lista_categorias_despesas, df_descontos, df_aut_
     return df_resultados
 
 
-# Função para layout da DRE
+############################################ CRIAÇÃO LAYOUT E ESTILOS - DRE ############################################
 def aplica_layout_dre(df_faturamento_meses_passados_futuros, df_layout_impostos, df_cmv_projetado, df_projecao_despesas, mes_selecionado, ano_selecionado):
     # Formata dados de faturamento
     df_layout_faturamento = df_faturamento_meses_passados_futuros[
@@ -1431,6 +1439,25 @@ def define_linhas_calculadas(df_dre, colunas_valores, lista_categorias_despesas,
     
     ebit = ebitda
     df_final = insere_nova_linha(df_final, colunas_valores, ebit, 'EBITDA', 'Categoria', 'EBIT')
+
+    # Resultado Antes do IR
+    resultado_antes_ir = (
+        df_final[df_final['Categoria'] == 'EBIT'][colunas_valores].sum() -
+        df_final[df_final['Categoria'] == '(+/-) Receitas/Despesas Financeiras'][colunas_valores].sum() -
+        df_final[df_final['Categoria'] == '(-) Despesas de Patrocínio'][colunas_valores].sum() +
+        df_final[df_final['Categoria'] == '(+) Receitas de Patrocínio'][colunas_valores].sum()
+    )
+    df_final = insere_nova_linha(df_final, colunas_valores, resultado_antes_ir, '(-) Despesas de Patrocínio', 'Categoria', 'Resultado Antes do IR')
+
+    # Total - Variações s/ Resultado Líquido
+    total_variacoes = (
+        df_final[df_final['Categoria'] == 'Investimento - CAPEX'][colunas_valores].sum() +
+        df_final[df_final['Categoria'] == '(+/-) Outras variações no fluxo de caixa'][colunas_valores].sum() 
+    )
+    df_final = insere_nova_linha(df_final, colunas_valores, total_variacoes, 'Remuneração Variável', 'Categoria', 'Total - Variações s/ Resultado Líquido')
+
+    # FCF
+    # Falta fazer os impostos
 
     # Calcula % sobre Receita Bruta de cada categoria
     for categoria in lista_categorias_despesas:

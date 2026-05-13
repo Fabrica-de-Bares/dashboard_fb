@@ -1019,70 +1019,38 @@ def GET_AUT_FOLHA_PAGAMENTO():
 def GET_AUT_ENDIVIDAMENTOS():
     return dataframe_query(f'''
     SELECT DISTINCT
+        te.ID as 'ID_Casa',
+        te.NOME_FANTASIA as 'Casa',
         CASE
             WHEN tdp.FK_DESPESA IS NOT NULL
-            THEN CONCAT(tdr.ID,"-",tdp.ID)
-            ELSE tdr.ID
-        END as 'ID_Despesa_ID_Parcela',
-        te.NOME_FANTASIA as 'Empresa',
-        tf.CORPORATE_NAME as 'Fornecedor',
-        tccg.DESCRICAO as 'Class_Cont_1',
-        tccg2.DESCRICAO as 'Class_Cont_2',
-        tdr.VALOR_PAGAMENTO as 'Valor_Original',
-        CASE
-            WHEN tdp.FK_DESPESA IS NOT NULL
-                THEN 'True'
-            ELSE 'False'
-        END AS 'Parcelamento',
-        CASE
-            WHEN tdp.FK_DESPESA IS NOT NULL
-                THEN COUNT(tdp.ID) OVER (PARTITION BY tdr.ID)
-            ELSE NULL
-        END AS 'Qtd_Parcelas',
-        tdp.PARCELA as 'Num_Parcela',
-        STR_TO_DATE(tdr.COMPETENCIA, '%Y-%m-%d') as 'Data_Emissao',
+                THEN DATE(tc2.`Data`)
+            ELSE DATE(tc.`Data`)
+        END AS 'Data_Competencia',
         CASE
             WHEN tdp.FK_DESPESA IS NOT NULL
                 THEN date(tdp.`DATA`)
             ELSE date(STR_TO_DATE(tdr.VENCIMENTO, '%Y-%m-%d %H:%i:%s'))
-        END as 'Data_Vencimento',
+        END as 'Data_Vencimento',                   
+        tf.CORPORATE_NAME as 'Fornecedor',
+        tdr.OBSERVACAO as 'Descricao',
         CASE
             WHEN tdp.FK_DESPESA IS NOT NULL
                 THEN tdp.VALOR
             ELSE IF(tdr.VALOR_LIQUIDO IS NULL, tdr.VALOR_PAGAMENTO, tdr.VALOR_LIQUIDO)
-        END as 'Valor_Liquido',
-        CASE
-            WHEN tdp.FK_DESPESA IS NOT NULL
-                THEN IF (tdp.PARCELA_PAGA = 1, "Pago", "Pendente")
-            ELSE tsp.DESCRICAO
-        END as 'Status_Pagamento',
-        CASE
-            WHEN tdp.FK_DESPESA IS NOT NULL
-                THEN DATE(tc2.`Data`)
-            ELSE DATE(tc.`Data`)
-        END AS 'Data_Realiz_Pgto',
-        tdr.OBSERVACAO as 'Descricao',
-        CASE
-            WHEN tdp.FK_DESPESA IS NOT NULL
-                THEN DATE(tc2.`Data`)
-            ELSE DATE(tc.`Data`)
-        END AS 'Data Pagamento'    
+        END as 'Valor_Pagamento',
+        tdr.VALOR_PAGAMENTO as 'Valor_Liquido',                   
+        tccg.DESCRICAO as 'Classificacao_Contabil_1',
+        tccg2.DESCRICAO as 'Classificacao_Contabil_2'
     FROM T_DESPESA_RAPIDA tdr
     INNER JOIN T_EMPRESAS te ON (tdr.FK_LOJA = te.ID)
     LEFT JOIN T_LOJAS tl ON (te.FK_LOJA = tl.ID)
-    LEFT JOIN T_FORMAS_DE_PAGAMENTO tfdp ON (tdr.FK_FORMA_PAGAMENTO = tfdp.ID)
     LEFT JOIN T_FORNECEDOR tf ON (tdr.FK_FORNECEDOR = tf.ID)
     LEFT JOIN T_CLASSIFICACAO_CONTABIL_GRUPO_1 tccg ON (tdr.FK_CLASSIFICACAO_CONTABIL_GRUPO_1 = tccg.ID)
     LEFT JOIN T_CLASSIFICACAO_CONTABIL_GRUPO_2 tccg2 ON (tdr.FK_CLASSIFICACAO_CONTABIL_GRUPO_2 = tccg2.ID)
-    LEFT JOIN T_STATUS_CONFERENCIA_DOCUMENTACAO tscd ON (tdr.FK_CONFERENCIA_DOCUMENTACAO = tscd.ID)
-    LEFT JOIN T_STATUS_APROVACAO_DIRETORIA tsad ON (tdr.FK_APROVACAO_DIRETORIA = tsad.ID)
-    LEFT JOIN T_STATUS_APROVACAO_CAIXA tsac ON (tdr.FK_APROVACAO_CAIXA = tsac.ID)
     LEFT JOIN T_DEPESA_PARCELAS tdp ON (tdp.FK_DESPESA = tdr.ID)
     LEFT JOIN T_CALENDARIO tc ON (tdr.FK_DATA_REALIZACAO_PGTO = tc.ID)
     LEFT JOIN T_CALENDARIO tc2 ON (tdp.FK_DATA_REALIZACAO_PGTO = tc2.ID)
-    LEFT JOIN T_CONTAS_BANCARIAS tcb ON (tdp.FK_CONTA_BANCARIA = tcb.ID)
     LEFT JOIN T_STATUS_PAGAMENTO tsp ON (tdr.FK_STATUS_PGTO = tsp.ID)
     WHERE tccg.ID IN (165,206,244)
-    AND te.ID IN (122)
     ORDER BY tdr.ID desc, tdp.ID desc;
     ''')
