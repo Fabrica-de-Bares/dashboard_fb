@@ -55,64 +55,48 @@ def concatena_meses_reais_projetados(df_dias_futuros_mes, df_faturamento_diario_
     else:
         df_projecao_futuro = df_dias_futuros_mes
     df_projecao_futuro = df_projecao_futuro[['Categoria', 'Data Evento', 'Valor Final', 'Dia Semana', 'Nome Mes', 'Mes_Ano']]
-    df_projecao_futuro = df_projecao_futuro.rename(columns={'Valor Final':'Valor Bruto'})
-    
-    df_concat = pd.concat([df_faturamento_diario_casa, df_projecao_futuro])
-    # df_concat['ID_Casa'] = df_concat['ID_Casa'].fillna(id_casa)
-    # df_concat['Casa'] = df_concat['Casa'].fillna(casa)
+
+    df_merge = pd.merge(
+        df_projecao_futuro,
+        df_faturamento_diario_casa,
+        on=['Categoria', 'Data Evento', 'Dia Semana', 'Mes_Ano'],
+        how='left'
+    )
+    # df_merge['Valor Final'] = df_merge['Faturamento Projetado'].fillna(id_casa)
 
     # Cria mês em português
-    df_concat['Nome Mes'] = df_concat['Data Evento'].dt.strftime('%B')
-    df_concat['Nome Mes'] = df_concat['Nome Mes'].apply(
+    df_merge['Nome Mes'] = df_merge['Data Evento'].dt.strftime('%B')
+    df_merge['Nome Mes'] = df_merge['Nome Mes'].apply(
         lambda x: traduz_semana_mes(x, 'mes')
     )
     # Cria mês numérico
-    df_concat['Mes_Ano'] = df_concat['Data Evento'].dt.strftime('%m-%Y')
+    df_merge['Mes_Ano'] = df_merge['Data Evento'].dt.strftime('%m-%Y')
 
-    return df_concat
+    return df_merge
 
 
 # Calcula faturamento geral (junta todas as categorias da Zig) por dia da semana para cada mês
 def calcula_faturamento_medio(df_faturamento_todos_meses, ano, detalhamento_categoria=False, categoria_selecionada=None):
     # garante que é número
-    df_faturamento_todos_meses['Valor Bruto'] = pd.to_numeric(
-        df_faturamento_todos_meses['Valor Bruto'], 
-        errors='coerce'
-    )
+    df_faturamento_todos_meses['Valor Final'] = pd.to_numeric(df_faturamento_todos_meses['Valor Final'], errors='coerce')
    
     # Filtra pelo ano selecionado o df que tem todos os meses do ano atual e seguinte
     df_faturamento_todos_meses = df_faturamento_todos_meses[df_faturamento_todos_meses['Data Evento'].dt.year == ano]
-    # st.write(df_faturamento_todos_meses[df_faturamento_todos_meses['Categoria']=='Alimentos']
-    #   .groupby(['Dia Semana', 'Mes_Ano'])['Valor Bruto']
-    #   .agg(['count','size','mean','sum']))
-
+   
     # Calcula a média de faturamento de cada categoria por dia da semana
-    df_faturamento_categoria_dia_semana = df_faturamento_todos_meses.groupby(['Categoria', 'Dia Semana', 'Mes_Ano'], dropna=False, as_index=False)[['Valor Bruto']].mean()
+    df_faturamento_categoria_dia_semana = df_faturamento_todos_meses.groupby(['Categoria', 'Dia Semana', 'Mes_Ano'], dropna=False, as_index=False)[['Valor Final']].mean()
 
     if detalhamento_categoria == False:
         # Soma de todas as categorias por dia da semana
-        df_faturamento_dia_semana = df_faturamento_categoria_dia_semana.groupby(['Dia Semana', 'Mes_Ano'], as_index=False)[['Valor Bruto']].sum()
+        df_faturamento_dia_semana = df_faturamento_categoria_dia_semana.groupby(['Dia Semana', 'Mes_Ano'], as_index=False)[['Valor Final']].sum()
     else:
         df_faturamento_categoria_dia_semana_filtrado = df_faturamento_categoria_dia_semana[df_faturamento_categoria_dia_semana['Categoria'] == categoria_selecionada]
-        df_faturamento_dia_semana = df_faturamento_categoria_dia_semana_filtrado[['Dia Semana', 'Mes_Ano', 'Valor Bruto']]
-    
-    # ordem_meses = [
-    #     'Janeiro', 'Fevereiro', 'Março',
-    #     'Abril', 'Maio', 'Junho',
-    #     'Julho', 'Agosto', 'Setembro',
-    #     'Outubro', 'Novembro', 'Dezembro'
-    # ]
-
-    # df_faturamento_geral_dia_semana['Nome Mes'] = pd.Categorical(
-    #     df_faturamento_geral_dia_semana['Nome Mes'],
-    #     categories=ordem_meses,
-    #     ordered=True
-    # )
+        df_faturamento_dia_semana = df_faturamento_categoria_dia_semana_filtrado[['Dia Semana', 'Mes_Ano', 'Valor Final']]
 
     pivot_faturamento_geral = df_faturamento_dia_semana.pivot(
         index='Mes_Ano',
         columns='Dia Semana',
-        values='Valor Bruto'
+        values='Valor Final'
     ).fillna(0)
     
     pivot_faturamento_geral = pivot_faturamento_geral[['Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado', 'Domingo']]

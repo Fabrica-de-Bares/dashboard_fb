@@ -150,7 +150,7 @@ def cria_projecao_mes_corrente(df_faturamento_agregado_mes_corrente, df_dias_fut
 
     # Define valor final
     df_dias_futuros_mes["Valor Final"] = np.where(
-        (df_dias_futuros_mes["Data Evento"].dt.month >= datas['mes_atual'] - 1) & (df_dias_futuros_mes['Data Evento'].dt.year == datas['ano_atual']),
+        (df_dias_futuros_mes["Data Evento"].dt.month >= datas['mes_atual']) & (df_dias_futuros_mes['Data Evento'].dt.year == datas['ano_atual']),
         df_dias_futuros_mes["Faturamento Projetado"],       # usa o projetado se mês >= atual
         df_dias_futuros_mes["Valor Bruto"]            # senão usa o real
     )
