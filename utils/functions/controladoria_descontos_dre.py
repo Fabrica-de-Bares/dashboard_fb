@@ -107,7 +107,7 @@ def mapeamento_descontos_dre(df):
         },
 
         (162,): {  # Terraço Notiê
-            'CONVÊNIO|CLIENTE MASTERCARD|CARTAO MASTER 10%|COTA|Descontos - Marketing|\[Reunião\] - Eventos|\[Reunião\] - Marketing': 'Descontos - Marketing',
+            'CONVÊNIO|CLIENTE MASTERCARD|CARTAO MASTER 10%|COTA|Descontos - Marketing|\[Reunião\] - Eventos|\[Reunião\] - Marketing|10% CONVENIADOS GRUPO ENJOEI': 'Descontos - Marketing',
             'CLIENTE MASTERCARD - COTA|CLIENTE - BEM SP|FUNCIONÁRIOS MASTERCARD|30% TERRAÇO NOTIÊ|\[Convênio\] - 50% BEM SP|\[Convênio\] - 30% BEM SP|CLIENTE - MASTECARD|COTA - MASTERCARD|\[Cota\] - MASTERCARD|Descontos - Operação|\[Convidados\] - Karina Mota|CONTA ASSINADA|\[BemSP\]': 'Descontos - Operação',
             'REUNIÃO - AUDITORIA|REUNIÃO - T.I.': 'Desconto - Alimentação Escritório',
             'EVENTO|\[Evento\]|PRO_240874 Bem SP-Itau 100 anos': 'Faturamento Eventos - Promoções Utilizadas'
