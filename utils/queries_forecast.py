@@ -798,50 +798,50 @@ def GET_AUT_BLUE_ME_SEM_PEDIDO():
     WHERE tccg.FK_VERSAO_PLANO_CONTABIL = 103 AND YEAR(tdr.COMPETENCIA) >= 2024
     AND tdri.ID IS NULL
     AND tdr.BIT_CANCELADA = 0            
-    UNION ALL
-    SELECT   # Aut_Endividamentos (Ações Trabalhistas/Processo Judicial - Encargos e Provisões)
-        CASE
-            WHEN te.ID = 131 THEN 110
-            ELSE te.ID    
-        END AS 'ID_Casa', 
-        CASE
-            WHEN te.NOME_FANTASIA = 'Blue Note SP (Novo)' THEN 'Blue Note - São Paulo'
-            ELSE te.NOME_FANTASIA    
-        END AS 'Casa', 
-        CASE
-            WHEN tdp.FK_DESPESA IS NOT NULL THEN STR_TO_DATE(tc2.`Data`, '%Y-%m-%d')
-            ELSE STR_TO_DATE(tc.`Data`, '%Y-%m-%d')
-        END AS 'Data_Competencia',
-        CASE
-            WHEN tdp.FK_DESPESA IS NOT NULL THEN STR_TO_DATE(tdp.`DATA`, '%Y-%m-%d')
-            ELSE STR_TO_DATE(tdr.VENCIMENTO, '%Y-%m-%d')
-        END as 'Data_Vencimento',
-        tf.CORPORATE_NAME AS 'Fornecedor',
-        tdr.OBSERVACAO AS 'Descricao',
-        CASE
-            WHEN tdp.FK_DESPESA IS NOT NULL
-                THEN tdp.VALOR
-            ELSE IF(tdr.VALOR_LIQUIDO IS NULL, tdr.VALOR_PAGAMENTO, tdr.VALOR_LIQUIDO)
-        END as 'Valor_Pagamento', # nesse caso, valor liquido é o considerado
-        NULL AS 'Valor_Liquido',                   
-        CASE
-            WHEN tccg.DESCRICAO = 'Endividamento' THEN 'Mão de Obra - Encargos e Provisões'
-            ELSE tccg.DESCRICAO
-        END AS 'Classificacao_Contabil_1',
-        CASE
-            WHEN tccg2.DESCRICAO = 'Processo Judicial' THEN '  -  Ações trabalhistas'
-            ELSE tccg2.DESCRICAO
-        END AS 'Classificacao_Contabil_2',
-        NULL AS 'Cargo_DRE'
-    FROM T_DESPESA_RAPIDA tdr
-    INNER JOIN T_EMPRESAS te ON (tdr.FK_LOJA = te.ID)
-    LEFT JOIN T_FORNECEDOR tf ON (tdr.FK_FORNECEDOR = tf.ID)
-    LEFT JOIN T_CLASSIFICACAO_CONTABIL_GRUPO_1 tccg ON (tdr.FK_CLASSIFICACAO_CONTABIL_GRUPO_1 = tccg.ID)
-    LEFT JOIN T_CLASSIFICACAO_CONTABIL_GRUPO_2 tccg2 ON (tdr.FK_CLASSIFICACAO_CONTABIL_GRUPO_2 = tccg2.ID)
-    LEFT JOIN T_DEPESA_PARCELAS tdp ON (tdp.FK_DESPESA = tdr.ID)
-    LEFT JOIN T_CALENDARIO tc ON (tdr.FK_DATA_REALIZACAO_PGTO = tc.ID)
-    LEFT JOIN T_CALENDARIO tc2 ON (tdp.FK_DATA_REALIZACAO_PGTO = tc2.ID)
-    WHERE tccg.ID IN (165,206,244) AND tccg2.DESCRICAO = 'Processo Judicial';             
+    # UNION ALL
+    # SELECT   # Aut_Endividamentos (Ações Trabalhistas/Processo Judicial - Encargos e Provisões)
+    #     CASE
+    #         WHEN te.ID = 131 THEN 110
+    #         ELSE te.ID    
+    #     END AS 'ID_Casa', 
+    #     CASE
+    #         WHEN te.NOME_FANTASIA = 'Blue Note SP (Novo)' THEN 'Blue Note - São Paulo'
+    #         ELSE te.NOME_FANTASIA    
+    #     END AS 'Casa', 
+    #     CASE
+    #         WHEN tdp.FK_DESPESA IS NOT NULL THEN STR_TO_DATE(tc2.`Data`, '%Y-%m-%d')
+    #         ELSE STR_TO_DATE(tc.`Data`, '%Y-%m-%d')
+    #     END AS 'Data_Competencia',
+    #     CASE
+    #         WHEN tdp.FK_DESPESA IS NOT NULL THEN STR_TO_DATE(tdp.`DATA`, '%Y-%m-%d')
+    #         ELSE STR_TO_DATE(tdr.VENCIMENTO, '%Y-%m-%d')
+    #     END as 'Data_Vencimento',
+    #     tf.CORPORATE_NAME AS 'Fornecedor',
+    #     tdr.OBSERVACAO AS 'Descricao',
+    #     CASE
+    #         WHEN tdp.FK_DESPESA IS NOT NULL
+    #             THEN tdp.VALOR
+    #         ELSE IF(tdr.VALOR_LIQUIDO IS NULL, tdr.VALOR_PAGAMENTO, tdr.VALOR_LIQUIDO)
+    #     END as 'Valor_Pagamento', # nesse caso, valor liquido é o considerado
+    #     NULL AS 'Valor_Liquido',                   
+    #     CASE
+    #         WHEN tccg.DESCRICAO = 'Endividamento' THEN 'Mão de Obra - Encargos e Provisões'
+    #         ELSE tccg.DESCRICAO
+    #     END AS 'Classificacao_Contabil_1',
+    #     CASE
+    #         WHEN tccg2.DESCRICAO = 'Processo Judicial' THEN '  -  Ações trabalhistas'
+    #         ELSE tccg2.DESCRICAO
+    #     END AS 'Classificacao_Contabil_2',
+    #     NULL AS 'Cargo_DRE'
+    # FROM T_DESPESA_RAPIDA tdr
+    # INNER JOIN T_EMPRESAS te ON (tdr.FK_LOJA = te.ID)
+    # LEFT JOIN T_FORNECEDOR tf ON (tdr.FK_FORNECEDOR = tf.ID)
+    # LEFT JOIN T_CLASSIFICACAO_CONTABIL_GRUPO_1 tccg ON (tdr.FK_CLASSIFICACAO_CONTABIL_GRUPO_1 = tccg.ID)
+    # LEFT JOIN T_CLASSIFICACAO_CONTABIL_GRUPO_2 tccg2 ON (tdr.FK_CLASSIFICACAO_CONTABIL_GRUPO_2 = tccg2.ID)
+    # LEFT JOIN T_DEPESA_PARCELAS tdp ON (tdp.FK_DESPESA = tdr.ID)
+    # LEFT JOIN T_CALENDARIO tc ON (tdr.FK_DATA_REALIZACAO_PGTO = tc.ID)
+    # LEFT JOIN T_CALENDARIO tc2 ON (tdp.FK_DATA_REALIZACAO_PGTO = tc2.ID)
+    # WHERE tccg.ID IN (165,206,244) AND tccg2.DESCRICAO = 'Processo Judicial';             
     ''')
 
 

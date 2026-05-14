@@ -934,12 +934,14 @@ def merge_despesas_complexas(df_tabela_primaria, df_tabela_secundaria, casa, cla
 
 
 def prepara_dados_custos_mensais(df_custos_gerais, df_faturamento_meses_futuros, casa, class_cont, df_orcamentos, df_aut_blue_me_com_pedido=None, df_tabela_secundaria=None):
-    # Filtra por class. cont. 1 e casa
+    # Filtra pela casa
+    df_custos_filtrado = df_custos_gerais[df_custos_gerais['Casa'] == casa ].copy()
+    
+    # Filtra por class. cont. 1
     if class_cont == 'Custos de Eventos':
-        df_custos_filtrado = df_custos_gerais[
-            (df_custos_gerais['Casa'] == casa) &
-            ((df_custos_gerais['Classificacao_Contabil_1'] == class_cont) |
-            (df_custos_gerais['Cargo_DRE'] == 'MDO Terceirizada - Eventos')) 
+        df_custos_filtrado = df_custos_filtrado[
+            (df_custos_filtrado['Classificacao_Contabil_1'] == class_cont) |
+            (df_custos_filtrado['Cargo_DRE'] == 'MDO Terceirizada - Eventos')
         ].copy()
 
         # Faz a renomeação por conta da filtragem por Cargo_DRE
@@ -949,11 +951,10 @@ def prepara_dados_custos_mensais(df_custos_gerais, df_faturamento_meses_futuros,
         )
 
     elif class_cont == 'Mão de Obra - Salários':
-        df_custos_filtrado = df_custos_gerais[
-            (df_custos_gerais['Casa'] == casa) &
-            ((df_custos_gerais['Classificacao_Contabil_1'] == class_cont) |
-            (df_custos_gerais['Classificacao_Contabil_2'] == '  -  INSS Segurados') |
-            (df_custos_gerais['Classificacao_Contabil_2'] == 'IRRF - MDO CLT - Salário')) 
+        df_custos_filtrado = df_custos_filtrado[
+            ((df_custos_filtrado['Classificacao_Contabil_1'] == class_cont) |
+            (df_custos_filtrado['Classificacao_Contabil_2'] == '  -  INSS Segurados') |
+            (df_custos_filtrado['Classificacao_Contabil_2'] == 'IRRF - MDO CLT - Salário')) 
         ].copy()
 
         # Faz a renomeação por conta das class. cont. 2 que foram selecionadas que não são iguais as da class.cont. 1 de salários
@@ -964,38 +965,39 @@ def prepara_dados_custos_mensais(df_custos_gerais, df_faturamento_meses_futuros,
         )
 
     elif class_cont == 'Mão de Obra - PJ':
-        df_custos_filtrado = df_custos_gerais[
-            (df_custos_gerais['Casa'] == casa) &
-            ((df_custos_gerais['Classificacao_Contabil_1'] == class_cont) &
-            (~df_custos_gerais['Cargo_DRE'].isin(['MDO Terceirizada - Eventos', '  - Analista', '  - Diretoria'])))
+        df_custos_filtrado = df_custos_filtrado[
+            ((df_custos_filtrado['Classificacao_Contabil_1'] == class_cont) &
+            (~df_custos_filtrado['Cargo_DRE'].isin(['MDO Terceirizada - Eventos', '  - Analista', '  - Diretoria'])))
         ].copy()
     
     elif class_cont == 'Mão de Obra - Encargos e Provisões':
-        df_custos_filtrado = df_custos_gerais[
-            (df_custos_gerais['Casa'] == casa) &
-            ((df_custos_gerais['Classificacao_Contabil_1'] == class_cont) &
-            (~df_custos_gerais['Classificacao_Contabil_2'].isin(['  -  INSS Segurados', 'IRRF - MDO CLT - Salário'])))
+        df_custos_filtrado = df_custos_filtrado[
+            ((df_custos_filtrado['Classificacao_Contabil_1'] == class_cont) &
+            (~df_custos_filtrado['Classificacao_Contabil_2'].isin(['  -  INSS Segurados', 'IRRF - MDO CLT - Salário'])))
+        ].copy()
+
+    elif class_cont == 'Mão de Obra - Benefícios':
+        df_custos_filtrado = df_custos_filtrado[
+            (df_custos_filtrado['Classificacao_Contabil_1'] == class_cont) &
+            (df_custos_filtrado['Classificacao_Contabil_2'] != 'Contribuição Sindical Assistencial   ')
         ].copy()
 
     elif class_cont == 'Despesas Financeiras':
         if casa == 'Arcos':
-            df_custos_filtrado = df_custos_gerais[
-            (df_custos_gerais['Casa'] == casa) &
-            (((df_custos_gerais['Classificacao_Contabil_1'] == class_cont) &
-            (df_custos_gerais['Classificacao_Contabil_2'] == 'Tarifas Bancárias')) |
-            (df_custos_gerais['Fornecedor'] == 'NELSON WILIANS E ADVOGADOS ASSOCIADOS - MATRIZ'))
+            df_custos_filtrado = df_custos_filtrado[
+            (((df_custos_filtrado['Classificacao_Contabil_1'] == class_cont) &
+            (df_custos_filtrado['Classificacao_Contabil_2'] == 'Tarifas Bancárias')) |
+            (df_custos_filtrado['Fornecedor'] == 'NELSON WILIANS E ADVOGADOS ASSOCIADOS - MATRIZ'))
         ].copy()
         else:
-            df_custos_filtrado = df_custos_gerais[
-                (df_custos_gerais['Casa'] == casa) &
-                ((df_custos_gerais['Classificacao_Contabil_1'] == class_cont) &
-                (df_custos_gerais['Classificacao_Contabil_2'] == 'Tarifas Bancárias'))
+            df_custos_filtrado = df_custos_filtrado[
+                ((df_custos_filtrado['Classificacao_Contabil_1'] == class_cont) &
+                (df_custos_filtrado['Classificacao_Contabil_2'] == 'Tarifas Bancárias'))
             ].copy()
         
     elif class_cont == 'Desconto sobre Venda':
-        df_descontos_filtrado = df_custos_gerais[
-            (df_custos_gerais['Casa'] == casa) &
-            (df_custos_gerais['Descontos - DRE'].isin(['Descontos - Operação', 'Desconto - Alimentação Escritório', 'Descontos - Marketing']))
+        df_descontos_filtrado = df_custos_filtrado[
+            (df_custos_filtrado['Descontos - DRE'].isin(['Descontos - Operação', 'Desconto - Alimentação Escritório', 'Descontos - Marketing']))
         ].copy()
 
         # Renomeia essa coluna para poder aplicar o código abaixo e cria coluna de data
@@ -1010,10 +1012,7 @@ def prepara_dados_custos_mensais(df_custos_gerais, df_faturamento_meses_futuros,
         df_custos_filtrado = df_descontos_filtrado.copy()
         
     else:
-        df_custos_filtrado = df_custos_gerais[
-            (df_custos_gerais['Casa'] == casa) &
-            (df_custos_gerais['Classificacao_Contabil_1'] == class_cont) 
-        ].copy()
+        df_custos_filtrado = df_custos_filtrado[df_custos_filtrado['Classificacao_Contabil_1'] == class_cont].copy()
     
     if class_cont == 'Utilidades': # A class. cont.2 Utensílios usa 'Valor_Liquido'
         col_valor = 'Valor_Liquido'
