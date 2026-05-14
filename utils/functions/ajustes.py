@@ -61,21 +61,16 @@ def qtd_ajustes_mes(df_ajustes_filtrado):
 
 
 # Contabiliza cada categoria de ajuste para gráfico de pizza - exibido ao clicar no gráfico de valor total por mês
-def contagem_categorias(df, lista_categorias):
+def contagem_categorias(df, categoria):
     df_copia = df.copy()
-    dic_categoria_contagem = {}
-    for categoria in lista_categorias:
-        if categoria is not None:
-            contagem = int((df_copia['Categoria'] == categoria).sum())
-            chave = categoria
-        else:
-            # Conta os NaN/None e, se quiser, strings vazias também
-            contagem = int(df_copia['Categoria'].isna().sum() + (df_copia['Categoria'] == '').sum())
-            chave = 'Sem categoria lançada'
-
-        dic_categoria_contagem[chave] = contagem
     
-    return dic_categoria_contagem
+    if categoria in ['', None]:
+        # Conta os NaN/None e, se quiser, strings vazias também
+        contagem = df_copia['Categoria'].isna().sum() + (df_copia['Categoria'] == '').sum()
+    else:
+        contagem = int((df_copia['Categoria'] == categoria).sum())
+    
+    return int(contagem)
 
 
 # Função auxiliar para gráfico com todas as casas
@@ -135,12 +130,7 @@ def grafico_ajustes_todas_casas(casas_validas, nomes_meses, lista_ajustes_casas)
 
 
 # Gráfico de pizza: exibido ao clicar no gráfico de contagem por mês
-def grafico_pizza_cont_categ(dic_contagem_categorias):
-    data = [
-        {"value": valor, "name": categoria}
-        for categoria, valor in dic_contagem_categorias.items()
-    ]
-
+def grafico_pizza_cont_categ(categ1, categ2, categ3, categ4, categ5, categ6, categ7):
     grafico_contagem_categ = {
         "tooltip": {
             "trigger": "item"
@@ -176,7 +166,15 @@ def grafico_pizza_cont_categ(dic_contagem_categorias):
                 "labelLine": {
                     "show": False
                 },
-                "data": data
+                "data": [
+                    { "value": categ1, "name": "Tesouraria - Depósito em conta" },
+                    { "value": categ2, "name": "Tesouraria - Despesa paga em dinheiro" },
+                    { "value": categ3, "name": "Receita de evento recebido via cartão de credito Zigpay/Cielo" },
+                    { "value": categ4, "name": "Adição de saldo no cartão pré-pago" },
+                    { "value": categ5, "name": "RESG/VENCTO CDB" },
+                    { "value": categ6, "name": "APLICACAO CDB" },
+                    { "value": categ7, "name": "Sem categoria lançada" }
+                ]
             }
         ]
     }
@@ -337,10 +335,15 @@ def grafico_total_ajustes_mes(df_ajustes_filtrado, lista_ajustes_pos_mes_fmt, li
         st.divider()
 
         # Exibe gráfico de pizza da quantidade de ajustes por categoria
-        lista_categorias_ajustes = df_ajustes_formatado['Categoria'].unique().tolist()
-        dic_contagem_categorias = contagem_categorias(df_ajustes_formatado, lista_categorias_ajustes)
+        df_contagem_categ1 = contagem_categorias(df_ajustes_formatado, 'Tesouraria - Depósito em conta')
+        df_contagem_categ2 = contagem_categorias(df_ajustes_formatado, 'Tesouraria - Despesa paga em dinheiro')
+        df_contagem_categ3 = contagem_categorias(df_ajustes_formatado, 'Receita de evento recebido via cartão de crédito Zigpay/Cielo')
+        df_contagem_categ4 = contagem_categorias(df_ajustes_formatado, 'Adição de saldo no cartão pré-pago')
+        df_contagem_categ5 = contagem_categorias(df_ajustes_formatado, 'RESG/VENCTO CDB')
+        df_contagem_categ6 = contagem_categorias(df_ajustes_formatado, 'APLICACAO CDB')
+        df_contagem_categ7 = contagem_categorias(df_ajustes_formatado, None)
 
         st.subheader("Contagem de categorias")
-        grafico_categorias = grafico_pizza_cont_categ(dic_contagem_categorias)
+        grafico_categorias = grafico_pizza_cont_categ(df_contagem_categ1, df_contagem_categ2, df_contagem_categ3, df_contagem_categ4, df_contagem_categ5, df_contagem_categ6, df_contagem_categ7)
 
 
