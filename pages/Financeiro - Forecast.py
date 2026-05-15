@@ -62,7 +62,8 @@ df_faturamento_agregado_mes = GET_FATURAMENTO_CATEGORIA_MENSAL(df_faturamento_ag
 
 df_aut_blue_me_sem_pedido = GET_AUT_BLUE_ME_SEM_PEDIDO() # Dados - Despesas por classificação contábil
 df_aut_folha = GET_AUT_FOLHA_PAGAMENTO() # Dados - Folha/Gorjeta
-df_aut_endividamentos = GET_AUT_ENDIVIDAMENTOS() # Dados - Endividamentos
+# df_aut_endividamentos = GET_AUT_ENDIVIDAMENTOS() # Dados - Endividamentos
+df_ajustes_manuais = GET_AJUSTES_MANUAIS_DRE() # Dados - Ajustes Manuais DRE
 
 # Filtrando Datas
 datas = calcular_datas()
@@ -84,7 +85,7 @@ PORC_ICMS = 0.04
 #     df_faturamento_agregado_mes_corrente.loc[condicao, 'Valor Bruto'] = 0
 
 # # --- CRIA COMBINAÇÃO DE TODAS AS CATEGORIAS x DIAS (mês anterior e corrente) ---
-# df_dias_futuros_com_categorias = lista_dias_mes_anterior_atual(datas['ano_atual'], datas['mes_atual'], df_faturamento_agregado_mes_corrente)
+# df_dias_futuros_com_categorias = lista_dias_mes_anterior_atual(datas['ano_atual'], df_faturamento_agregado_mes_corrente)
 
 # # Gera projeção para prox dias do mês corrente por dia da semana
 # df_dias_futuros_mes = cria_projecao_mes_corrente(df_faturamento_agregado_mes_corrente, df_dias_futuros_com_categorias)
@@ -177,7 +178,9 @@ df_calculo_cmv = merge_e_calculo_para_cmv(
     df_valoracao_estoque, 
     df_transf_e_gastos, 
     df_valoracao_producao, 
-    df_faturamento_eventos
+    df_faturamento_eventos,
+    df_ajustes_manuais,
+    casa, ano_selecionado
 )
 
 # Projeção CMV próximos meses
@@ -234,7 +237,7 @@ lista_df_projecao_despesas = loop_prepara_dados_despesas(
     df_aut_folha, 
     df_orcamentos, 
     df_parc_receitas_extr_patrocinio,
-    df_aut_endividamentos,
+    df_ajustes_manuais,
     lista_df_projecao_despesas, 
     casa, 
     mes_selecionado, 

@@ -75,18 +75,7 @@ def criar_df_dias_intervalo(ano_inicio, mes_inicio, ano_fim, mes_fim):
 
     return pd.concat(lista_df, ignore_index=True)
 
-def lista_dias_mes_anterior_atual(ano_atual, mes_atual, df_faturamento_agregado_mes_corrente):
-    # Ajusta mês inicial (mês anterior ao atual)
-    # if mes_atual == 1:
-    #     ano_inicio = ano_atual - 1
-    #     mes_inicio = 12
-    # elif mes_atual == 2:
-    #     ano_inicio = ano_atual - 1
-    #     mes_inicio = 12
-    # else:
-    #     ano_inicio = ano_atual
-    #     mes_inicio = mes_atual - 1
-
+def lista_dias_mes_anterior_atual(ano_atual, df_faturamento_agregado_mes_corrente):
     # Calcula faturamento mês corrente desde jan/2025
     ano_inicio = 2025
     mes_inicio = 1
@@ -500,6 +489,12 @@ def formata_impostos_para_dre(df_projecao_impostos, df_orcamentos, casa, mes_sel
 
     df_impostos_dre = df_orcamentos_impostos[(df_orcamentos_impostos['Mês'] == mes_selecionado) & (df_orcamentos_impostos['Ano'] == ano_selecionado)].copy()
     df_impostos_dre = df_impostos_dre[['Categoria', 'Orçamento', 'Percentual Projetado', 'Valor Projetado', 'Valor Real']]
+    
+    # Define a mesma ordem dos três impostos 
+    ordem = ['PIS / COFINS', 'ICMS', 'ISS']
+    df_impostos_dre['Categoria'] = pd.Categorical(df_impostos_dre['Categoria'], categories=ordem, ordered=True)
+    df_impostos_dre = df_impostos_dre.sort_values('Categoria')
+
     df_impostos_dre = calcula_linha_total(df_impostos_dre, 'Categoria', 'Impostos sobre Venda', 'Valor Projetado', 'Valor Real')
     return df_impostos_dre
 
@@ -544,18 +539,19 @@ def config_compras(data_inicio, data_fim, loja):
     df2['Mes_Ano'] = df2['Primeiro_Dia_Mes'].dt.strftime('%Y-%m')
 
     df_compras = pd.merge(df2, df1, on=['Casa', 'Mes_Ano', 'Primeiro_Dia_Mes'], how='outer')
-  
+
     df_compras = df_compras[
         (df_compras['Casa'] == loja) &
         (df_compras['Primeiro_Dia_Mes'] >= data_inicio) &
         (df_compras['Primeiro_Dia_Mes'] <= data_fim)
     ].copy()
-    
+
     df_compras = df_compras.groupby(['Casa', 'Mes_Ano']).agg(
         {'BlueMe_Sem_Pedido_Alimentos': 'sum', 
         'BlueMe_Sem_Pedido_Bebidas': 'sum', 
         'Valor_Liq_Alimentos': 'sum', 
-        'Valor_Liq_Bebidas': 'sum'}).reset_index()
+        'Valor_Liq_Bebidas': 'sum',
+        'BlueMe_Sem_Pedido_Descart_Hig_Limp': 'sum'}).reset_index()
 
     Compras_Alimentos = df_compras['BlueMe_Sem_Pedido_Alimentos'].sum() + df_compras['Valor_Liq_Alimentos'].sum()
     Compras_Bebidas = df_compras['BlueMe_Sem_Pedido_Bebidas'].sum() + df_compras['Valor_Liq_Bebidas'].sum()
@@ -565,10 +561,11 @@ def config_compras(data_inicio, data_fim, loja):
 
     df_compras['Compras Alimentos'] = df_compras['Valor_Liq_Alimentos'] + df_compras['BlueMe_Sem_Pedido_Alimentos']
     df_compras['Compras Bebidas'] = df_compras['Valor_Liq_Bebidas'] + df_compras['BlueMe_Sem_Pedido_Bebidas']
+    df_compras['Compras Embalagens'] = df_compras['BlueMe_Sem_Pedido_Descart_Hig_Limp']
     df_compras = df_compras.rename(columns={'Valor_Liq_Alimentos': 'BlueMe c/ Pedido Alim.', 'Valor_Liq_Bebidas': 'BlueMe c/ Pedido Bebidas', 'BlueMe_Sem_Pedido_Alimentos': 'BlueMe s/ Pedido Alim.', 'BlueMe_Sem_Pedido_Bebidas': 'BlueMe s/ Pedido Bebidas'})
 
-    df_compras = df_compras[['Casa', 'Mes_Ano', 'BlueMe c/ Pedido Alim.', 'BlueMe s/ Pedido Alim.', 'Compras Alimentos', 'BlueMe c/ Pedido Bebidas', 'BlueMe s/ Pedido Bebidas', 'Compras Bebidas']]
-    
+    df_compras = df_compras[['Casa', 'Mes_Ano', 'BlueMe c/ Pedido Alim.', 'BlueMe s/ Pedido Alim.', 'Compras Alimentos', 'BlueMe c/ Pedido Bebidas', 'BlueMe s/ Pedido Bebidas', 'Compras Bebidas', 'Compras Embalagens']]
+
     return df_compras, df_aut_blue_me_com_pedido, Compras_Alimentos, Compras_Bebidas
 
 
@@ -720,7 +717,7 @@ def config_faturamento_eventos(data_inicio, data_fim, loja, faturamento_bruto_al
     return df_eventos
 
 
-def merge_e_calculo_para_cmv(df_faturamento_zig, df_compras, df_valoracao_estoque, df_transf_e_gastos, df_valoracao_producao, df_faturamento_eventos):
+def merge_e_calculo_para_cmv(df_faturamento_zig, df_compras, df_valoracao_estoque, df_transf_e_gastos, df_valoracao_producao, df_faturamento_eventos, df_ajustes_manuais, casa, ano_selecionado):
     # Faturamento Bruto (alimentos + bebidas + delivery) mensal
     df_faturamento_zig_geral = df_faturamento_zig.copy()
     df_faturamento_zig_geral = df_faturamento_zig_geral.groupby(['ID_Casa', 'Casa', 'Mes_Ano'], as_index=False)['Valor Bruto'].sum()
@@ -728,7 +725,7 @@ def merge_e_calculo_para_cmv(df_faturamento_zig, df_compras, df_valoracao_estoqu
 
     # Compras (alimentos + bebidas) mensais
     df_compras_geral = df_compras.copy()
-    df_compras_geral['Compras Geral'] = df_compras_geral['Compras Alimentos'] + df_compras_geral['Compras Bebidas']
+    df_compras_geral['Compras Geral'] = df_compras_geral['Compras Alimentos'] + df_compras_geral['Compras Bebidas'] + df_compras_geral['Compras Embalagens']
     df_compras_geral = df_compras_geral[['Casa', 'Mes_Ano', 'Compras Geral']]
 
     # Valoração estoque (alimentos + bebidas) mensal
@@ -757,8 +754,33 @@ def merge_e_calculo_para_cmv(df_faturamento_zig, df_compras, df_valoracao_estoqu
             .merge(df_valoracao_producao_geral, on=['Casa', 'Mes_Ano'], how='left')
     ).fillna(0)
     df_cmv = df_cmv.rename(columns={'Variação_Mensal_x':'Variacao_Estoque', 'Variação_Mensal_y':'Variacao_Producao'})
+
+    # Merge com ajustes manuais de CMV 
+    df_cmv['Mes_Ano_copia'] = pd.to_datetime(df_cmv['Mes_Ano'])
+    df_cmv['Ano'] = df_cmv['Mes_Ano_copia'].dt.year
+    df_cmv['Mês'] = df_cmv['Mes_Ano_copia'].dt.month
+
+    df_ajustes_cmv = df_ajustes_manuais[
+        (df_ajustes_manuais['Casa'] == casa) &
+        (df_ajustes_manuais['Ano'] == ano_selecionado) &
+        (df_ajustes_manuais['Classificacao_Contabil_1'] == 'Custo Mercadoria Vendida')
+    ].copy()
     
-    # Fauramento geral (bruto + eventos)
+    df_ajustes_cmv = df_ajustes_cmv.groupby(['ID_Casa', 'Casa', 'Mês', 'Ano', 'Classificacao_Contabil_1'], as_index=False)['Valor Ajuste'].sum()
+
+    if not df_ajustes_cmv.empty:
+        df_cmv_com_ajustes = pd.merge(
+            df_cmv,
+            df_ajustes_cmv,
+            on=['Casa', 'Ano', 'Mês'],
+            how='left'
+        )
+        mask = ~df_cmv_com_ajustes['Valor Ajuste'].isna()
+        df_cmv_com_ajustes.loc[mask, 'Compras Geral'] -= (df_cmv_com_ajustes.loc[mask, 'Valor Ajuste']) # Soma valores negativos e subtrai positivos
+    else:
+        df_cmv_com_ajustes = df_cmv.copy()
+
+    # Faturamento geral (bruto + eventos)
     df_merge_faturamento = df_faturamento_zig_geral.merge(
         df_faturamento_eventos_geral,
         on=['Casa', 'Mes_Ano'],
@@ -767,7 +789,7 @@ def merge_e_calculo_para_cmv(df_faturamento_zig, df_compras, df_valoracao_estoqu
     df_merge_faturamento['Faturamento_Geral'] = df_merge_faturamento['Faturamento Bruto'] + df_merge_faturamento['Valor_AB']
     
     df_merge_cmv = pd.merge(
-        df_cmv[['Casa', 'Mes_Ano', 'Compras Geral', 'Variacao_Estoque', 'Entradas Geral', 'Saídas Geral', 'Consumo Interno', 'Quebras e Perdas', 'Variacao_Producao']],
+        df_cmv_com_ajustes[['Casa', 'Mes_Ano', 'Compras Geral', 'Variacao_Estoque', 'Entradas Geral', 'Saídas Geral', 'Consumo Interno', 'Quebras e Perdas', 'Variacao_Producao']],
         df_merge_faturamento[['Casa', 'Mes_Ano', 'Faturamento_Geral']],
         on=['Casa', 'Mes_Ano'],
         how='right'
@@ -781,10 +803,10 @@ def merge_e_calculo_para_cmv(df_faturamento_zig, df_compras, df_valoracao_estoqu
     df_calculo_cmv['Saídas Geral'] = df_calculo_cmv['Saídas Geral'].astype(float)
     df_calculo_cmv['Consumo Interno'] = df_calculo_cmv['Consumo Interno'].astype(float)
     df_calculo_cmv['Variacao_Producao'] = df_calculo_cmv['Variacao_Producao'].astype(float)
-    # st.write('cmv', df_calculo_cmv) # Para verificar valores que não batem com a planilha
 
     df_calculo_cmv['CMV Real'] = df_calculo_cmv['Compras Geral'] - df_calculo_cmv['Variacao_Estoque'] + df_calculo_cmv['Entradas Geral'] - df_calculo_cmv['Saídas Geral'] - df_calculo_cmv['Consumo Interno'] - df_calculo_cmv['Variacao_Producao']
     df_calculo_cmv['CMV Real Percentual'] = (df_calculo_cmv['CMV Real'] / df_calculo_cmv['Faturamento_Geral']) * 100
+    # st.write('cmv', df_calculo_cmv)
     df_calculo_cmv = df_calculo_cmv[['Casa', 'Mes_Ano', 'Faturamento_Geral', 'CMV Real', 'CMV Real Percentual']]
 
     return df_calculo_cmv
@@ -1240,7 +1262,7 @@ def filtra_despesas_mes_ano_selecionados(df, mes, ano):
     return df_filtrado
 
 
-def loop_prepara_dados_despesas(lista_categorias_despesas, df_descontos, df_aut_blueme_sem_pedido, df_aut_blue_me_com_pedido, df_faturamento_meses_futuros, df_aut_folha, df_orcamentos, df_receitas_patrocinio, df_aut_endividamentos, df_resultados, casa, mes_selecionado, ano_selecionado):
+def loop_prepara_dados_despesas(lista_categorias_despesas, df_descontos, df_aut_blueme_sem_pedido, df_aut_blue_me_com_pedido, df_faturamento_meses_futuros, df_aut_folha, df_orcamentos, df_receitas_patrocinio, df_ajustes_manuais, df_resultados, casa, mes_selecionado, ano_selecionado):
     for categoria_despesa in lista_categorias_despesas:
         # Define df de despesas utilizado pela categoria
         if categoria_despesa == 'Desconto sobre Venda':
@@ -1264,15 +1286,44 @@ def loop_prepara_dados_despesas(lista_categorias_despesas, df_descontos, df_aut_
         else:
             df_aut_blueme_com_pedido = None
         
-        # Concatena com outra tabela (Endividamentos)
-        if categoria_despesa == 'Dividendos e Remunerações Variáveis': 
-            df_aut_endividamentos['Cargo_DRE'] = None # Adequar para concatenação
-            df_aut_endividamentos = df_aut_endividamentos[df_aut_endividamentos['Classificacao_Contabil_1'] == 'Endividamento'].copy() # Apenas plano contabil de 2025
-            df_aut_endividamentos['Classificacao_Contabil_1'] = df_aut_endividamentos['Classificacao_Contabil_1'].replace('Endividamento', 'Dividendos e Remunerações Variáveis')
-            df_despesas = pd.concat([df_despesas, df_aut_endividamentos])
+        # if categoria_despesa == 'Dividendos e Remunerações Variáveis': # Concatena com outra tabela (Endividamentos) 
+        #     df_aut_endividamentos['Cargo_DRE'] = None # Adequar para concatenação
+        #     df_aut_endividamentos = df_aut_endividamentos[df_aut_endividamentos['Classificacao_Contabil_1'] == 'Endividamento'].copy() # Apenas plano contabil de 2025
+        #     df_aut_endividamentos['Classificacao_Contabil_1'] = df_aut_endividamentos['Classificacao_Contabil_1'].replace('Endividamento', 'Dividendos e Remunerações Variáveis')
+        #     df_despesas = pd.concat([df_despesas, df_aut_endividamentos])
 
         df_despesas_mensais_passadas = prepara_dados_custos_mensais(df_despesas, df_faturamento_meses_futuros, casa, categoria_despesa, df_orcamentos, df_aut_blue_me_com_pedido=df_aut_blueme_com_pedido, df_tabela_secundaria=df_tabela_secundaria)
-        df_projecao_despesa = projecao_custos_proximos_meses(df_despesas_mensais_passadas, categoria_despesa, datas['ano_atual'], datas['mes_atual'])
+       
+        # Merge com ajustes manuais para despesas que tem lançamento de ajuste
+        df_ajustes_categoria = df_ajustes_manuais[
+            (df_ajustes_manuais['Casa'] == casa) &
+            (df_ajustes_manuais['Ano'] == ano_selecionado) &
+            (df_ajustes_manuais['Classificacao_Contabil_1'] == categoria_despesa)
+        ].copy()
+        
+        df_ajustes_categoria = df_ajustes_categoria.groupby(['ID_Casa', 'Casa', 'Mês', 'Ano', 'Classificacao_Contabil_1', 'Classificacao_Contabil_2'], as_index=False)['Valor Ajuste'].sum()
+
+        if not df_ajustes_categoria.empty:
+            df_despesas_com_ajustes = pd.merge(
+                df_despesas_mensais_passadas,
+                df_ajustes_categoria,
+                on=['Classificacao_Contabil_1', 'Classificacao_Contabil_2', 'Casa', 'Ano', 'Mês'],
+                how='left'
+            ).fillna(0)
+            
+            df_despesas_com_ajustes['Valor Ajuste'] = pd.to_numeric(df_despesas_com_ajustes['Valor Ajuste'], errors='coerce')
+            df_despesas_com_ajustes['Custo Real'] = pd.to_numeric(df_despesas_com_ajustes['Custo Real'], errors='coerce')
+
+            condicao_subtrair = df_despesas_com_ajustes['Classificacao_Contabil_2'] != '(+) Receitas de Patrocínio' # Caso específico de "despesa" positiva
+            df_despesas_com_ajustes.loc[condicao_subtrair, 'Custo Real'] -= (df_despesas_com_ajustes.loc[condicao_subtrair, 'Valor Ajuste']) 
+
+            condicao_somar = ~condicao_subtrair
+            df_despesas_com_ajustes.loc[condicao_somar, 'Custo Real'] += (df_despesas_com_ajustes.loc[condicao_somar, 'Valor Ajuste']) 
+        
+        else: # Se não tem ajuste, mantém as despesas originais
+            df_despesas_com_ajustes = df_despesas_mensais_passadas.copy()
+
+        df_projecao_despesa = projecao_custos_proximos_meses(df_despesas_com_ajustes, categoria_despesa, datas['ano_atual'], datas['mes_atual'])
         df_projecao_despesa = filtra_despesas_mes_ano_selecionados(df_projecao_despesa, mes_selecionado, ano_selecionado)
         df_projecao_despesa = calcula_linha_total(df_projecao_despesa, 'Classificacao_Contabil_2', categoria_despesa, 'Custo Projetado', 'Custo Real')
         df_resultados.append(df_projecao_despesa)
@@ -1332,6 +1383,10 @@ def aplica_layout_dre(df_faturamento_meses_passados_futuros, df_layout_impostos,
     # Calcula coluna de Percentual Real 
     df_layout_despesas_final['Percentual Real (do Orçamento)'] = (df_layout_despesas_final['Valor Real'] / df_layout_despesas_final['Orçamento'].replace(0, np.nan)) * 100
 
+    # Despesas são consideradas negativas
+    df_layout_despesas_final.loc[df_layout_despesas_final['Categoria'] != '(+) Receitas de Patrocínio', 'Valor Projetado'] *= -1    
+    df_layout_despesas_final.loc[df_layout_despesas_final['Categoria'] != '(+) Receitas de Patrocínio', 'Valor Real'] *= -1    
+
     # Concatena os dados
     df_layout_dre = pd.concat([df_layout_faturamento, df_layout_despesas_final])
     df_layout_dre['Orçamento'].fillna(0, inplace=True)
@@ -1366,8 +1421,8 @@ def define_linhas_calculadas(df_dre, colunas_valores, lista_categorias_despesas,
 
     # RECEITA LIQUIDA
     receita_liquida = (
-        df_final[df_final['Categoria'] == 'Faturamento'][colunas_valores].sum() -
-        df_final[df_final['Categoria'] == 'Desconto sobre Venda'][colunas_valores].sum() - 
+        df_final[df_final['Categoria'] == 'Faturamento'][colunas_valores].sum() +
+        df_final[df_final['Categoria'] == 'Desconto sobre Venda'][colunas_valores].sum() +
         df_final[df_final['Categoria'] == 'Impostos sobre Venda'][colunas_valores].sum()
     )
     df_final = insere_nova_linha(df_final, colunas_valores, receita_liquida, 'ISS', 'Categoria', 'RECEITA LÍQUIDA')
@@ -1401,11 +1456,11 @@ def define_linhas_calculadas(df_dre, colunas_valores, lista_categorias_despesas,
 
     # MARGEM BRUTA DE CONTRIBUIÇÃO
     margem_bruta_contribuicao = (
-        df_final[df_final['Categoria'] == 'RECEITA LÍQUIDA'][colunas_valores].sum() -
-        df_final[df_final['Categoria'] == 'Deduções sobre Venda'][colunas_valores].sum() -
-        df_final[df_final['Categoria'] == 'Gorjeta'][colunas_valores].sum() -
-        df_final[df_final['Categoria'] == 'Custos de Eventos'][colunas_valores].sum() -
-        df_final[df_final['Categoria'] == 'Custos Artístico Geral'][colunas_valores].sum() -
+        df_final[df_final['Categoria'] == 'RECEITA LÍQUIDA'][colunas_valores].sum() +
+        df_final[df_final['Categoria'] == 'Deduções sobre Venda'][colunas_valores].sum() +
+        df_final[df_final['Categoria'] == 'Gorjeta'][colunas_valores].sum() +
+        df_final[df_final['Categoria'] == 'Custos de Eventos'][colunas_valores].sum() +
+        df_final[df_final['Categoria'] == 'Custos Artístico Geral'][colunas_valores].sum() +
         df_final[df_final['Categoria'] == 'Custo Mercadoria Vendida'][colunas_valores].sum() 
     )
     df_final = insere_nova_linha(df_final, colunas_valores, margem_bruta_contribuicao, 'Outros D', 'Categoria', 'MARGEM BRUTA DE CONTRIBUIÇÃO')
@@ -1432,7 +1487,7 @@ def define_linhas_calculadas(df_dre, colunas_valores, lista_categorias_despesas,
     # EBTIDA e EBIT
     total_despesas_operativas = df_final[df_final['Categoria'] == 'TOTAL - DESPESAS OPERATIVAS'][colunas_valores].sum() 
     margem_bruta_contribuicao = df_final[df_final['Categoria'] == 'MARGEM BRUTA DE CONTRIBUIÇÃO'][colunas_valores].sum() 
-    ebitda = margem_bruta_contribuicao - total_despesas_operativas
+    ebitda = margem_bruta_contribuicao + total_despesas_operativas
     df_final = insere_nova_linha(df_final, colunas_valores, ebitda, 'TOTAL - DESPESAS OPERATIVAS', 'Categoria', 'EBITDA')
     lista_categorias_despesas.append('EBITDA')
     
@@ -1441,8 +1496,8 @@ def define_linhas_calculadas(df_dre, colunas_valores, lista_categorias_despesas,
 
     # Resultado Antes do IR
     resultado_antes_ir = (
-        df_final[df_final['Categoria'] == 'EBIT'][colunas_valores].sum() -
-        df_final[df_final['Categoria'] == '(+/-) Receitas/Despesas Financeiras'][colunas_valores].sum() -
+        df_final[df_final['Categoria'] == 'EBIT'][colunas_valores].sum() +
+        df_final[df_final['Categoria'] == '(+/-) Receitas/Despesas Financeiras'][colunas_valores].sum() +
         df_final[df_final['Categoria'] == '(-) Despesas de Patrocínio'][colunas_valores].sum() +
         df_final[df_final['Categoria'] == '(+) Receitas de Patrocínio'][colunas_valores].sum()
     )
@@ -1490,6 +1545,8 @@ def formatar_colunas_porcentagem(valor):
     if pd.isna(valor) or valor == 0:
         return "-"
     else:
+        if valor < 0:
+            valor *= (-1)
         return f"{valor:,.2f}%".replace(".", ",")
     
 

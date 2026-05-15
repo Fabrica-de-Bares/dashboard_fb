@@ -797,51 +797,51 @@ def GET_AUT_BLUE_ME_SEM_PEDIDO():
     LEFT JOIN T_DESPESA_RAPIDA_ITEM tdri ON (tdr.ID = tdri.FK_DESPESA_RAPIDA)
     WHERE tccg.FK_VERSAO_PLANO_CONTABIL = 103 AND YEAR(tdr.COMPETENCIA) >= 2024
     AND tdri.ID IS NULL
-    AND tdr.BIT_CANCELADA = 0            
-    # UNION ALL
-    # SELECT   # Aut_Endividamentos (Ações Trabalhistas/Processo Judicial - Encargos e Provisões)
-    #     CASE
-    #         WHEN te.ID = 131 THEN 110
-    #         ELSE te.ID    
-    #     END AS 'ID_Casa', 
-    #     CASE
-    #         WHEN te.NOME_FANTASIA = 'Blue Note SP (Novo)' THEN 'Blue Note - São Paulo'
-    #         ELSE te.NOME_FANTASIA    
-    #     END AS 'Casa', 
-    #     CASE
-    #         WHEN tdp.FK_DESPESA IS NOT NULL THEN STR_TO_DATE(tc2.`Data`, '%Y-%m-%d')
-    #         ELSE STR_TO_DATE(tc.`Data`, '%Y-%m-%d')
-    #     END AS 'Data_Competencia',
-    #     CASE
-    #         WHEN tdp.FK_DESPESA IS NOT NULL THEN STR_TO_DATE(tdp.`DATA`, '%Y-%m-%d')
-    #         ELSE STR_TO_DATE(tdr.VENCIMENTO, '%Y-%m-%d')
-    #     END as 'Data_Vencimento',
-    #     tf.CORPORATE_NAME AS 'Fornecedor',
-    #     tdr.OBSERVACAO AS 'Descricao',
-    #     CASE
-    #         WHEN tdp.FK_DESPESA IS NOT NULL
-    #             THEN tdp.VALOR
-    #         ELSE IF(tdr.VALOR_LIQUIDO IS NULL, tdr.VALOR_PAGAMENTO, tdr.VALOR_LIQUIDO)
-    #     END as 'Valor_Pagamento', # nesse caso, valor liquido é o considerado
-    #     NULL AS 'Valor_Liquido',                   
-    #     CASE
-    #         WHEN tccg.DESCRICAO = 'Endividamento' THEN 'Mão de Obra - Encargos e Provisões'
-    #         ELSE tccg.DESCRICAO
-    #     END AS 'Classificacao_Contabil_1',
-    #     CASE
-    #         WHEN tccg2.DESCRICAO = 'Processo Judicial' THEN '  -  Ações trabalhistas'
-    #         ELSE tccg2.DESCRICAO
-    #     END AS 'Classificacao_Contabil_2',
-    #     NULL AS 'Cargo_DRE'
-    # FROM T_DESPESA_RAPIDA tdr
-    # INNER JOIN T_EMPRESAS te ON (tdr.FK_LOJA = te.ID)
-    # LEFT JOIN T_FORNECEDOR tf ON (tdr.FK_FORNECEDOR = tf.ID)
-    # LEFT JOIN T_CLASSIFICACAO_CONTABIL_GRUPO_1 tccg ON (tdr.FK_CLASSIFICACAO_CONTABIL_GRUPO_1 = tccg.ID)
-    # LEFT JOIN T_CLASSIFICACAO_CONTABIL_GRUPO_2 tccg2 ON (tdr.FK_CLASSIFICACAO_CONTABIL_GRUPO_2 = tccg2.ID)
-    # LEFT JOIN T_DEPESA_PARCELAS tdp ON (tdp.FK_DESPESA = tdr.ID)
-    # LEFT JOIN T_CALENDARIO tc ON (tdr.FK_DATA_REALIZACAO_PGTO = tc.ID)
-    # LEFT JOIN T_CALENDARIO tc2 ON (tdp.FK_DATA_REALIZACAO_PGTO = tc2.ID)
-    # WHERE tccg.ID IN (165,206,244) AND tccg2.DESCRICAO = 'Processo Judicial';             
+    AND tdr.BIT_CANCELADA = 0  
+    AND tccg.ID NOT IN (165,206,244)          
+    UNION ALL
+    SELECT   # Aut_Endividamentos (Ações Trabalhistas e Endividamentos)
+        CASE
+            WHEN te.ID = 131 THEN 110
+            ELSE te.ID    
+        END AS 'ID_Casa', 
+        CASE
+            WHEN te.NOME_FANTASIA = 'Blue Note SP (Novo)' THEN 'Blue Note - São Paulo'
+            ELSE te.NOME_FANTASIA    
+        END AS 'Casa', 
+        CASE
+            WHEN tdp.FK_DESPESA IS NOT NULL THEN DATE(tc2.`Data`)
+            ELSE DATE(tc.`Data`)
+        END AS 'Data_Competencia',
+        CASE
+            WHEN tdp.FK_DESPESA IS NOT NULL THEN DATE(tdp.`DATA`)
+            ELSE DATE(tdr.VENCIMENTO)
+        END as 'Data_Vencimento',
+        tf.CORPORATE_NAME AS 'Fornecedor',
+        tdr.OBSERVACAO AS 'Descricao',
+        CASE
+            WHEN tdp.FK_DESPESA IS NOT NULL THEN tdp.VALOR
+            ELSE IF(tdr.VALOR_LIQUIDO IS NULL, tdr.VALOR_PAGAMENTO, tdr.VALOR_LIQUIDO)
+        END as 'Valor_Pagamento', # nesse caso, valor liquido é o considerado
+        NULL AS 'Valor_Liquido',   
+        CASE
+            -- Ações Trabalhistas                
+            WHEN tccg2.ID = 867 THEN 'Mão de Obra - Encargos e Provisões' 
+            -- Endividamentos
+            WHEN tccg2.DESCRICAO IN ('Endividamento Geral', 'Processo Judicial', 'Processo Civil', 'Recurso Processual', 'Empréstimos Gerais') THEN 'Dividendos e Remunerações Variáveis'
+            ELSE tccg.DESCRICAO
+        END AS 'Classificacao_Contabil_1',                                  
+        tccg2.DESCRICAO AS 'Classificacao_Contabil_2',              
+        NULL AS 'Cargo_DRE'
+    FROM T_DESPESA_RAPIDA tdr
+    INNER JOIN T_EMPRESAS te ON (tdr.FK_LOJA = te.ID)
+    LEFT JOIN T_FORNECEDOR tf ON (tdr.FK_FORNECEDOR = tf.ID)
+    LEFT JOIN T_CLASSIFICACAO_CONTABIL_GRUPO_1 tccg ON (tdr.FK_CLASSIFICACAO_CONTABIL_GRUPO_1 = tccg.ID)
+    LEFT JOIN T_CLASSIFICACAO_CONTABIL_GRUPO_2 tccg2 ON (tdr.FK_CLASSIFICACAO_CONTABIL_GRUPO_2 = tccg2.ID)
+    LEFT JOIN T_DEPESA_PARCELAS tdp ON (tdp.FK_DESPESA = tdr.ID)
+    LEFT JOIN T_CALENDARIO tc ON (tdr.FK_DATA_REALIZACAO_PGTO = tc.ID)
+    LEFT JOIN T_CALENDARIO tc2 ON (tdp.FK_DATA_REALIZACAO_PGTO = tc2.ID)
+    WHERE tccg.ID IN (165,206,244);             
     ''')
 
 
@@ -1015,42 +1015,64 @@ def GET_AUT_FOLHA_PAGAMENTO():
     ''')
 
 
+# @st.cache_data
+# def GET_AUT_ENDIVIDAMENTOS():
+#     return dataframe_query(f'''
+#     SELECT DISTINCT
+#         te.ID as 'ID_Casa',
+#         te.NOME_FANTASIA as 'Casa',
+#         CASE
+#             WHEN tdp.FK_DESPESA IS NOT NULL THEN DATE(tc2.`Data`)
+#             ELSE DATE(tc.`Data`)
+#         END AS 'Data_Competencia',
+#         CASE
+#             WHEN tdp.FK_DESPESA IS NOT NULL THEN date(tdp.`DATA`)
+#             ELSE date(STR_TO_DATE(tdr.VENCIMENTO, '%Y-%m-%d %H:%i:%s'))
+#         END as 'Data_Vencimento',                   
+#         tf.CORPORATE_NAME as 'Fornecedor',
+#         tdr.OBSERVACAO as 'Descricao',
+#         CASE
+#             WHEN tdp.FK_DESPESA IS NOT NULL THEN tdp.VALOR
+#             ELSE IF(tdr.VALOR_LIQUIDO IS NULL, tdr.VALOR_PAGAMENTO, tdr.VALOR_LIQUIDO)
+#         END as 'Valor_Pagamento',
+#         tdr.VALOR_PAGAMENTO as 'Valor_Liquido',                   
+#         tccg.DESCRICAO as 'Classificacao_Contabil_1',
+#         tccg2.DESCRICAO as 'Classificacao_Contabil_2'
+#     FROM T_DESPESA_RAPIDA tdr
+#     INNER JOIN T_EMPRESAS te ON (tdr.FK_LOJA = te.ID)
+#     LEFT JOIN T_LOJAS tl ON (te.FK_LOJA = tl.ID)
+#     LEFT JOIN T_FORNECEDOR tf ON (tdr.FK_FORNECEDOR = tf.ID)
+#     LEFT JOIN T_CLASSIFICACAO_CONTABIL_GRUPO_1 tccg ON (tdr.FK_CLASSIFICACAO_CONTABIL_GRUPO_1 = tccg.ID)
+#     LEFT JOIN T_CLASSIFICACAO_CONTABIL_GRUPO_2 tccg2 ON (tdr.FK_CLASSIFICACAO_CONTABIL_GRUPO_2 = tccg2.ID)
+#     LEFT JOIN T_DEPESA_PARCELAS tdp ON (tdp.FK_DESPESA = tdr.ID)
+#     LEFT JOIN T_CALENDARIO tc ON (tdr.FK_DATA_REALIZACAO_PGTO = tc.ID)
+#     LEFT JOIN T_CALENDARIO tc2 ON (tdp.FK_DATA_REALIZACAO_PGTO = tc2.ID)
+#     LEFT JOIN T_STATUS_PAGAMENTO tsp ON (tdr.FK_STATUS_PGTO = tsp.ID)
+#     WHERE tccg.ID IN (165,206,244)
+#     ORDER BY tdr.ID desc, tdp.ID desc;
+#     ''')
+
+
 @st.cache_data
-def GET_AUT_ENDIVIDAMENTOS():
+def GET_AJUSTES_MANUAIS_DRE():
     return dataframe_query(f'''
-    SELECT DISTINCT
-        te.ID as 'ID_Casa',
-        te.NOME_FANTASIA as 'Casa',
+    SELECT                        
         CASE
-            WHEN tdp.FK_DESPESA IS NOT NULL
-                THEN DATE(tc2.`Data`)
-            ELSE DATE(tc.`Data`)
-        END AS 'Data_Competencia',
+            WHEN te.ID IN (161, 162) THEN 149
+            ELSE te.ID    
+        END AS 'ID_Casa', 
         CASE
-            WHEN tdp.FK_DESPESA IS NOT NULL
-                THEN date(tdp.`DATA`)
-            ELSE date(STR_TO_DATE(tdr.VENCIMENTO, '%Y-%m-%d %H:%i:%s'))
-        END as 'Data_Vencimento',                   
-        tf.CORPORATE_NAME as 'Fornecedor',
-        tdr.OBSERVACAO as 'Descricao',
-        CASE
-            WHEN tdp.FK_DESPESA IS NOT NULL
-                THEN tdp.VALOR
-            ELSE IF(tdr.VALOR_LIQUIDO IS NULL, tdr.VALOR_PAGAMENTO, tdr.VALOR_LIQUIDO)
-        END as 'Valor_Pagamento',
-        tdr.VALOR_PAGAMENTO as 'Valor_Liquido',                   
-        tccg.DESCRICAO as 'Classificacao_Contabil_1',
-        tccg2.DESCRICAO as 'Classificacao_Contabil_2'
-    FROM T_DESPESA_RAPIDA tdr
-    INNER JOIN T_EMPRESAS te ON (tdr.FK_LOJA = te.ID)
-    LEFT JOIN T_LOJAS tl ON (te.FK_LOJA = tl.ID)
-    LEFT JOIN T_FORNECEDOR tf ON (tdr.FK_FORNECEDOR = tf.ID)
-    LEFT JOIN T_CLASSIFICACAO_CONTABIL_GRUPO_1 tccg ON (tdr.FK_CLASSIFICACAO_CONTABIL_GRUPO_1 = tccg.ID)
-    LEFT JOIN T_CLASSIFICACAO_CONTABIL_GRUPO_2 tccg2 ON (tdr.FK_CLASSIFICACAO_CONTABIL_GRUPO_2 = tccg2.ID)
-    LEFT JOIN T_DEPESA_PARCELAS tdp ON (tdp.FK_DESPESA = tdr.ID)
-    LEFT JOIN T_CALENDARIO tc ON (tdr.FK_DATA_REALIZACAO_PGTO = tc.ID)
-    LEFT JOIN T_CALENDARIO tc2 ON (tdp.FK_DATA_REALIZACAO_PGTO = tc2.ID)
-    LEFT JOIN T_STATUS_PAGAMENTO tsp ON (tdr.FK_STATUS_PGTO = tsp.ID)
-    WHERE tccg.ID IN (165,206,244)
-    ORDER BY tdr.ID desc, tdp.ID desc;
+            WHEN te.ID IN (161, 162) THEN 'Priceless'
+            ELSE te.NOME_FANTASIA    
+        END AS 'Casa',                  
+        tam.MES_COMPETENCIA AS 'Mês',
+        tam.ANO_COMPETENCIA AS 'Ano',
+        tccg1.DESCRICAO AS 'Classificacao_Contabil_1',
+        tccg2.DESCRICAO AS 'Classificacao_Contabil_2',
+        tam.VALOR AS 'Valor Ajuste',
+        tam.DESCRICAO AS 'Descrição Ajuste'
+    FROM T_AJUSTES_MANUAIS_DRE AS tam
+    LEFT JOIN T_EMPRESAS AS te ON (tam.FK_EMPRESA = te.ID)   
+    LEFT JOIN T_CLASSIFICACAO_CONTABIL_GRUPO_1 tccg1 ON (tam.FK_CLASSIFICACAO_CONTABIL_1 = tccg1.ID)
+    LEFT JOIN T_CLASSIFICACAO_CONTABIL_GRUPO_2 tccg2 ON (tam.FK_CLASSIFICACAO_CONTABIL_2 = tccg2.ID);                                                                                        
     ''')
