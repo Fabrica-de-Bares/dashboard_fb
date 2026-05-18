@@ -1408,6 +1408,11 @@ def calcula_linha_total(df, col_categoria, categoria, col_valor_projetado, col_v
     return df
 
 
+# Função auxiliar para definir linhas calculadas
+def soma_categorias(df, categorias, colunas_valores):
+    return df[df['Categoria'].isin(categorias)][colunas_valores].sum()
+
+
 # Calcula porcentagens e outros valores - Orçamento e Real DRE
 def define_linhas_calculadas(df_dre, colunas_valores, lista_categorias_despesas, mapa_insercao):
     df_final = df_dre.copy()
@@ -1420,20 +1425,11 @@ def define_linhas_calculadas(df_dre, colunas_valores, lista_categorias_despesas,
     custos_eventos = df_final[df_final['Categoria'] == 'Custos de Eventos'][colunas_valores].sum()
 
     # RECEITA LIQUIDA
-    receita_liquida = (
-        df_final[df_final['Categoria'] == 'Faturamento'][colunas_valores].sum() +
-        df_final[df_final['Categoria'] == 'Desconto sobre Venda'][colunas_valores].sum() +
-        df_final[df_final['Categoria'] == 'Impostos sobre Venda'][colunas_valores].sum()
-    )
+    receita_liquida = soma_categorias(df_final, ['Faturamento', 'Desconto sobre Venda', 'Impostos sobre Venda'], colunas_valores)
     df_final = insere_nova_linha(df_final, colunas_valores, receita_liquida, 'ISS', 'Categoria', 'RECEITA LÍQUIDA')
 
     # % sobre Receita Bruta - CMV
-    receita_bruta = (
-        df_final[df_final['Categoria'] == 'Alimentos'][colunas_valores].sum() +
-        df_final[df_final['Categoria'] == 'Bebidas'][colunas_valores].sum() +
-        df_final[df_final['Categoria'] == 'Eventos A&B'][colunas_valores].sum() +
-        df_final[df_final['Categoria'] == 'Delivery'][colunas_valores].sum()
-    )
+    receita_bruta = soma_categorias(df_final, ['Alimentos', 'Bebidas', 'Eventos A&B', 'Delivery'], colunas_valores)
     porc_receita_bruta_cmv = (cmv / receita_bruta)
     df_final = insere_nova_linha(df_final, colunas_valores, porc_receita_bruta_cmv, 'CMV', 'Categoria', '% sobre Receita Bruta')
     
@@ -1446,41 +1442,34 @@ def define_linhas_calculadas(df_dre, colunas_valores, lista_categorias_despesas,
     df_final = insere_nova_linha(df_final, colunas_valores, porc_receita_artistico, 'Viagens e Estadias - Artístico', 'Categoria', '% sobre Receita Artístico')
 
     # % sobre Receita de Eventos
-    faturamento_eventos = (
-        df_final[df_final['Categoria'] == 'Eventos A&B'][colunas_valores].sum() +
-        df_final[df_final['Categoria'] == 'Eventos Locações'][colunas_valores].sum() +
-        df_final[df_final['Categoria'] == 'Eventos Couvert'][colunas_valores].sum() 
-    )
+    faturamento_eventos = soma_categorias(df_final, ['Eventos A&B', 'Eventos Locações', 'Eventos Couvert'], colunas_valores)
     porc_receita_eventos = (custos_eventos / faturamento_eventos.replace(0, np.nan)).round(2)
     df_final = insere_nova_linha(df_final, colunas_valores, porc_receita_eventos, 'Viagens e Estadias - Eventos', 'Categoria', '% sobre Receita de Eventos')
 
     # MARGEM BRUTA DE CONTRIBUIÇÃO
-    margem_bruta_contribuicao = (
-        df_final[df_final['Categoria'] == 'RECEITA LÍQUIDA'][colunas_valores].sum() +
-        df_final[df_final['Categoria'] == 'Deduções sobre Venda'][colunas_valores].sum() +
-        df_final[df_final['Categoria'] == 'Gorjeta'][colunas_valores].sum() +
-        df_final[df_final['Categoria'] == 'Custos de Eventos'][colunas_valores].sum() +
-        df_final[df_final['Categoria'] == 'Custos Artístico Geral'][colunas_valores].sum() +
-        df_final[df_final['Categoria'] == 'Custo Mercadoria Vendida'][colunas_valores].sum() 
+    margem_bruta_contribuicao = soma_categorias(
+        df_final, 
+        ['RECEITA LÍQUIDA', 'Deduções sobre Venda', 'Gorjeta', 'Custos de Eventos', 'Custos Artístico Geral', 'Custo Mercadoria Vendida'], 
+        colunas_valores
     )
     df_final = insere_nova_linha(df_final, colunas_valores, margem_bruta_contribuicao, 'Outros D', 'Categoria', 'MARGEM BRUTA DE CONTRIBUIÇÃO')
     lista_categorias_despesas.append('MARGEM BRUTA DE CONTRIBUIÇÃO')
 
     # PESSOAL
-    pessoal = 0
-    for categoria in lista_categorias_despesas:
-        if categoria in ['Mão de Obra - PJ', 'Mão de Obra - Salários', 'Mão de Obra - Extra', 'Mão de Obra - Encargos e Provisões', 'Mão de Obra - Benefícios']:
-            pessoal += df_final[df_final['Categoria'] == categoria][colunas_valores].sum() 
-
+    pessoal = soma_categorias(
+        df_final,
+        ['Mão de Obra - PJ', 'Mão de Obra - Salários', 'Mão de Obra - Extra', 'Mão de Obra - Encargos e Provisões', 'Mão de Obra - Benefícios'],
+        colunas_valores
+    )
     df_final = insere_nova_linha(df_final, colunas_valores, pessoal, 'MARGEM BRUTA DE CONTRIBUIÇÃO', 'Categoria', 'PESSOAL')
     lista_categorias_despesas.append('PESSOAL')
 
     # TOTAL - DESPESAS OPERATIVAS
-    total_despesas_operativas = 0
-    for categoria in lista_categorias_despesas:
-        if categoria in ['PESSOAL', 'Custo de Ocupação', 'Utilidades', 'Informática e TI', 'Manutenção', 'Marketing', 'Serviços de Terceiros', 'Locação de Equipamentos', 'Sistema de Franquias']:
-            total_despesas_operativas += df_final[df_final['Categoria'] == categoria][colunas_valores].sum() 
-
+    total_despesas_operativas = soma_categorias(
+        df_final,
+        ['PESSOAL', 'Custo de Ocupação', 'Utilidades', 'Informática e TI', 'Manutenção', 'Marketing', 'Serviços de Terceiros', 'Locação de Equipamentos', 'Sistema de Franquias'],
+        colunas_valores
+    )
     df_final = insere_nova_linha(df_final, colunas_valores, total_despesas_operativas, 'Royalties', 'Categoria', 'TOTAL - DESPESAS OPERATIVAS')
     lista_categorias_despesas.append('TOTAL - DESPESAS OPERATIVAS')
     
@@ -1495,19 +1484,15 @@ def define_linhas_calculadas(df_dre, colunas_valores, lista_categorias_despesas,
     df_final = insere_nova_linha(df_final, colunas_valores, ebit, 'EBITDA', 'Categoria', 'EBIT')
 
     # Resultado Antes do IR
-    resultado_antes_ir = (
-        df_final[df_final['Categoria'] == 'EBIT'][colunas_valores].sum() +
-        df_final[df_final['Categoria'] == '(+/-) Receitas/Despesas Financeiras'][colunas_valores].sum() +
-        df_final[df_final['Categoria'] == '(-) Despesas de Patrocínio'][colunas_valores].sum() +
-        df_final[df_final['Categoria'] == '(+) Receitas de Patrocínio'][colunas_valores].sum()
+    resultado_antes_ir = soma_categorias(
+        df_final,
+        ['EBIT', '(+/-) Receitas/Despesas Financeiras', '(-) Despesas de Patrocínio', '(+) Receitas de Patrocínio'],
+        colunas_valores
     )
     df_final = insere_nova_linha(df_final, colunas_valores, resultado_antes_ir, '(-) Despesas de Patrocínio', 'Categoria', 'Resultado Antes do IR')
 
     # Total - Variações s/ Resultado Líquido
-    total_variacoes = (
-        df_final[df_final['Categoria'] == 'Investimento - CAPEX'][colunas_valores].sum() +
-        df_final[df_final['Categoria'] == '(+/-) Outras variações no fluxo de caixa'][colunas_valores].sum() 
-    )
+    total_variacoes = soma_categorias(df_final, ['Investimento - CAPEX', '(+/-) Outras variações no fluxo de caixa'], colunas_valores)
     df_final = insere_nova_linha(df_final, colunas_valores, total_variacoes, 'Remuneração Variável', 'Categoria', 'Total - Variações s/ Resultado Líquido')
 
     # FCF
