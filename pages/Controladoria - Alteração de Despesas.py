@@ -260,7 +260,7 @@ with st.container(border=True):
         }
         nome_mes = mapeamento_meses[mes_competencia_selecionado]
     else:
-        st.warning("Não existe data de fechamento para esse mês.")
+        st.warning("Sem data de fechamento lançada para esse mês.")
         st.stop()
 
     st.write(f"**Data de fechamento da DRE de {nome_mes}:** {data_fechamento_mes_selecionado.date().strftime('%d/%m/%Y')}")

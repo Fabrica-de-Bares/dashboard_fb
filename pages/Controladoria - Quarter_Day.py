@@ -43,14 +43,14 @@ df_orcamento_operacional = GET_ORCAMENTO_OPERACIONAL()
 df_historico_real_dre = GET_HISTORICO_REAL_DRE()
 
 
-categorias_quarter = ['Faturamento Bruto', 'Faturamento Bruto - Alimentos', 'Faturamento Bruto - Bebidas', 'Faturamento Eventos', 'Faturamento Eventos - Artístico', 'Faturamento Delivery', 'CMV', 'EBITDA']
+categorias_quarter = ['Faturamento Bruto', 'Faturamento Bruto - Alimentos', 'Faturamento Bruto - Bebidas', 'Faturamento Eventos', 'Faturamento - Artístico', 'Faturamento Delivery', 'CMV', 'EBITDA']
 
 for categoria in (categorias_quarter):
     if categoria == 'Faturamento Bruto': class_cont = ['FATURAMENTO BRUTO']
     elif categoria == 'Faturamento Bruto - Alimentos': class_cont = ['Alimentação']
     elif categoria == 'Faturamento Bruto - Bebidas': class_cont = ['Bebida']
     elif categoria == 'Faturamento Eventos': class_cont = ['Eventos A&B', 'Eventos Couvert', 'Eventos Locações', 'Eventos Rebate Fornecedores']
-    elif categoria == 'Faturamento Eventos - Artístico':
+    elif categoria == 'Faturamento - Artístico':
         class_cont = ['Artístico (couvert/shows)']
         if id_casa not in [114, 148, 110, 105, 128, 145]: # Considera Artístico apenas para essas casas
             continue
