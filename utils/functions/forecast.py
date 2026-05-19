@@ -151,22 +151,22 @@ def cria_projecao_mes_corrente(df_faturamento_agregado_mes_corrente, df_dias_fut
 def aplica_layout_mes_corrente(df_dias_futuros_mes, df_faturamento_eventos, df_parc_receit_extr, df_dias_mes, id_casa, casa, mes_selecionado, ano_selecionado):
     # Prepara dados de faturamentos
     df_dias_futuros_mes_filtrado = df_dias_futuros_mes.copy()
-    df_dias_futuros_mes_filtrado['ID_Casa'].fillna(id_casa, inplace=True)
-    df_dias_futuros_mes_filtrado['Casa'].fillna(casa, inplace=True)
+    df_dias_futuros_mes_filtrado['ID_Casa'] = df_dias_futuros_mes_filtrado['ID_Casa'].fillna(id_casa)
+    df_dias_futuros_mes_filtrado['Casa'] = df_dias_futuros_mes_filtrado['Casa'].fillna(casa)
 
     df_dias_futuros_mes_filtrado = df_dias_futuros_mes_filtrado[df_dias_futuros_mes_filtrado['Categoria'].isin(['Alimentos', 'Bebidas', 'Couvert', 'Delivery', 'Gifts'])].copy()
     df_dias_futuros_mes_filtrado = df_dias_futuros_mes_filtrado[['Categoria', 'Data Evento', 'Dia Semana', 'Valor Final']]
-    df_dias_futuros_mes_filtrado.rename(columns={'Valor Final': 'Valor Projetado'}, inplace=True)
+    df_dias_futuros_mes_filtrado = df_dias_futuros_mes_filtrado.rename(columns={'Valor Final': 'Valor Projetado'})
     
     # Prepada dados de Eventos
     df_faturamento_eventos_filtrado = df_faturamento_eventos[df_faturamento_eventos['ID_Casa'] == id_casa].copy()
     df_faturamento_eventos_filtrado = df_faturamento_eventos_filtrado[['Categoria', 'Data Evento', 'Valor Bruto']]
-    df_faturamento_eventos_filtrado.rename(columns={'Valor Bruto': 'Valor Projetado'}, inplace=True)
+    df_faturamento_eventos_filtrado = df_faturamento_eventos_filtrado.rename(columns={'Valor Bruto': 'Valor Projetado'})
 
     # Prepara dados de Receitas Extraordinárias
     df_faturamento_rec_extr_filtrado = df_parc_receit_extr[(df_parc_receit_extr['ID_Casa'] == id_casa) & (df_parc_receit_extr['Categoria'] == 'Outras Receitas')].copy()
     df_faturamento_rec_extr_filtrado = df_faturamento_rec_extr_filtrado[['Categoria', 'Data Evento', 'Valor Bruto']]
-    df_faturamento_rec_extr_filtrado.rename(columns={'Valor Bruto': 'Valor Projetado'}, inplace=True)
+    df_faturamento_rec_extr_filtrado = df_faturamento_rec_extr_filtrado.rename(columns={'Valor Bruto': 'Valor Projetado'})
     
     # Concatena os dados
     df_concat = pd.concat([df_dias_futuros_mes_filtrado, df_faturamento_eventos_filtrado, df_faturamento_rec_extr_filtrado])
@@ -183,7 +183,7 @@ def aplica_layout_mes_corrente(df_dias_futuros_mes, df_faturamento_eventos, df_p
     df_todos_dias_mes['Dia Semana'] = df_todos_dias_mes['Dia Semana'].apply(
         lambda x: traduz_semana_mes(x, 'dia semana')
     )
-    df_todos_dias_mes['Valor Projetado'] .fillna(0, inplace=True)
+    df_todos_dias_mes['Valor Projetado'] = df_todos_dias_mes['Valor Projetado'].fillna(0)
     
     # Filtra para mês/ano corrente
     df_todos_dias_mes_corrente = df_todos_dias_mes[(df_todos_dias_mes['Data Evento'].dt.month == mes_selecionado) & (df_todos_dias_mes['Data Evento'].dt.year == ano_selecionado)].copy()
@@ -402,7 +402,7 @@ def projecao_faturamento_servico_meses_seguintes(df_faturamento_meses_futuros, a
 
 def projecao_impostos(df_faturamento_para_impostos, lista_itens_impostos, df_impostos_meses_futuros, PORC_ISS, PORC_ICMS, PORC_PIS, PORC_COFINS):
     df_final = df_impostos_meses_futuros.copy() # Df com lista com meses futuros
-    df_final.rename(columns={'Meses_Ano': 'Mês'}, inplace=True)
+    df_final = df_final.rename(columns={'Meses_Ano': 'Mês'})
 
     for item in lista_itens_impostos:
         if item == 'ISS':
@@ -616,7 +616,7 @@ def config_transferencias_gastos(data_inicio, data_fim, loja):
         (df_perdas_e_consumo['Primeiro_Dia_Mes'] >= data_inicio) &
         (df_perdas_e_consumo['Primeiro_Dia_Mes'] <= data_fim)
     ].copy()
-    df_perdas_e_consumo.fillna(0, inplace=True)
+    df_perdas_e_consumo = df_perdas_e_consumo.fillna(0)
 
     df_transf_e_gastos = pd.merge(df_entradas_pivot, df_saidas_pivot, on=['Loja', 'Mes_Ano'], how='outer')
     df_transf_e_gastos = pd.merge(df_transf_e_gastos, df_perdas_e_consumo, on=['Loja', 'Mes_Ano'], how='outer')
@@ -910,13 +910,13 @@ def merge_despesas_complexas(df_tabela_primaria, df_tabela_secundaria, casa, cla
         )
 
         df_tabela_resultante.loc[condicao, 'Classificacao_Contabil_2'] = df_tabela_resultante['Centro de Custo']
-        df_tabela_resultante['Custo Real'].fillna(0, inplace=True)
-        df_tabela_resultante['Aloca no Centro de Custo'].fillna(0, inplace=True)
+        df_tabela_resultante['Custo Real'] = df_tabela_resultante['Custo Real'].fillna(0)
+        df_tabela_resultante['Aloca no Centro de Custo'] = df_tabela_resultante['Aloca no Centro de Custo'].fillna(0)
 
         condicao = df_tabela_resultante['Classificacao_Contabil_2'].isin(['Alimentação e Transporte', 'Eventos de Marketing', 'Produção Gráfica e Material Institucional', '  -  Alimentação Funcionário'])
         df_tabela_resultante.loc[condicao, 'Custo Real'] = df_tabela_resultante['Custo Real'] + df_tabela_resultante['Aloca no Centro de Custo']
-        df_tabela_resultante.drop(columns=['Centro de Custo', 'Aloca no Centro de Custo'], inplace=True)
-        df_tabela_resultante.dropna(subset=['Classificacao_Contabil_2'], inplace=True)
+        df_tabela_resultante = df_tabela_resultante.drop(columns=['Centro de Custo', 'Aloca no Centro de Custo'])
+        df_tabela_resultante = df_tabela_resultante.dropna(subset=['Classificacao_Contabil_2'])
 
     elif class_cont in ['Gorjeta', 'Mão de Obra - Salários']: # merge com folha de pagamento
         df_tabela_secundaria_filtrada = df_tabela_secundaria_filtrada.groupby(['Casa', 'Mês', 'Ano'], as_index=False)['Valor'].sum()
@@ -933,7 +933,7 @@ def merge_despesas_complexas(df_tabela_primaria, df_tabela_secundaria, casa, cla
         elif class_cont == 'Mão de Obra - Salários':
             df_tabela_resultante['Custo Real'] = df_tabela_resultante['Custo Real'] - df_tabela_resultante['Valor']
         
-        df_tabela_resultante.drop(columns=['Valor'], inplace=True)
+        df_tabela_resultante = df_tabela_resultante.drop(columns=['Valor'])
 
     elif class_cont == 'Patrocínio': # merge com Receitas Extraordinárias (Patrocínio)
         df_tabela_secundaria_filtrada['Mês'] = df_tabela_secundaria_filtrada['Recebimento_Parcela'].dt.month
@@ -950,7 +950,7 @@ def merge_despesas_complexas(df_tabela_primaria, df_tabela_secundaria, casa, cla
         condicao = (df_tabela_resultante['Classificacao_Contabil_2'] == 0) & (df_tabela_resultante['Valor Bruto'] != 0)
         df_tabela_resultante.loc[condicao, 'Classificacao_Contabil_2'] = '(+) Receitas de Patrocínio'
         df_tabela_resultante.loc[df_tabela_resultante['Custo Real'] == 0, 'Custo Real'] = df_tabela_resultante['Valor Bruto']        
-        df_tabela_resultante.drop(columns=['Valor Bruto'], inplace=True)
+        df_tabela_resultante = df_tabela_resultante.drop(columns=['Valor Bruto'])
     
     return df_tabela_resultante
 
@@ -1145,7 +1145,7 @@ def organiza_despesas_orcamentos(df_custos, df_orcamentos, casa, lista_completa_
         right_on=['Casa', 'Categoria', 'Ano', 'Mês'],
         how='outer'
     )
-    df_resultante['Classificacao_Contabil_2'].fillna(df_resultante['Categoria'], inplace=True)
+    df_resultante['Classificacao_Contabil_2'] = df_resultante['Classificacao_Contabil_2'].fillna(df_resultante['Categoria'])
     df_resultante = df_resultante[df_resultante['Classificacao_Contabil_2'].isin(lista_completa_class_cont_2)].copy()
 
     if class_cont_1 == 'Deduções sobre Venda': df_resultante = df_resultante[~df_resultante['Classificacao_Contabil_2'].isin(['Desconto - Alimentação Escritório', 'Descontos - Marketing', 'Descontos - Operação'])].copy()
@@ -1340,13 +1340,13 @@ def aplica_layout_dre(df_faturamento_meses_passados_futuros, df_layout_impostos,
         (df_faturamento_meses_passados_futuros['Categoria'].isin(['Alimentos', 'Bebidas', 'Couvert', 'Serviço', 'Gifts', 'Eventos A&B', 'Eventos Couvert', 'Eventos Locações', 'Delivery', 'Outras Receitas']))
     ].copy()
 
-    df_layout_faturamento.rename(columns={'Valor Bruto': 'Valor Real', 'Atingimento Real': 'Percentual Real (do Orçamento)', 'Projeção Atingimento': 'Percentual Projetado'}, inplace=True)
+    df_layout_faturamento = df_layout_faturamento.rename(columns={'Valor Bruto': 'Valor Real', 'Atingimento Real': 'Percentual Real (do Orçamento)', 'Projeção Atingimento': 'Percentual Projetado'})
     df_layout_faturamento = calcula_linha_total(df_layout_faturamento, 'Categoria', 'Faturamento', 'Valor Projetado', 'Valor Real')
     df_layout_faturamento = df_layout_faturamento[['Categoria', 'Orçamento', 'Percentual Projetado', 'Valor Projetado', 'Valor Real', 'Percentual Real (do Orçamento)']]
 
     # Formata dados de CMV
     df_layout_cmv = df_cmv_projetado[(df_cmv_projetado['Ano'] == ano_selecionado) & (df_cmv_projetado['Mês'] == mes_selecionado)]
-    df_layout_cmv.drop(columns=['Valor Projetado'], inplace=True)
+    df_layout_cmv = df_layout_cmv.drop(columns=['Valor Projetado'])
     df_layout_cmv = df_layout_cmv.rename(columns={'CMV Percentual Projetado': 'Percentual Projetado', 'CMV Projetado': 'Valor Projetado', 'CMV Real': 'Valor Real', 'CMV Real Percentual': 'Percentual Real (do Orçamento)', 'CMV Orçado': 'Orçamento'})
     df_layout_cmv['Categoria'] = 'CMV'
     df_layout_cmv = calcula_linha_total(df_layout_cmv, 'Categoria', 'Custo Mercadoria Vendida', 'Valor Projetado', 'Valor Real')
@@ -1354,8 +1354,8 @@ def aplica_layout_dre(df_faturamento_meses_passados_futuros, df_layout_impostos,
 
     # Formata dados de despesas
     df_layout_despesas = df_projecao_despesas.copy()
-    df_layout_despesas.drop(columns=['Categoria'], inplace=True)
-    df_layout_despesas.rename(columns={'Classificacao_Contabil_2': 'Categoria', 'Custo Percentual Projetado': 'Percentual Projetado', 'Custo Projetado': 'Valor Projetado', 'Custo Real': 'Valor Real'}, inplace=True)
+    df_layout_despesas = df_layout_despesas.drop(columns=['Categoria'])
+    df_layout_despesas = df_layout_despesas.rename(columns={'Classificacao_Contabil_2': 'Categoria', 'Custo Percentual Projetado': 'Percentual Projetado', 'Custo Projetado': 'Valor Projetado', 'Custo Real': 'Valor Real'})
     df_layout_despesas = df_layout_despesas[['Categoria', 'Orçamento', 'Percentual Projetado', 'Valor Projetado', 'Valor Real']]
 
     # Insere os impostos calculados depois de 'Descontos sobre Venda'
@@ -1389,9 +1389,9 @@ def aplica_layout_dre(df_faturamento_meses_passados_futuros, df_layout_impostos,
 
     # Concatena os dados
     df_layout_dre = pd.concat([df_layout_faturamento, df_layout_despesas_final])
-    df_layout_dre['Orçamento'].fillna(0, inplace=True)
+    df_layout_dre['Orçamento'] = df_layout_dre['Orçamento'].fillna(0)
     df_layout_dre['Percentual Projetado'] = pd.to_numeric(df_layout_dre['Percentual Projetado'], errors='coerce')
-    df_layout_dre['Percentual Projetado'].fillna(0, inplace=True)
+    df_layout_dre['Percentual Projetado'] = df_layout_dre['Percentual Projetado'].fillna(0)
 
     return df_layout_dre
 
