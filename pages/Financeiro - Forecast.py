@@ -61,9 +61,9 @@ df_orcamentos = GET_ORCAMENTOS()
 df_faturamento_agregado_mes = GET_FATURAMENTO_CATEGORIA_MENSAL(df_faturamento_agregado_dia, df_descontos, df_promocoes, df_faturamento_eventos_inicial)
 
 df_aut_blue_me_sem_pedido = GET_AUT_BLUE_ME_SEM_PEDIDO() # Dados - Despesas por classificação contábil
-df_aut_folha = GET_AUT_FOLHA_PAGAMENTO() # Dados - Folha/Gorjeta
-# df_aut_endividamentos = GET_AUT_ENDIVIDAMENTOS() # Dados - Endividamentos
-df_ajustes_manuais = GET_AJUSTES_MANUAIS_DRE() # Dados - Ajustes Manuais DRE
+df_aut_folha = GET_AUT_FOLHA_PAGAMENTO() 
+df_ajustes_manuais = GET_AJUSTES_MANUAIS_DRE() 
+df_consumo_cartao_black = GET_CONSUMO_CARTAO_BLACK() 
 
 # Filtrando Datas
 datas = calcular_datas()
@@ -168,8 +168,14 @@ df_faturamento_zig, faturamento_bruto_alimentos, faturamento_bruto_bebidas, fatu
 df_faturamento_eventos = config_faturamento_eventos(datas['jan_ano_passado'], datas['dez_ano_atual'], casa, faturamento_bruto_alimentos, faturamento_bruto_bebidas)
 df_compras, df_aut_blue_me_com_pedido, compras_alimentos, compras_bebidas = config_compras(datas['jan_ano_passado'], datas['dez_ano_atual'], casa)
 df_valoracao_estoque = config_valoracao_estoque_ou_producao('estoque', datas['jan_ano_passado'], datas['dez_ano_atual'], casa)
-df_transf_e_gastos, saida_alimentos, saida_bebidas, entrada_alimentos, entrada_bebidas, consumo_interno, quebras_e_perdas = config_transferencias_gastos(datas['jan_ano_passado'], datas['dez_ano_atual'], casa)
+df_transf_e_gastos = config_transferencias_gastos(datas['jan_ano_passado'], datas['dez_ano_atual'], casa)
 df_valoracao_producao = config_valoracao_estoque_ou_producao('producao', datas['jan_ano_passado'], datas['dez_ano_atual'], casa)
+
+# Consumo Interno - merge com Mão de Obra - Benefícios
+df_consumo_interno_cmv = df_transf_e_gastos.copy()
+df_consumo_interno_cmv['Mês'] = pd.to_datetime(df_consumo_interno_cmv['Mes_Ano'], errors='coerce').dt.month
+df_consumo_interno_cmv['Ano'] = pd.to_datetime(df_consumo_interno_cmv['Mes_Ano'], errors='coerce').dt.year
+df_consumo_interno_cmv = df_consumo_interno_cmv[['ID_Casa', 'Casa', 'Mês', 'Ano', 'Consumo Interno']]
 
 # Cálculo CMV meses anteriores
 df_calculo_cmv = merge_e_calculo_para_cmv(
@@ -231,6 +237,8 @@ lista_categorias_despesas = [
 lista_df_projecao_despesas = loop_prepara_dados_despesas(
     lista_categorias_despesas,
     df_descontos, 
+    df_consumo_interno_cmv,
+    df_consumo_cartao_black,
     df_aut_blue_me_sem_pedido, 
     df_aut_blue_me_com_pedido,
     df_faturamento_meses_futuros, 
@@ -262,8 +270,8 @@ mapa_insercao = { # Mapa inserção das linhas de '% sobre Receita' de cada clas
     'Custos Artístico Geral': 'Viagens e Estadias - Artístico',             
     'Custos de Eventos': 'Viagens e Estadias - Eventos',                 
     'Gorjeta': '  -  Comissões e Gorjeta',                            
-    'Deduções sobre Venda': '',               
-    'Mão de Obra - PJ': 'Outros D',                             
+    'Deduções sobre Venda': 'Outros D',               
+    'PESSOAL': '  -  Vale-transporte',                             
     'Custo de Ocupação': 'Taxas publicas administrativas - Ocupação',                  
     'Utilidades': 'Utensilios',                         
     'Informática e TI': 'Telefone',                   

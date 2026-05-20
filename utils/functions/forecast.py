@@ -634,14 +634,14 @@ def config_transferencias_gastos(data_inicio, data_fim, loja):
     df_transf_e_gastos = df_transf_e_gastos[cols]
 
     # Conversão para float para evitar erros de tipo
-    saida_alimentos = float(df_saidas_pivot['Saída Alimentos'].iloc[0]) if not df_saidas_pivot.empty and 'Saída Alimentos' in df_saidas_pivot.columns else 0.0
-    saida_bebidas = float(df_saidas_pivot['Saída Bebidas'].iloc[0]) if not df_saidas_pivot.empty and 'Saída Bebidas' in df_saidas_pivot.columns else 0.0
-    entrada_alimentos = float(df_entradas_pivot['Entrada Alimentos'].iloc[0]) if not df_entradas_pivot.empty and 'Entrada Alimentos' in df_entradas_pivot.columns else 0.0
-    entrada_bebidas = float(df_entradas_pivot['Entrada Bebidas'].iloc[0]) if not df_entradas_pivot.empty and 'Entrada Bebidas' in df_entradas_pivot.columns else 0.0
-    consumo_interno = float(df_transf_e_gastos['Consumo Interno'].iloc[0]) if not df_perdas_e_consumo.empty and 'Consumo Interno' in df_transf_e_gastos.columns else 0.0
-    quebras_e_perdas = float(df_transf_e_gastos['Quebras e Perdas'].iloc[0]) if not df_perdas_e_consumo.empty and 'Quebras e Perdas' in df_transf_e_gastos.columns else 0.0
+    # saida_alimentos = float(df_saidas_pivot['Saída Alimentos'].iloc[0]) if not df_saidas_pivot.empty and 'Saída Alimentos' in df_saidas_pivot.columns else 0.0
+    # saida_bebidas = float(df_saidas_pivot['Saída Bebidas'].iloc[0]) if not df_saidas_pivot.empty and 'Saída Bebidas' in df_saidas_pivot.columns else 0.0
+    # entrada_alimentos = float(df_entradas_pivot['Entrada Alimentos'].iloc[0]) if not df_entradas_pivot.empty and 'Entrada Alimentos' in df_entradas_pivot.columns else 0.0
+    # entrada_bebidas = float(df_entradas_pivot['Entrada Bebidas'].iloc[0]) if not df_entradas_pivot.empty and 'Entrada Bebidas' in df_entradas_pivot.columns else 0.0
+    # consumo_interno = float(df_transf_e_gastos['Consumo Interno'].iloc[0]) if not df_perdas_e_consumo.empty and 'Consumo Interno' in df_transf_e_gastos.columns else 0.0
+    # quebras_e_perdas = float(df_transf_e_gastos['Quebras e Perdas'].iloc[0]) if not df_perdas_e_consumo.empty and 'Quebras e Perdas' in df_transf_e_gastos.columns else 0.0
 
-    return df_transf_e_gastos, saida_alimentos, saida_bebidas, entrada_alimentos, entrada_bebidas, consumo_interno, quebras_e_perdas
+    return df_transf_e_gastos #, saida_alimentos, saida_bebidas, entrada_alimentos, entrada_bebidas, consumo_interno, quebras_e_perdas
 
 
 def config_valoracao_estoque_ou_producao(tipo, data_inicio, data_fim, loja):
@@ -886,37 +886,54 @@ def calcula_cmv_proximos_meses(df_faturamento_meses_futuros, df_calculo_cmv, ano
 
 ############################################ PROJEÇÃO DESPESAS - PRÓXIMOS MESES ############################################
 
-def merge_despesas_complexas(df_tabela_primaria, df_tabela_secundaria, casa, class_cont):
+def merge_despesas_complexas(df_tabela_primaria, df_tabela_secundaria, df_tabela_terciaria, df_tabela_quaternaria, casa, class_cont):
     df_tabela_secundaria_filtrada = df_tabela_secundaria[df_tabela_secundaria['Casa'] == casa].copy()
 
-    if class_cont in ['Custos Artístico Geral', 'Marketing', 'Mão de Obra - Benefícios']: # merge com Descontos
+    if class_cont in ['Custos Artístico Geral', 'Marketing', 'Informática e TI', 'Mão de Obra - Benefícios']: # merge com Descontos
         df_tabela_secundaria_filtrada = df_tabela_secundaria_filtrada.groupby(['Casa', 'Mês', 'Ano', 'Centro de Custo'], as_index=False)['Aloca no Centro de Custo'].sum()
 
         df_tabela_resultante = pd.merge(
-            df_tabela_primaria,
-            df_tabela_secundaria_filtrada,
+            df_tabela_primaria, df_tabela_secundaria_filtrada,
             left_on=['Casa', 'Mês', 'Ano', 'Classificacao_Contabil_2'],
             right_on=['Casa', 'Mês', 'Ano', 'Centro de Custo'],
             how='outer'
         )
     
         if class_cont == 'Custos Artístico Geral': categorias_consideradas_descontos = ['Alimentação e Transporte']
-        elif class_cont == 'Marketing': categorias_consideradas_descontos = ['Eventos de Marketing', 'Produção Gráfica e Material Institucional']
+        elif class_cont == 'Marketing': categorias_consideradas_descontos = ['Eventos de Marketing', 'Produção Gráfica e Material Institucional', 'Ferramentas de Marketing']
+        elif class_cont == 'Informática e TI': categorias_consideradas_descontos = ['Sistemas Gerais - Operacionais']
         elif class_cont == 'Mão de Obra - Benefícios': categorias_consideradas_descontos = ['  -  Alimentação Funcionário']
 
-        condicao = (
-            df_tabela_resultante['Centro de Custo'].isin(categorias_consideradas_descontos) &
-            df_tabela_resultante['Classificacao_Contabil_2'].isna()
-        )
+        condicao = (df_tabela_resultante['Centro de Custo'].isin(categorias_consideradas_descontos) & df_tabela_resultante['Classificacao_Contabil_2'].isna())
 
         df_tabela_resultante.loc[condicao, 'Classificacao_Contabil_2'] = df_tabela_resultante['Centro de Custo']
         df_tabela_resultante['Custo Real'] = df_tabela_resultante['Custo Real'].fillna(0)
         df_tabela_resultante['Aloca no Centro de Custo'] = df_tabela_resultante['Aloca no Centro de Custo'].fillna(0)
 
-        condicao = df_tabela_resultante['Classificacao_Contabil_2'].isin(['Alimentação e Transporte', 'Eventos de Marketing', 'Produção Gráfica e Material Institucional', '  -  Alimentação Funcionário'])
+        condicao = df_tabela_resultante['Classificacao_Contabil_2'].isin(['Alimentação e Transporte', 'Eventos de Marketing', 'Produção Gráfica e Material Institucional', 'Ferramentas de Marketing', 'Sistemas Gerais - Operacionais', '  -  Alimentação Funcionário'])
         df_tabela_resultante.loc[condicao, 'Custo Real'] = df_tabela_resultante['Custo Real'] + df_tabela_resultante['Aloca no Centro de Custo']
         df_tabela_resultante = df_tabela_resultante.drop(columns=['Centro de Custo', 'Aloca no Centro de Custo'])
         df_tabela_resultante = df_tabela_resultante.dropna(subset=['Classificacao_Contabil_2'])
+
+        if class_cont == 'Mão de Obra - Benefícios': # Alimentação Funcionário envolve CMV e Cartão Black
+            # Consumo Interno - CMV
+            df_tabela_resultante = pd.merge( df_tabela_resultante, df_tabela_terciaria, on=['Casa', 'Mês', 'Ano'], how='left')
+            condicao = df_tabela_resultante['Classificacao_Contabil_2'] == '  -  Alimentação Funcionário'
+            df_tabela_resultante.loc[condicao, 'Custo Real'] = df_tabela_resultante['Custo Real'] + df_tabela_resultante['Consumo Interno']
+            df_tabela_resultante = df_tabela_resultante.drop(columns=['ID_Casa', 'Consumo Interno'])
+
+            # Consumo - Cartão Black
+            if casa not in ['Arcos', 'Blue Note - São Paulo', 'Love Cabaret', 'Ultra Evil Premium Ltda ']:
+                df_tabela_quaternaria_filtrada = df_tabela_quaternaria[df_tabela_quaternaria['Casa'] == casa].copy()
+                df_tabela_quaternaria_filtrada = df_tabela_quaternaria_filtrada.groupby(['Casa', 'Mês', 'Ano'], as_index=False)['Valor Cartão Black'].sum()
+                df_tabela_resultante = pd.merge(
+                    df_tabela_resultante, df_tabela_quaternaria_filtrada[['Casa', 'Mês', 'Ano', 'Valor Cartão Black']], 
+                    on=['Casa', 'Mês', 'Ano'], 
+                    how='left'
+                )
+                condicao = df_tabela_resultante['Classificacao_Contabil_2'] == '  -  Alimentação Funcionário'
+                df_tabela_resultante.loc[condicao, 'Custo Real'] = df_tabela_resultante['Custo Real'] + df_tabela_resultante['Valor Cartão Black']
+                df_tabela_resultante = df_tabela_resultante.drop(columns=['Valor Cartão Black'])
 
     elif class_cont in ['Gorjeta', 'Mão de Obra - Salários']: # merge com folha de pagamento
         df_tabela_secundaria_filtrada = df_tabela_secundaria_filtrada.groupby(['Casa', 'Mês', 'Ano'], as_index=False)['Valor'].sum()
@@ -955,7 +972,7 @@ def merge_despesas_complexas(df_tabela_primaria, df_tabela_secundaria, casa, cla
     return df_tabela_resultante
 
 
-def prepara_dados_custos_mensais(df_custos_gerais, df_faturamento_meses_futuros, casa, class_cont, df_orcamentos, df_aut_blue_me_com_pedido=None, df_tabela_secundaria=None):
+def prepara_dados_custos_mensais(df_custos_gerais, df_faturamento_meses_futuros, casa, class_cont, df_orcamentos, df_aut_blue_me_com_pedido=None, df_tabela_secundaria=None, df_tabela_terciaria=None, df_tabela_quaternaria=None):
     # Filtra pela casa
     df_custos_filtrado = df_custos_gerais[df_custos_gerais['Casa'] == casa ].copy()
     
@@ -1051,8 +1068,8 @@ def prepara_dados_custos_mensais(df_custos_gerais, df_faturamento_meses_futuros,
     df_custos_filtrado_mensal = df_custos_filtrado_mensal.rename(columns={col_valor:'Custo Real'})
 
     # Casos em que o custo mensal não depende apenas da aut_blue_me_sem_pedido: merge com outra tabela
-    if class_cont in ['Mão de Obra - Salários', 'Gorjeta', 'Custos Artístico Geral', 'Marketing', 'Mão de Obra - Benefícios', 'Patrocínio']: 
-        df_custos_filtrado_mensal = merge_despesas_complexas(df_custos_filtrado_mensal, df_tabela_secundaria, casa, class_cont)
+    if class_cont in ['Mão de Obra - Salários', 'Gorjeta', 'Custos Artístico Geral', 'Marketing', 'Informática e TI', 'Mão de Obra - Benefícios', 'Patrocínio']: 
+        df_custos_filtrado_mensal = merge_despesas_complexas(df_custos_filtrado_mensal, df_tabela_secundaria, df_tabela_terciaria, df_tabela_quaternaria, casa, class_cont)
 
     if class_cont == 'Utilidades':
         df_aut_filtrado = df_aut_blue_me_com_pedido[
@@ -1262,7 +1279,7 @@ def filtra_despesas_mes_ano_selecionados(df, mes, ano):
     return df_filtrado
 
 
-def loop_prepara_dados_despesas(lista_categorias_despesas, df_descontos, df_aut_blueme_sem_pedido, df_aut_blue_me_com_pedido, df_faturamento_meses_futuros, df_aut_folha, df_orcamentos, df_receitas_patrocinio, df_ajustes_manuais, df_resultados, casa, mes_selecionado, ano_selecionado):
+def loop_prepara_dados_despesas(lista_categorias_despesas, df_descontos, df_consumo_interno_cmv, df_consumo_cartao_black, df_aut_blueme_sem_pedido, df_aut_blue_me_com_pedido, df_faturamento_meses_futuros, df_aut_folha, df_orcamentos, df_receitas_patrocinio, df_ajustes_manuais, df_resultados, casa, mes_selecionado, ano_selecionado):
     for categoria_despesa in lista_categorias_despesas:
         # Define df de despesas utilizado pela categoria
         if categoria_despesa == 'Desconto sobre Venda':
@@ -1270,15 +1287,23 @@ def loop_prepara_dados_despesas(lista_categorias_despesas, df_descontos, df_aut_
         else:
             df_despesas = df_aut_blueme_sem_pedido.copy()
         
-        # Define df de despesas secundárias utilizado pela categoria
-        if categoria_despesa == 'Custos Artístico Geral' or categoria_despesa == 'Mão de Obra - Benefícios' or categoria_despesa == 'Marketing':
+        # Define df de despesas complementares utilizado pela categoria
+        if categoria_despesa in ['Custos Artístico Geral', 'Marketing', 'Informática e TI', 'Mão de Obra - Benefícios']:
             df_tabela_secundaria = df_descontos.copy()
+            df_tabela_terciaria = df_consumo_interno_cmv.copy()
+            df_tabela_quaternaria = df_consumo_cartao_black.copy()
         elif categoria_despesa == 'Gorjeta' or categoria_despesa == 'Mão de Obra - Salários':
             df_tabela_secundaria = df_aut_folha.copy()
+            df_tabela_terciaria = None
+            df_tabela_quaternaria = None
         elif categoria_despesa == 'Patrocínio':
-            df_tabela_secundaria = df_receitas_patrocinio
+            df_tabela_secundaria = df_receitas_patrocinio.copy()
+            df_tabela_terciaria = None
+            df_tabela_quaternaria = None
         else: 
             df_tabela_secundaria = None
+            df_tabela_terciaria = None
+            df_tabela_quaternaria = None
 
         # Utilidades utiliza também dados de blue me com pedido
         if categoria_despesa == 'Utilidades':
@@ -1286,13 +1311,17 @@ def loop_prepara_dados_despesas(lista_categorias_despesas, df_descontos, df_aut_
         else:
             df_aut_blueme_com_pedido = None
         
-        # if categoria_despesa == 'Dividendos e Remunerações Variáveis': # Concatena com outra tabela (Endividamentos) 
-        #     df_aut_endividamentos['Cargo_DRE'] = None # Adequar para concatenação
-        #     df_aut_endividamentos = df_aut_endividamentos[df_aut_endividamentos['Classificacao_Contabil_1'] == 'Endividamento'].copy() # Apenas plano contabil de 2025
-        #     df_aut_endividamentos['Classificacao_Contabil_1'] = df_aut_endividamentos['Classificacao_Contabil_1'].replace('Endividamento', 'Dividendos e Remunerações Variáveis')
-        #     df_despesas = pd.concat([df_despesas, df_aut_endividamentos])
-
-        df_despesas_mensais_passadas = prepara_dados_custos_mensais(df_despesas, df_faturamento_meses_futuros, casa, categoria_despesa, df_orcamentos, df_aut_blue_me_com_pedido=df_aut_blueme_com_pedido, df_tabela_secundaria=df_tabela_secundaria)
+        df_despesas_mensais_passadas = prepara_dados_custos_mensais(
+            df_despesas, 
+            df_faturamento_meses_futuros, 
+            casa, 
+            categoria_despesa, 
+            df_orcamentos, 
+            df_aut_blue_me_com_pedido=df_aut_blueme_com_pedido, 
+            df_tabela_secundaria=df_tabela_secundaria, 
+            df_tabela_terciaria=df_tabela_terciaria, 
+            df_tabela_quaternaria=df_tabela_quaternaria
+        )
        
         # Merge com ajustes manuais para despesas que tem lançamento de ajuste
         df_ajustes_categoria = df_ajustes_manuais[
@@ -1507,9 +1536,7 @@ def define_linhas_calculadas(df_dre, colunas_valores, lista_categorias_despesas,
             ]:
             custos_categoria = df_final[df_final['Categoria'] == categoria][colunas_valores].sum()
             porc_faturamento_bruto_categoria = (custos_categoria / faturamento_bruto).round(2)
-            if categoria == 'PESSOAL':
-                apos_linha = 'Contribuição Sindical Assistencial   '
-            elif categoria in ['MARGEM BRUTA DE CONTRIBUIÇÃO', 'TOTAL - DESPESAS OPERATIVAS', 'EBITDA']:
+            if categoria in ['MARGEM BRUTA DE CONTRIBUIÇÃO', 'TOTAL - DESPESAS OPERATIVAS', 'EBITDA']:
                 apos_linha = categoria
             else:
                 apos_linha = mapa_insercao.get(categoria, categoria)

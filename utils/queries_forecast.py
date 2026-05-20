@@ -1076,3 +1076,27 @@ def GET_AJUSTES_MANUAIS_DRE():
     LEFT JOIN T_CLASSIFICACAO_CONTABIL_GRUPO_1 tccg1 ON (tam.FK_CLASSIFICACAO_CONTABIL_1 = tccg1.ID)
     LEFT JOIN T_CLASSIFICACAO_CONTABIL_GRUPO_2 tccg2 ON (tam.FK_CLASSIFICACAO_CONTABIL_2 = tccg2.ID);                                                                                        
     ''')
+
+
+@st.cache_data
+def GET_CONSUMO_CARTAO_BLACK():
+    return dataframe_query(f'''
+    SELECT 
+        tccb.CARTAO_FB,
+        tccb.NOME,
+        tccb.CENTRO_CUSTO,                                                                                
+        CASE
+            WHEN te.ID IN (161, 162) THEN 149
+            ELSE te.ID    
+        END AS 'ID_Casa', 
+        CASE
+            WHEN te.ID IN (161, 162) THEN 'Priceless'
+            ELSE te.NOME_FANTASIA    
+        END AS 'Casa',                  
+        tccb.MES AS 'Mês',
+        tccb.ANO AS 'Ano',
+        tccb.VALOR AS 'Valor Cartão Black'
+    FROM T_CONSUMO_CARTAO_BLACK AS tccb
+    LEFT JOIN T_EMPRESAS AS te ON (tccb.FK_EMPRESA = te.ID)
+    WHERE te.ID IN (127, 114, 148, 116, 156, 105, 104, 115, 162);                                                                                  
+    ''')
