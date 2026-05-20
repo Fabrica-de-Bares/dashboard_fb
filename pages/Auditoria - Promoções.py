@@ -189,6 +189,7 @@ else: # Se arquivo adicionado, prossegue
         with col2:
             button_download(df_download, f"CARTAO_BLACK_{mes}{ano}", f"Cartão Black - {mes}{ano}")
         
+        df_download = df_download.sort_values(by=['NOME'])
         st.dataframe(df_download, hide_index=True)
         
 
