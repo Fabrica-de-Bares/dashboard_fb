@@ -5,7 +5,6 @@ import numpy as np
 
 
 def prepara_dados_faturamento_orcamento(df_historico_real_dre, df_orcamento_operacional, casa, datas, class_cont):
-    
     # --- Normaliza nome da casa ---
     if casa == 'Girondino - Agregado':
         df_historico_real_dre['Casa'] = df_historico_real_dre['Casa'].replace('Girondino - CCBB', 'Girondino')
@@ -107,7 +106,7 @@ def prepara_dados_faturamento_orcamento(df_historico_real_dre, df_orcamento_oper
         ]
         df_orcamento_categoria = df_orcamento_ano_atual[df_orcamento_ano_atual['Classificação Contábil 1'].isin(cats_ebitda)].copy()
         df_orcamento_categoria.loc[df_orcamento_categoria['Classificação Contábil 1'] != 'Faturamento Bruto', 'Orçamento'] *= -1
-
+        # df_acumulado_categoria = df_orcamento_categoria[df_orcamento_categoria['Mês'] <= datas['mes_atual'] - 1].groupby(['Ano', 'Classificação Contábil 1'], as_index=False)['Orçamento'].sum()
     else:
         df_orcamento_categoria = df_orcamento_ano_atual[df_orcamento_ano_atual['Classificação Contábil 2'].isin(class_cont)].copy()
 
