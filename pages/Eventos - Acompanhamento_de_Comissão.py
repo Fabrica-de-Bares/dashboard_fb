@@ -358,7 +358,7 @@ def main():
         col1, col2, col3 = st.columns([0.1, 2.6, 0.1], gap="large", vertical_alignment="center")
         with col2:
             # Exibe os KPIs
-            st.markdown(f"## Resumo Final da Comissão - {casa} - {nome_vendedor} - {mes}/{ano}")
+            st.markdown(f"## Resumo Final da Comissão - {casa} - {mes}/{ano}")
             col1, col2, col3, col4, col5 = st.columns(5)
             with col1:
                 kpi_card("Orçamento do Mês", f"R$ {format_brazilian(orcamento_mes)}", "rgb(30, 58, 138)", "white", "white")
