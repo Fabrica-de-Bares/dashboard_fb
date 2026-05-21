@@ -279,7 +279,7 @@ def GET_ORCAMENTO_OPERACIONAL():
             WHEN tccg2.DESCRICAO IN ('Desconto - Alimentação Escritório', 'Descontos - Marketing', 'Descontos - Operação') THEN 'Desconto sobre Venda'  
             WHEN tccg2.DESCRICAO IN ('MDO Terceirizada - Artístico') THEN 'Custos Artístico Geral'
             WHEN tccg2.DESCRICAO IN ('MDO Terceirizada - Eventos') THEN 'Custos de Eventos'
-            WHEN tccg1.DESCRICAO = 'Mão de Obra - Pro Labores' THEN 'Mão de Obra - Benefícios' -- considera como Despesas Gerais                  
+            WHEN tccg1.DESCRICAO = 'Mão de Obra - Pro Labores' THEN 'Mão de Obra - Benefícios'                  
             ELSE tccg1.DESCRICAO                            
         END as 'Classificação Contábil 1',               
         tccg2.DESCRICAO AS 'Classificação Contábil 2'
