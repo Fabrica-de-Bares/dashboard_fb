@@ -40,7 +40,7 @@ def main():
         # Puxando a base de empresas
         companies_ = companies(data_inicio, data_fim)
         # Filtro de Casas
-        df_companies_selected = input_multiselecao_casas(lista_casas_retirar=['Todas as Casas'], key='casas_pedido_compras')
+        df_companies_selected = input_multiselecao_casas(lista_casas_retirar=[], key='casas_pedido_compras')
         companies_selected = df_companies_selected['Casa'].to_list()
         # Caso nenhum esteja selecionado mostra todos
         if not companies_selected:

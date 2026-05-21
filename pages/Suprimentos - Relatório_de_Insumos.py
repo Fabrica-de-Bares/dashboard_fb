@@ -60,7 +60,7 @@ def main():
 		inputsExpenses = inputsExpenses[inputsExpenses['Data Competencia'].between(data_inicio, data_fim)]
 		# Casas
 		with col2:
-			lista_casas_retirar = ['Todas as Casas']
+			lista_casas_retirar = []
 			df_companies_filtered = input_multiselecao_casas(lista_casas_retirar, 'casas_suprimentos')
 			companies_filtered = df_companies_filtered['Casa'].to_list()
 		st.divider()
