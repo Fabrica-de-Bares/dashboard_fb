@@ -43,6 +43,7 @@ lista_cargos = df_cargos_abas['Cargo'].unique().tolist()
 
 # Cria df com cada usuário, seu cargo e lista de empresas
 lista_usuarios = df_usuarios_cargos['Nome Usuário'].unique().tolist()
+lista_usuarios = [usu for usu in lista_usuarios if usu != None] # Verificação de segurança
 df_usu_cargo_emp = pd.DataFrame(columns=['ID Usuário', 'Login Usuário', 'Nome Usuário', 'Cargo', 'Empresas'])
 
 for usuario in lista_usuarios:
