@@ -61,6 +61,8 @@ df_orcamentos = GET_ORCAMENTOS()
 df_faturamento_agregado_mes = GET_FATURAMENTO_CATEGORIA_MENSAL(df_faturamento_agregado_dia, df_descontos, df_promocoes, df_faturamento_eventos_inicial)
 
 df_aut_blue_me_sem_pedido = GET_AUT_BLUE_ME_SEM_PEDIDO() # Dados - Despesas por classificação contábil
+# df_teste = df_aut_blue_me_sem_pedido[(df_aut_blue_me_sem_pedido['Casa'] == 'Love Cabaret') & (df_aut_blue_me_sem_pedido['Classificacao_Contabil_1'] == 'Custos Artístico Geral')]
+# st.write(df_teste)
 df_aut_folha = GET_AUT_FOLHA_PAGAMENTO() 
 df_ajustes_manuais = GET_AJUSTES_MANUAIS_DRE() 
 df_consumo_cartao_black = GET_CONSUMO_CARTAO_BLACK() 
@@ -73,6 +75,7 @@ PORC_ISS = 0.05
 PORC_PIS = 0.0065
 PORC_COFINS = 0.03
 PORC_ICMS = 0.04
+PORC_FEE_GESTAO = 0.05 # Calculado para casas 100% FB
 
 
 ###################### PROJEÇÃO DE FATURAMENTO - MÊS CORRENTE ###################### 
@@ -140,12 +143,19 @@ PORC_ICMS = 0.04
 ###################### PROJEÇÃO DE FATURAMENTO - DRE ###################### 
 
 # Prepara df de faturamento agregado mensal para a casa selecionada
-df_faturamento_mes_casa, df_faturamento_orcamento = prepara_dados_faturamento_orcamentos_mensais(id_casa, df_orcamentos, df_faturamento_agregado_mes, datas['ano_passado'], datas['ano_atual'])
+df_faturamento_mes_casa, df_faturamento_orcamento = prepara_dados_faturamento_orcamentos_mensais(id_casa, df_orcamentos, df_faturamento_agregado_mes, df_ajustes_manuais, datas['ano_passado'], datas['ano_atual'], ano_selecionado)
 lista_itens_faturamento = df_faturamento_orcamento['Categoria'].unique().tolist() # Para exibir todos os itens de faturamento, mesmo que não haja valor para a casa
+
+# Faturamento Bruto do mês e Fee Gestão
 valor_fat_bruto_mes = (df_faturamento_mes_casa[
     (df_faturamento_mes_casa['Ano'] == ano_selecionado) &
     (df_faturamento_mes_casa['Mês'] == mes_selecionado)
 ])['Valor Bruto'].sum()
+
+df_valor_fee_gestao = df_faturamento_mes_casa.groupby(['ID_Casa', 'Casa', 'Mês', 'Ano'], as_index=False)['Valor Bruto'].sum()
+df_valor_fee_gestao['Valor Bruto'] = df_valor_fee_gestao['Valor Bruto'] * PORC_FEE_GESTAO
+df_valor_fee_gestao['Classificacao_Contabil_1'] = 'Sistema de Franquias'
+df_valor_fee_gestao['Classificacao_Contabil_2'] = 'Fee Gestão FB'
 
 # Cria combinação das categorias de faturamento com meses do ano (desde 2025)
 df_meses_futuros_com_categorias = lista_meses_ano(lista_itens_faturamento)
@@ -159,7 +169,7 @@ df_faturamento_para_impostos = df_faturamento_meses_futuros.copy()
 lista_itens_impostos = ['ISS', 'ICMS', 'PIS', 'COFINS', 'PIS / COFINS'] 
 df_impostos_meses_futuros = lista_meses_ano(lista_itens_impostos)
 
-df_projecao_impostos = projecao_impostos(df_faturamento_para_impostos, lista_itens_impostos, df_impostos_meses_futuros, PORC_ISS, PORC_ICMS, PORC_PIS, PORC_COFINS)
+df_projecao_impostos = projecao_impostos(df_faturamento_para_impostos, lista_itens_impostos, df_impostos_meses_futuros, PORC_ISS, PORC_ICMS, PORC_PIS, PORC_COFINS, casa)
 df_impostos_dre = formata_impostos_para_dre(df_projecao_impostos, df_orcamentos, casa, mes_selecionado, ano_selecionado)
 
 
@@ -170,6 +180,15 @@ df_compras, df_aut_blue_me_com_pedido, compras_alimentos, compras_bebidas = conf
 df_valoracao_estoque = config_valoracao_estoque_ou_producao('estoque', datas['jan_ano_passado'], datas['dez_ano_atual'], casa)
 df_transf_e_gastos = config_transferencias_gastos(datas['jan_ano_passado'], datas['dez_ano_atual'], casa)
 df_valoracao_producao = config_valoracao_estoque_ou_producao('producao', datas['jan_ano_passado'], datas['dez_ano_atual'], casa)
+
+# df_aut_blue_me_com_pedido['Data_Emissao'] = pd.to_datetime(df_aut_blue_me_com_pedido['Data_Emissao'], errors='coerce')
+# df_hig_limpeza = df_aut_blue_me_com_pedido[
+#     (df_aut_blue_me_com_pedido['Casa'] == 'Jacaré') & 
+#     (df_aut_blue_me_com_pedido['Data_Emissao'].dt.month == 2) &
+#     (df_aut_blue_me_com_pedido['Data_Emissao'].dt.year == 2026) &
+#     (df_aut_blue_me_com_pedido['Valor_Utensilios'] != 0)
+#     ]
+# st.write(df_hig_limpeza)
 
 # Consumo Interno - merge com Mão de Obra - Benefícios
 df_consumo_interno_cmv = df_transf_e_gastos.copy()
@@ -246,6 +265,7 @@ lista_df_projecao_despesas = loop_prepara_dados_despesas(
     df_orcamentos, 
     df_parc_receitas_extr_patrocinio,
     df_ajustes_manuais,
+    df_valor_fee_gestao,
     lista_df_projecao_despesas, 
     casa, 
     mes_selecionado, 
@@ -258,7 +278,7 @@ df_despesas_concatenadas = pd.concat(lista_df_projecao_despesas, ignore_index=Tr
 df_layout_dre = aplica_layout_dre(df_faturamento_meses_futuros, df_impostos_dre, df_cmv_meses_anteriores_seguintes, df_despesas_concatenadas, mes_selecionado, ano_selecionado)
 
 # Remove linhas que não quero exibir ou renomeia
-df_layout_dre = df_layout_dre[~df_layout_dre['Categoria'].isin(['Patrocínio', 'Endividamento'])].reset_index(drop=True)
+df_layout_dre = df_layout_dre[~df_layout_dre['Categoria'].isin(['Patrocínio', 'Endividamento', 'Custas Cartório / Operação'])].reset_index(drop=True)
 df_layout_dre['Categoria'] = df_layout_dre['Categoria'].replace({
     'Dividendos e Remunerações Variáveis': '(+/-) Outras variações no fluxo de caixa',
     'Despesas Financeiras': '(+/-) Receitas/Despesas Financeiras',

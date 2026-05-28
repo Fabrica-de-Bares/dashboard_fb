@@ -767,13 +767,16 @@ def GET_EVENTOS_CMV(data_inicio, data_fim):
 @st.cache_data
 def GET_AUT_BLUE_ME_SEM_PEDIDO():
     return dataframe_query(f'''
-    SELECT
+    SELECT DISTINCT
+        tdr.ID,                   
         CASE
             WHEN te.ID = 131 THEN 110
+            WHEN te.ID IN (161, 162) THEN 149              
             ELSE te.ID    
         END AS 'ID_Casa', 
         CASE
-            WHEN te.NOME_FANTASIA = 'Blue Note SP (Novo)' THEN 'Blue Note - São Paulo'
+            WHEN te.ID = 131 THEN 'Blue Note - São Paulo'
+            WHEN te.ID IN (161, 162) THEN 'Priceless'               
             ELSE te.NOME_FANTASIA    
         END AS 'Casa', 
         STR_TO_DATE(tdr.COMPETENCIA, '%Y-%m-%d') AS 'Data_Competencia',
@@ -784,6 +787,7 @@ def GET_AUT_BLUE_ME_SEM_PEDIDO():
         tdr.VALOR_LIQUIDO AS 'Valor_Liquido',
         CASE
             WHEN tccg.DESCRICAO = 'Despesas com Transporte / Hospedagem' THEN 'Manutenção' -- considera como Despesas Gerais  
+            WHEN tccg2.DESCRICAO = '  -  Pro Labore' THEN 'Mão de Obra - Benefícios'            
             ELSE tccg.DESCRICAO                            
         END as 'Classificacao_Contabil_1',
         tccg2.DESCRICAO as 'Classificacao_Contabil_2',
@@ -801,6 +805,7 @@ def GET_AUT_BLUE_ME_SEM_PEDIDO():
     AND tccg.ID NOT IN (165,206,244)          
     UNION ALL
     SELECT   # Aut_Endividamentos (Ações Trabalhistas e Endividamentos)
+        tdr.ID,                   
         CASE
             WHEN te.ID = 131 THEN 110
             ELSE te.ID    
@@ -871,6 +876,7 @@ def GET_AUT_BLUE_ME_COM_PEDIDO():
             LEFT JOIN T_INSUMOS_NIVEL_2 tin2 ON tin3.FK_INSUMOS_NIVEL_2 = tin2.ID
             LEFT JOIN T_INSUMOS_NIVEL_1 tin1 ON tin2.FK_INSUMOS_NIVEL_1 = tin1.ID
             WHERE tdri.ID IS NOT NULL
+            AND tdr.BIT_CANCELADA = 0
             GROUP BY tdr.ID, tdr.FK_LOJA, tdr.COMPETENCIA, tdr.VALOR_LIQUIDO, tf.CORPORATE_NAME
         )
         SELECT
@@ -887,7 +893,8 @@ def GET_AUT_BLUE_ME_COM_PEDIDO():
             ROUND((dci.VALOR_LIQUIDO * (dci.Valor_Outros / dci.Valor_Total_Insumos)), 2) AS Valor_Liq_Outros
         FROM despesa_com_insumos dci
         JOIN T_EMPRESAS te ON dci.FK_LOJA = te.ID
-        WHERE te.ID <> 135 AND YEAR(STR_TO_DATE(dci.COMPETENCIA, '%Y-%m-%d')) > 2024
+        WHERE te.ID <> 135 
+        AND YEAR(STR_TO_DATE(dci.COMPETENCIA, '%Y-%m-%d')) > 2024
         ORDER BY dci.ID;
     ''')
 
@@ -996,8 +1003,14 @@ def GET_INSUMOS_AGRUPADOS_BLUE_ME_POR_CATEG_COM_PEDIDO_PERIODO_LOJA():
 def GET_AUT_FOLHA_PAGAMENTO():
     return dataframe_query(f'''
     SELECT
-        te.ID AS 'ID_Casa',
-        te.NOME_FANTASIA AS 'Casa',
+        CASE 
+            WHEN te.ID = 131 THEN 110
+            ELSE te.ID                                  
+        END AS 'ID_Casa',
+        CASE
+            WHEN te.ID = 131 THEN 'Blue Note - São Paulo'
+            ELSE te.NOME_FANTASIA 
+        END AS 'Casa',
         tffs.CNPJ AS 'CNPJ_CASA',
         tffs.NUMERO_MATRICULA AS 'NUM_MATRICULA_FUNC',
         tffs.NOME AS 'NOME_FUNC',
