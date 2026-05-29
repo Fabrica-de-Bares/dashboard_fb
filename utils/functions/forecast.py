@@ -916,7 +916,6 @@ def merge_despesas_complexas(df_tabela_primaria, df_tabela_secundaria, df_tabela
 
     if class_cont in ['Custos Artístico Geral', 'Marketing', 'Informática e TI', 'Mão de Obra - Benefícios']: # merge com Descontos
         df_tabela_secundaria_filtrada = df_tabela_secundaria_filtrada.groupby(['Casa', 'Mês', 'Ano', 'Centro de Custo'], as_index=False)['Aloca no Centro de Custo'].sum()
-
         df_tabela_resultante = pd.merge(
             df_tabela_primaria, df_tabela_secundaria_filtrada,
             left_on=['Casa', 'Mês', 'Ano', 'Classificacao_Contabil_2'],
@@ -930,7 +929,6 @@ def merge_despesas_complexas(df_tabela_primaria, df_tabela_secundaria, df_tabela
         elif class_cont == 'Mão de Obra - Benefícios': categorias_consideradas_descontos = ['  -  Alimentação Funcionário']
 
         condicao = (df_tabela_resultante['Centro de Custo'].isin(categorias_consideradas_descontos) & df_tabela_resultante['Classificacao_Contabil_2'].isna())
-
         df_tabela_resultante.loc[condicao, 'Classificacao_Contabil_2'] = df_tabela_resultante['Centro de Custo']
         df_tabela_resultante['Custo Real'] = df_tabela_resultante['Custo Real'].fillna(0)
         df_tabela_resultante['Aloca no Centro de Custo'] = df_tabela_resultante['Aloca no Centro de Custo'].fillna(0)
@@ -945,8 +943,6 @@ def merge_despesas_complexas(df_tabela_primaria, df_tabela_secundaria, df_tabela
             df_tabela_terciaria['Classificacao_Contabil_2'] = '  -  Alimentação Funcionário'
             df_tabela_terciaria = df_tabela_terciaria[['Casa', 'Mês', 'Ano', 'Classificacao_Contabil_2', 'Consumo Interno']]
             df_tabela_terciaria = df_tabela_terciaria.rename(columns={'Consumo Interno': 'Custo Real'})
-
-            # df_tabela_resultante = df_tabela_resultante.drop(columns=['ID_Casa'])
             df_tabela_resultante = pd.concat([df_tabela_resultante, df_tabela_terciaria])
             df_tabela_resultante = df_tabela_resultante.groupby(['Casa', 'Mês', 'Ano', 'Classificacao_Contabil_2'], as_index=False)['Custo Real'].sum()
 
@@ -954,7 +950,6 @@ def merge_despesas_complexas(df_tabela_primaria, df_tabela_secundaria, df_tabela
             if casa not in ['Arcos', 'Blue Note - São Paulo', 'Love Cabaret', 'Ultra Evil Premium Ltda ']:
                 df_tabela_quaternaria_filtrada = df_tabela_quaternaria[df_tabela_quaternaria['Casa'] == casa].copy()
                 df_tabela_quaternaria_filtrada = df_tabela_quaternaria_filtrada.groupby(['Casa', 'Mês', 'Ano'], as_index=False)['Valor Cartão Black'].sum()
-
                 df_tabela_resultante = pd.merge(
                     df_tabela_resultante, df_tabela_quaternaria_filtrada[['Casa', 'Mês', 'Ano', 'Valor Cartão Black']], 
                     on=['Casa', 'Mês', 'Ano'], 
@@ -962,14 +957,12 @@ def merge_despesas_complexas(df_tabela_primaria, df_tabela_secundaria, df_tabela
                 )
                 df_tabela_resultante['Custo Real'] = df_tabela_resultante['Custo Real'].fillna(0)
                 df_tabela_resultante['Valor Cartão Black'] = df_tabela_resultante['Valor Cartão Black'].fillna(0)
-
                 condicao = df_tabela_resultante['Classificacao_Contabil_2'] == '  -  Alimentação Funcionário'
                 df_tabela_resultante.loc[condicao, 'Custo Real'] = df_tabela_resultante['Custo Real'] + df_tabela_resultante['Valor Cartão Black']
                 df_tabela_resultante = df_tabela_resultante.drop(columns=['Valor Cartão Black'])
 
     elif class_cont in ['Gorjeta', 'Mão de Obra - Salários']: # merge com folha de pagamento
         df_tabela_secundaria_filtrada = df_tabela_secundaria_filtrada.groupby(['Casa', 'Mês', 'Ano'], as_index=False)['Valor'].sum()
-
         df_tabela_resultante = pd.merge(
             df_tabela_primaria,
             df_tabela_secundaria_filtrada,
@@ -991,10 +984,27 @@ def merge_despesas_complexas(df_tabela_primaria, df_tabela_secundaria, df_tabela
         df_tabela_secundaria_filtrada['Classificacao_Contabil_2'] = '(+) Receitas de Patrocínio'
         df_tabela_secundaria_filtrada = df_tabela_secundaria_filtrada[['Casa', 'Mês', 'Ano', 'Classificacao_Contabil_2', 'Valor Bruto']]
         df_tabela_secundaria_filtrada = df_tabela_secundaria_filtrada.rename(columns={'Valor Bruto': 'Custo Real'})
-       
         df_tabela_resultante = pd.concat([df_tabela_primaria, df_tabela_secundaria_filtrada])
         df_tabela_resultante = df_tabela_resultante.groupby(['Casa', 'Mês', 'Ano', 'Classificacao_Contabil_2'], as_index=False)['Custo Real'].sum()
+
+    elif class_cont == 'Despesas Financeiras':
+        if casa in ['Bar Brahma - Centro', 'Bar Léo - Centro']:
+            df_tabela_secundaria_filtrada = df_tabela_secundaria_filtrada[df_tabela_secundaria_filtrada['Classificacao_Contabil_2'] == 'Aluguel de Imoveis'].copy()
+            df_tabela_secundaria_filtrada['Data_Competencia'] = pd.to_datetime(df_tabela_secundaria_filtrada['Data_Competencia'], errors='coerce')
+            df_tabela_secundaria_filtrada['Mês'] = df_tabela_secundaria_filtrada['Data_Competencia'].dt.month
+            df_tabela_secundaria_filtrada['Ano'] = df_tabela_secundaria_filtrada['Data_Competencia'].dt.year
+            df_tabela_secundaria_filtrada = df_tabela_secundaria_filtrada.groupby(['Casa', 'Mês', 'Ano'], as_index=False)[['Valor_Pagamento', 'Valor_Liquido']].sum()
+            df_tabela_resultante = pd.merge(
+                df_tabela_primaria, 
+                df_tabela_secundaria_filtrada[['Casa', 'Mês', 'Ano', 'Valor_Pagamento', 'Valor_Liquido']], 
+                on=['Casa', 'Mês', 'Ano'], 
+                how='left'
+            )
+            df_tabela_resultante['Custo Real'] = (df_tabela_resultante['Custo Real'] - df_tabela_resultante['Valor_Pagamento'] + df_tabela_resultante['Valor_Liquido_y'])
+            df_tabela_resultante.loc[df_tabela_resultante['Custo Real'] < 0, 'Custo Real'] *= (-1)
         
+        else: df_tabela_resultante = df_tabela_primaria.copy() # Outras casas não precisam do merge   
+
     return df_tabela_resultante
 
 
@@ -1004,16 +1014,24 @@ def prepara_dados_custos_mensais(df_custos_gerais, df_faturamento_meses_futuros,
 
     # Filtra por class. cont. 1
     if class_cont == 'Custos Artístico Geral': # Realoca MDO de PJ para Artístico
-        df_custos_filtrado = df_custos_filtrado[
-            (df_custos_filtrado['Classificacao_Contabil_1'] == class_cont) |
-            (df_custos_filtrado['Classificacao_Contabil_2'] == 'MDO Terceirizada - Artístico') 
-        ].copy()
+        if casa == 'Ultra Evil Premium Ltda ':
+            df_custos_filtrado = df_custos_filtrado[
+                ((df_custos_filtrado['Classificacao_Contabil_1'] == class_cont) &
+                (df_custos_filtrado['Classificacao_Contabil_2'] != 'MDO Terceirizada - Artístico')) |
+                (df_custos_filtrado['Fornecedor'] == 'JEFERSON LUIS DE GODOI ')
+            ].copy()
+            df_custos_filtrado['Classificacao_Contabil_2'] = df_custos_filtrado['Classificacao_Contabil_2'].replace('MDO PJ Fixo', 'MDO Terceirizada - Artístico')
+        else:   
+            df_custos_filtrado = df_custos_filtrado[
+                (df_custos_filtrado['Classificacao_Contabil_1'] == class_cont) |
+                (df_custos_filtrado['Classificacao_Contabil_2'] == 'MDO Terceirizada - Artístico') 
+            ].copy()
 
     elif class_cont == 'Custos de Eventos': # Realoca MDO de PJ para Eventos
         df_custos_filtrado = df_custos_filtrado[
-            (df_custos_filtrado['Classificacao_Contabil_1'] == class_cont) |
-            ((df_custos_filtrado['Cargo_DRE'] == 'MDO Terceirizada - Eventos') &
-             (~df_custos_filtrado['Classificacao_Contabil_2'].isin(['  -  Comissões e Gorjeta', 'Conduções/Taxi/Uber', 'Insumos - Alimentos'])))  # Caso - class. cont. 2 erradas em Custos de Eventos
+            ((df_custos_filtrado['Classificacao_Contabil_1'] == class_cont) |
+            (df_custos_filtrado['Cargo_DRE'] == 'MDO Terceirizada - Eventos')) &
+            (~df_custos_filtrado['Classificacao_Contabil_2'].isin(['  -  Comissões e Gorjeta', 'Conduções/Taxi/Uber', 'Insumos - Alimentos', '(-) Despesas de Patrocínio'])) # Caso - class. cont. 2 erradas em Custos de Eventos
         ].copy()
 
         # Faz a renomeação por conta da filtragem por Cargo_DRE
@@ -1021,6 +1039,12 @@ def prepara_dados_custos_mensais(df_custos_gerais, df_faturamento_meses_futuros,
             'MDO PJ Fixo',
             'MDO Terceirizada - Eventos'
         )
+
+    elif class_cont == 'Deduções sobre Venda':
+        df_custos_filtrado = df_custos_filtrado[
+            ((df_custos_filtrado['Classificacao_Contabil_1'] == class_cont) &
+            (~df_custos_filtrado['Classificacao_Contabil_2'].isin(['Tarifas Bancárias']))) # Caso - class. cont. 2 errada em Deduções sobre Venda
+        ].copy()
 
     elif class_cont == 'Mão de Obra - Salários':
         df_custos_filtrado = df_custos_filtrado[
@@ -1037,15 +1061,21 @@ def prepara_dados_custos_mensais(df_custos_gerais, df_faturamento_meses_futuros,
         )
 
     elif class_cont == 'Mão de Obra - PJ':
-        df_custos_filtrado = df_custos_filtrado[
-            ((df_custos_filtrado['Classificacao_Contabil_1'] == class_cont) &
-            (~df_custos_filtrado['Cargo_DRE'].isin(['MDO Terceirizada - Eventos', '  - Analista', '  - Diretoria'])))
-        ].copy()
+        if casa == 'Blue Note - São Paulo':
+            df_custos_filtrado = df_custos_filtrado[
+                (df_custos_filtrado['Classificacao_Contabil_1'] == class_cont) &
+                (~df_custos_filtrado['Cargo_DRE'].isin(['MDO Terceirizada - Eventos', '  - Administrativa']))
+            ].copy()
+        else:
+            df_custos_filtrado = df_custos_filtrado[
+                (df_custos_filtrado['Classificacao_Contabil_1'] == class_cont) &
+                (~df_custos_filtrado['Cargo_DRE'].isin(['MDO Terceirizada - Eventos', '  - Diretoria', '  - Assistente']))
+            ].copy()
     
     elif class_cont == 'Mão de Obra - Encargos e Provisões':
         df_custos_filtrado = df_custos_filtrado[
             ((df_custos_filtrado['Classificacao_Contabil_1'] == class_cont) &
-            (~df_custos_filtrado['Classificacao_Contabil_2'].isin(['  -  INSS Segurados', 'IRRF - MDO CLT - Salário'])))
+            (~df_custos_filtrado['Classificacao_Contabil_2'].isin(['  -  INSS Segurados', 'IRRF - MDO CLT - Salário', 'IRRF']))) # Caso - class. cont. 2 em MDO - Encargos e Provisões não exibidas
         ].copy()
 
     elif class_cont == 'Mão de Obra - Benefícios':
@@ -1053,6 +1083,18 @@ def prepara_dados_custos_mensais(df_custos_gerais, df_faturamento_meses_futuros,
             (df_custos_filtrado['Classificacao_Contabil_1'] == class_cont) &
             (df_custos_filtrado['Classificacao_Contabil_2'] != 'Contribuição Sindical Assistencial   ')
         ].copy()
+
+    elif class_cont == 'Utilidades': 
+        df_custos_filtrado = df_custos_filtrado[
+            (df_custos_filtrado['Classificacao_Contabil_1'] == class_cont) &
+            (df_custos_filtrado['Classificacao_Contabil_2'] != 'Custas Cartório / Operação') # Caso - class. cont. 2 em Utilidades não exibidas
+        ].copy()
+
+    elif class_cont == 'Serviços de Terceiros': 
+        df_custos_filtrado = df_custos_filtrado[
+            (df_custos_filtrado['Classificacao_Contabil_1'] == class_cont) &
+            (df_custos_filtrado['Classificacao_Contabil_2'] != 'VALET E MOTOBOY') # Caso - class. cont. 2 em Serviços de Terceiros não exibidas
+        ].copy() 
 
     elif class_cont == 'Despesas Financeiras':
         if casa == 'Arcos':
@@ -1082,12 +1124,6 @@ def prepara_dados_custos_mensais(df_custos_gerais, df_faturamento_meses_futuros,
             )
         )
         df_custos_filtrado = df_descontos_filtrado.copy()
-
-    elif class_cont == 'Utilidades':
-        df_custos_filtrado = df_custos_filtrado[
-            (df_custos_filtrado['Classificacao_Contabil_1'] == class_cont) &
-            (df_custos_filtrado['Classificacao_Contabil_2'] != 'Custas Cartório / Operação')
-        ].copy()
     
     # Implementa cálculo de Sistema de Franquias - Fee Gestão FB para casas 100% FB (meses passados para ser possível projetar)
     elif class_cont == 'Sistema de Franquias': 
@@ -1098,26 +1134,25 @@ def prepara_dados_custos_mensais(df_custos_gerais, df_faturamento_meses_futuros,
             'day': 1
         }).dt.date        
         df_custos_filtrado = df_custos_filtrado.rename(columns={'Valor Bruto': 'Valor_Pagamento'})
+        df_custos_filtrado['Valor_Liquido'] = df_custos_filtrado['Valor_Pagamento']
         
     else:
         df_custos_filtrado = df_custos_filtrado[df_custos_filtrado['Classificacao_Contabil_1'] == class_cont].copy()
-    
-    # if class_cont == 'Utilidades': # A class. cont.2 Utensílios usa 'Valor_Liquido'
-    #     col_valor = 'Valor_Liquido'
+
     if class_cont == 'Desconto sobre Venda':
-        col_valor = 'Permanece no Desconto'
+        col_valor = ['Permanece no Desconto']
     else:
-        col_valor = 'Valor_Pagamento'
+        col_valor = ['Valor_Pagamento', 'Valor_Liquido']
     
     # Cria colunas de mês e ano e soma o total mensal para cada class. cont. 2
     df_custos_filtrado['Data_Competencia'] = pd.to_datetime(df_custos_filtrado['Data_Competencia'], errors='coerce')
     df_custos_filtrado['Ano'] = df_custos_filtrado['Data_Competencia'].dt.year
     df_custos_filtrado['Mês'] = df_custos_filtrado['Data_Competencia'].dt.month
     df_custos_filtrado_mensal = df_custos_filtrado.groupby(['Casa', 'Mês', 'Ano', 'Classificacao_Contabil_2'], as_index=False)[col_valor].sum()
-    df_custos_filtrado_mensal = df_custos_filtrado_mensal.rename(columns={col_valor:'Custo Real'})
+    df_custos_filtrado_mensal = df_custos_filtrado_mensal.rename(columns={col_valor[0]:'Custo Real'})
 
     # Casos em que o custo mensal não depende apenas da aut_blue_me_sem_pedido: merge com outra tabela
-    if class_cont in ['Mão de Obra - Salários', 'Gorjeta', 'Custos Artístico Geral', 'Marketing', 'Informática e TI', 'Mão de Obra - Benefícios', 'Patrocínio']: 
+    if class_cont in ['Mão de Obra - Salários', 'Gorjeta', 'Custos Artístico Geral', 'Marketing', 'Informática e TI', 'Mão de Obra - Benefícios', 'Patrocínio', 'Despesas Financeiras']: 
         df_custos_filtrado_mensal = merge_despesas_complexas(df_custos_filtrado_mensal, df_tabela_secundaria, df_tabela_terciaria, df_tabela_quaternaria, casa, class_cont)
 
     if class_cont == 'Utilidades':
@@ -1348,6 +1383,10 @@ def loop_prepara_dados_despesas(lista_categorias_despesas, df_descontos, df_cons
             df_tabela_secundaria = df_receitas_patrocinio.copy()
             df_tabela_terciaria = None
             df_tabela_quaternaria = None
+        elif categoria_despesa == 'Despesas Financeiras': 
+            df_tabela_secundaria = df_aut_blueme_sem_pedido.copy()
+            df_tabela_terciaria = None
+            df_tabela_quaternaria = None
         else: 
             df_tabela_secundaria = None
             df_tabela_terciaria = None
@@ -1499,13 +1538,13 @@ def define_linhas_calculadas(df_dre, colunas_valores, lista_categorias_despesas,
     # Define valores mais usados
     cmv = df_final[df_final['Categoria'] == 'Custo Mercadoria Vendida'][colunas_valores].sum()
     custos_artistico = df_final[df_final['Categoria'] == 'Custos Artístico Geral'][colunas_valores].sum()
-    faturamento_artistico = df_final[df_final['Categoria'] == 'Artístico (couvert/shows)'][colunas_valores].sum()
+    faturamento_artistico = df_final[df_final['Categoria'] == 'Couvert'][colunas_valores].sum() # Artístico (couvert/shows)
     faturamento_bruto = df_final[df_final['Categoria'] == 'Faturamento'][colunas_valores].sum()
     custos_eventos = df_final[df_final['Categoria'] == 'Custos de Eventos'][colunas_valores].sum()
 
     # RECEITA LIQUIDA
     receita_liquida = soma_categorias(df_final, ['Faturamento', 'Desconto sobre Venda', 'Impostos sobre Venda'], colunas_valores)
-    df_final = insere_nova_linha(df_final, colunas_valores, receita_liquida, 'ISS', 'Categoria', 'RECEITA LÍQUIDA')
+    df_final = insere_nova_linha(df_final, colunas_valores, receita_liquida, mapa_insercao['RECEITA LÍQUIDA'], 'Categoria', 'RECEITA LÍQUIDA')
 
     # % sobre Receita Bruta - CMV
     receita_bruta = soma_categorias(df_final, ['Alimentos', 'Bebidas', 'Eventos A&B', 'Delivery'], colunas_valores)
@@ -1518,12 +1557,12 @@ def define_linhas_calculadas(df_dre, colunas_valores, lista_categorias_despesas,
 
     # % sobre Receita Artístico
     porc_receita_artistico = (custos_artistico / faturamento_artistico).round(2)
-    df_final = insere_nova_linha(df_final, colunas_valores, porc_receita_artistico, 'Viagens e Estadias - Artístico', 'Categoria', '% sobre Receita Artístico')
+    df_final = insere_nova_linha(df_final, colunas_valores, porc_receita_artistico, mapa_insercao['Custos Artístico Geral'], 'Categoria', '% sobre Receita Artístico')
 
     # % sobre Receita de Eventos
     faturamento_eventos = soma_categorias(df_final, ['Eventos A&B', 'Eventos Locações', 'Eventos Couvert'], colunas_valores)
     porc_receita_eventos = (custos_eventos / faturamento_eventos.replace(0, np.nan)).round(2)
-    df_final = insere_nova_linha(df_final, colunas_valores, porc_receita_eventos, 'Viagens e Estadias - Eventos', 'Categoria', '% sobre Receita de Eventos')
+    df_final = insere_nova_linha(df_final, colunas_valores, porc_receita_eventos, mapa_insercao['Custos de Eventos'], 'Categoria', '% sobre Receita de Eventos')
 
     # MARGEM BRUTA DE CONTRIBUIÇÃO
     margem_bruta_contribuicao = soma_categorias(
@@ -1531,7 +1570,7 @@ def define_linhas_calculadas(df_dre, colunas_valores, lista_categorias_despesas,
         ['RECEITA LÍQUIDA', 'Deduções sobre Venda', 'Gorjeta', 'Custos de Eventos', 'Custos Artístico Geral', 'Custo Mercadoria Vendida'], 
         colunas_valores
     )
-    df_final = insere_nova_linha(df_final, colunas_valores, margem_bruta_contribuicao, 'Outros D', 'Categoria', 'MARGEM BRUTA DE CONTRIBUIÇÃO')
+    df_final = insere_nova_linha(df_final, colunas_valores, margem_bruta_contribuicao, mapa_insercao['Deduções sobre Venda'], 'Categoria', 'MARGEM BRUTA DE CONTRIBUIÇÃO')
     lista_categorias_despesas.append('MARGEM BRUTA DE CONTRIBUIÇÃO')
 
     # PESSOAL
