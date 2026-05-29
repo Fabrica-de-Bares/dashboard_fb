@@ -330,6 +330,92 @@ def GET_FATURAMENTO_EVENTOS_PRICELESS():
     return df_faturamento_eventos_priceless, df_eventos_tratado_priceless                                          
 
 
+# Receitas Extraordinárias: Patrocínio
+@st.cache_data
+def GET_RECEITAS_EXTR_PATROCINIO():
+    return dataframe_query(f'''
+        SELECT 
+          vpa.ID AS 'ID_receita', 
+          CASE
+              WHEN te.ID IN (161, 162) THEN 'Priceless'
+              WHEN te.ID = 178 THEN 'Blue Note - São Paulo'                                                             
+              ELSE te.NOME_FANTASIA
+          END AS 'Casa', 
+          trec2.CLASSIFICACAO AS 'Classificacao', 
+          tre.VALOR as 'Valor_Total', 
+          tre.DATA_OCORRENCIA AS 'Data_Ocorrencia',
+          vpa.DATA_RECEBIMENTO AS 'Recebimento_Parcela',
+          vpa.VALOR_PARCELA AS 'Valor Bruto',
+          tsp.DESCRICAO as 'Status_Pgto',
+		  tre.VALOR_CATEGORIA_PATROCINIO as 'Categ_Patroc',
+		  tre.VALOR_CATEGORIA_TAXA_SERVICO as 'Categ_Taxa_Serv'
+      FROM (
+          SELECT
+              tre.ID,
+              tre.FK_EMPRESA,
+              tre.FK_CLIENTE,
+              tre.DATA_VENCIMENTO_PARCELA_1 AS DATA_VENCIMENTO,
+              tre.DATA_RECEBIMENTO_PARCELA_1 AS DATA_RECEBIMENTO,
+              tre.VALOR_PARCELA_1 AS VALOR_PARCELA,
+              tre.FK_STATUS_PAGAMENTO_PARCELA_1 AS STATUS_PGTO
+          FROM T_RECEITAS_EXTRAORDINARIAS tre
+          UNION ALL
+          SELECT
+              tre.ID,
+              tre.FK_EMPRESA,
+              tre.FK_CLIENTE,
+              tre.DATA_VENCIMENTO_PARCELA_2 AS DATA_VENCIMENTO,
+              tre.DATA_RECEBIMENTO_PARCELA_2 AS DATA_RECEBIMENTO,
+              tre.VALOR_PARCELA_2 AS VALOR_PARCELA,
+              tre.FK_STATUS_PAGAMENTO_PARCELA_2 AS STATUS_PGTO
+          FROM T_RECEITAS_EXTRAORDINARIAS tre
+          UNION ALL
+          SELECT
+              tre.ID,
+              tre.FK_EMPRESA,
+              tre.FK_CLIENTE,
+              tre.DATA_VENCIMENTO_PARCELA_3 AS DATA_VENCIMENTO,
+              tre.DATA_RECEBIMENTO_PARCELA_3 AS DATA_RECEBIMENTO,
+              tre.VALOR_PARCELA_3 AS VALOR_PARCELA,
+              tre.FK_STATUS_PAGAMENTO_PARCELA_3 AS STATUS_PGTO
+          FROM T_RECEITAS_EXTRAORDINARIAS tre
+          UNION ALL
+          SELECT
+              tre.ID,
+              tre.FK_EMPRESA,
+              tre.FK_CLIENTE,
+              tre.DATA_VENCIMENTO_PARCELA_4 AS DATA_VENCIMENTO,
+              tre.DATA_RECEBIMENTO_PARCELA_4 AS DATA_RECEBIMENTO,
+              tre.VALOR_PARCELA_4 AS VALOR_PARCELA,
+              tre.FK_STATUS_PAGAMENTO_PARCELA_4 AS STATUS_PGTO
+          FROM T_RECEITAS_EXTRAORDINARIAS tre
+          UNION ALL
+          SELECT
+              tre.ID,
+              tre.FK_EMPRESA,
+              tre.FK_CLIENTE,
+              tre.DATA_VENCIMENTO_PARCELA_5 AS DATA_VENCIMENTO,
+              tre.DATA_RECEBIMENTO_PARCELA_5 AS DATA_RECEBIMENTO,
+              tre.VALOR_PARCELA_5 AS VALOR_PARCELA,
+              tre.FK_STATUS_PAGAMENTO_PARCELA_5 AS STATUS_PGTO
+          FROM T_RECEITAS_EXTRAORDINARIAS tre
+      ) vpa
+      INNER JOIN T_EMPRESAS te ON (vpa.FK_EMPRESA = te.ID)
+      LEFT JOIN T_RECEITAS_EXTRAORDINARIAS tre ON (vpa.ID = tre.ID)
+      LEFT JOIN T_RECEITAS_EXTRAORDINARIAS_CLIENTE trec ON (vpa.FK_CLIENTE = trec.ID)
+      LEFT JOIN T_RECEITAS_EXTRAORDINARIAS_CLASSIFICACAO trec2 ON (tre.FK_CLASSIFICACAO = trec2.ID)
+      LEFT JOIN T_FORMAS_DE_PAGAMENTO tfdp ON (tre.FK_FORMA_PAGAMENTO = tfdp.ID)
+      LEFT JOIN T_STATUS_PAGAMENTO tsp ON (vpa.STATUS_PGTO = tsp.ID)
+      LEFT JOIN T_CONTAS_BANCARIAS tcb ON (tre.FK_CONTA_BANCARIA = tcb.ID)
+      LEFT JOIN T_EVENTO_PRE tep ON (tre.FK_EVENTO = tep.ID)
+      LEFT JOIN T_TIPO_EVENTO tte ON (tep.FK_TIPO_EVENTO = tte.ID)
+	  LEFT JOIN T_MODELO_EVENTO tme ON (tep.FK_MODELO_EVENTO = tme.ID)
+      WHERE vpa.DATA_VENCIMENTO IS NOT NULL 
+      AND trec2.ID IN (130) # Patrocínios
+	  ORDER BY tre.ID desc;
+    ''')
+    
+
 # Receitas Extraordinárias: 'Outras receitas' (apenas Coleta de Óleo)
 @st.cache_data
 def GET_PARCELAS_RECEIT_EXTR():
@@ -378,12 +464,7 @@ def GET_PARCELAS_RECEIT_EXTR():
     df_parc_receit_extr['Valor Liquido'] = df_parc_receit_extr['Valor Bruto']
     df_parc_receit_extr = df_parc_receit_extr[['ID_Casa', 'Casa', 'Categoria', 'Data Evento', 'Valor Bruto', 'Desconto', 'Valor Liquido']]
     
-    # Agrupa por casa e dia (soma todas as categorias)
-    # df_parc_receit_extr_dia = df_parc_receit_extr.groupby(['ID_Casa', 'Casa', 'Data Evento'], as_index=False)[['Valor Bruto', 'Desconto', 'Valor Liquido']].sum()    
-    # df_parc_receit_extr_dia['Categoria'] = 'Outras Receitas'
-    # df_parc_receit_extr_dia = df_parc_receit_extr_dia[['ID_Casa', 'Casa', 'Categoria', 'Data Evento', 'Valor Bruto', 'Desconto', 'Valor Liquido']]
-    
-    return df_parc_receit_extr #, df_parc_receit_extr_dia
+    return df_parc_receit_extr
  
 
 # Concatena todos os tipos de faturamento (Zig, Eventos e Receitas Extraordinárias)
@@ -400,14 +481,9 @@ def GET_TODOS_FATURAMENTOS_DIA(id_casa):
     
     # Faturamento - Receitas Extraordinárias
     parc_receitas_extr = GET_PARCELAS_RECEIT_EXTR() # 'Gifts' (Lojinha) e 'Outras Receitas' (Coleta de Óleo)
-    
+   
     # Concatena todos os tipos de faturamento
     todos_faturamentos = pd.concat([faturamento_agregado_diario, faturamento_eventos_tratado, parc_receitas_extr])
-
-    # Calcula Gifts diário
-    # todos_faturamentos['Categoria'] = todos_faturamentos['Categoria'].replace(
-    #     'Lojinha', 'Gifts'
-    # )
 
     return faturamento_agregado_diario, todos_faturamentos, faturamento_eventos_inicial, faturamento_eventos_tratado, parc_receitas_extr
 
@@ -691,22 +767,27 @@ def GET_EVENTOS_CMV(data_inicio, data_fim):
 @st.cache_data
 def GET_AUT_BLUE_ME_SEM_PEDIDO():
     return dataframe_query(f'''
-    SELECT
+    SELECT DISTINCT
+        tdr.ID,                   
         CASE
             WHEN te.ID = 131 THEN 110
+            WHEN te.ID IN (161, 162) THEN 149              
             ELSE te.ID    
         END AS 'ID_Casa', 
         CASE
-            WHEN te.NOME_FANTASIA = 'Blue Note SP (Novo)' THEN 'Blue Note - São Paulo'
+            WHEN te.ID = 131 THEN 'Blue Note - São Paulo'
+            WHEN te.ID IN (161, 162) THEN 'Priceless'               
             ELSE te.NOME_FANTASIA    
         END AS 'Casa', 
         STR_TO_DATE(tdr.COMPETENCIA, '%Y-%m-%d') AS 'Data_Competencia',
         STR_TO_DATE(tdr.VENCIMENTO, '%Y-%m-%d') AS 'Data_Vencimento',
-        tdr.OBSERVACAO as 'Descricao',
+        tf.CORPORATE_NAME AS 'Fornecedor',
+        tdr.OBSERVACAO AS 'Descricao',
         tdr.VALOR_PAGAMENTO AS 'Valor_Pagamento',
         tdr.VALOR_LIQUIDO AS 'Valor_Liquido',
         CASE
             WHEN tccg.DESCRICAO = 'Despesas com Transporte / Hospedagem' THEN 'Manutenção' -- considera como Despesas Gerais  
+            WHEN tccg2.DESCRICAO = '  -  Pro Labore' THEN 'Mão de Obra - Benefícios'            
             ELSE tccg.DESCRICAO                            
         END as 'Classificacao_Contabil_1',
         tccg2.DESCRICAO as 'Classificacao_Contabil_2',
@@ -720,9 +801,11 @@ def GET_AUT_BLUE_ME_SEM_PEDIDO():
     LEFT JOIN T_DESPESA_RAPIDA_ITEM tdri ON (tdr.ID = tdri.FK_DESPESA_RAPIDA)
     WHERE tccg.FK_VERSAO_PLANO_CONTABIL = 103 AND YEAR(tdr.COMPETENCIA) >= 2024
     AND tdri.ID IS NULL
-    AND tdr.BIT_CANCELADA = 0            
+    AND tdr.BIT_CANCELADA = 0  
+    AND tccg.ID NOT IN (165,206,244)          
     UNION ALL
-    SELECT   # Aut_Endividamentos (Ações Trabalhistas/Processo Judicial - Encargos e Provisões)
+    SELECT   # Aut_Endividamentos (Ações Trabalhistas e Endividamentos)
+        tdr.ID,                   
         CASE
             WHEN te.ID = 131 THEN 110
             ELSE te.ID    
@@ -732,37 +815,38 @@ def GET_AUT_BLUE_ME_SEM_PEDIDO():
             ELSE te.NOME_FANTASIA    
         END AS 'Casa', 
         CASE
-            WHEN tdp.FK_DESPESA IS NOT NULL THEN STR_TO_DATE(tc2.`Data`, '%Y-%m-%d')
-            ELSE STR_TO_DATE(tc.`Data`, '%Y-%m-%d')
+            WHEN tdp.FK_DESPESA IS NOT NULL THEN DATE(tc2.`Data`)
+            ELSE DATE(tc.`Data`)
         END AS 'Data_Competencia',
         CASE
-            WHEN tdp.FK_DESPESA IS NOT NULL THEN STR_TO_DATE(tdp.`DATA`, '%Y-%m-%d')
-            ELSE STR_TO_DATE(tdr.VENCIMENTO, '%Y-%m-%d')
+            WHEN tdp.FK_DESPESA IS NOT NULL THEN DATE(tdp.`DATA`)
+            ELSE DATE(tdr.VENCIMENTO)
         END as 'Data_Vencimento',
-        tdr.OBSERVACAO as 'Descricao',
+        tf.CORPORATE_NAME AS 'Fornecedor',
+        tdr.OBSERVACAO AS 'Descricao',
         CASE
-            WHEN tdp.FK_DESPESA IS NOT NULL
-                THEN tdp.VALOR
+            WHEN tdp.FK_DESPESA IS NOT NULL THEN tdp.VALOR
             ELSE IF(tdr.VALOR_LIQUIDO IS NULL, tdr.VALOR_PAGAMENTO, tdr.VALOR_LIQUIDO)
         END as 'Valor_Pagamento', # nesse caso, valor liquido é o considerado
-        NULL AS 'Valor_Liquido',                   
+        NULL AS 'Valor_Liquido',   
         CASE
-            WHEN tccg.DESCRICAO = 'Endividamento' THEN 'Mão de Obra - Encargos e Provisões'
+            -- Ações Trabalhistas                
+            WHEN tccg2.ID = 867 THEN 'Mão de Obra - Encargos e Provisões' 
+            -- Endividamentos
+            WHEN tccg2.DESCRICAO IN ('Endividamento Geral', 'Processo Judicial', 'Processo Civil', 'Recurso Processual', 'Empréstimos Gerais') THEN 'Dividendos e Remunerações Variáveis'
             ELSE tccg.DESCRICAO
-        END AS 'Classificacao_Contabil_1',
-        CASE
-            WHEN tccg2.DESCRICAO = 'Processo Judicial' THEN '  -  Ações trabalhistas'
-            ELSE tccg2.DESCRICAO
-        END AS 'Classificacao_Contabil_2',
+        END AS 'Classificacao_Contabil_1',                                  
+        tccg2.DESCRICAO AS 'Classificacao_Contabil_2',              
         NULL AS 'Cargo_DRE'
     FROM T_DESPESA_RAPIDA tdr
     INNER JOIN T_EMPRESAS te ON (tdr.FK_LOJA = te.ID)
+    LEFT JOIN T_FORNECEDOR tf ON (tdr.FK_FORNECEDOR = tf.ID)
     LEFT JOIN T_CLASSIFICACAO_CONTABIL_GRUPO_1 tccg ON (tdr.FK_CLASSIFICACAO_CONTABIL_GRUPO_1 = tccg.ID)
     LEFT JOIN T_CLASSIFICACAO_CONTABIL_GRUPO_2 tccg2 ON (tdr.FK_CLASSIFICACAO_CONTABIL_GRUPO_2 = tccg2.ID)
     LEFT JOIN T_DEPESA_PARCELAS tdp ON (tdp.FK_DESPESA = tdr.ID)
     LEFT JOIN T_CALENDARIO tc ON (tdr.FK_DATA_REALIZACAO_PGTO = tc.ID)
     LEFT JOIN T_CALENDARIO tc2 ON (tdp.FK_DATA_REALIZACAO_PGTO = tc2.ID)
-    WHERE tccg.ID IN (165,206,244) AND tccg2.DESCRICAO = 'Processo Judicial';             
+    WHERE tccg.ID IN (165,206,244);             
     ''')
 
 
@@ -792,6 +876,7 @@ def GET_AUT_BLUE_ME_COM_PEDIDO():
             LEFT JOIN T_INSUMOS_NIVEL_2 tin2 ON tin3.FK_INSUMOS_NIVEL_2 = tin2.ID
             LEFT JOIN T_INSUMOS_NIVEL_1 tin1 ON tin2.FK_INSUMOS_NIVEL_1 = tin1.ID
             WHERE tdri.ID IS NOT NULL
+            AND tdr.BIT_CANCELADA = 0
             GROUP BY tdr.ID, tdr.FK_LOJA, tdr.COMPETENCIA, tdr.VALOR_LIQUIDO, tf.CORPORATE_NAME
         )
         SELECT
@@ -808,7 +893,8 @@ def GET_AUT_BLUE_ME_COM_PEDIDO():
             ROUND((dci.VALOR_LIQUIDO * (dci.Valor_Outros / dci.Valor_Total_Insumos)), 2) AS Valor_Liq_Outros
         FROM despesa_com_insumos dci
         JOIN T_EMPRESAS te ON dci.FK_LOJA = te.ID
-        WHERE te.ID <> 135 AND YEAR(STR_TO_DATE(dci.COMPETENCIA, '%Y-%m-%d')) > 2024
+        WHERE te.ID <> 135 
+        AND YEAR(STR_TO_DATE(dci.COMPETENCIA, '%Y-%m-%d')) > 2024
         ORDER BY dci.ID;
     ''')
 
@@ -917,8 +1003,14 @@ def GET_INSUMOS_AGRUPADOS_BLUE_ME_POR_CATEG_COM_PEDIDO_PERIODO_LOJA():
 def GET_AUT_FOLHA_PAGAMENTO():
     return dataframe_query(f'''
     SELECT
-        te.ID AS 'ID_Casa',
-        te.NOME_FANTASIA AS 'Casa',
+        CASE 
+            WHEN te.ID = 131 THEN 110
+            ELSE te.ID                                  
+        END AS 'ID_Casa',
+        CASE
+            WHEN te.ID = 131 THEN 'Blue Note - São Paulo'
+            ELSE te.NOME_FANTASIA 
+        END AS 'Casa',
         tffs.CNPJ AS 'CNPJ_CASA',
         tffs.NUMERO_MATRICULA AS 'NUM_MATRICULA_FUNC',
         tffs.NOME AS 'NOME_FUNC',
@@ -933,4 +1025,91 @@ def GET_AUT_FOLHA_PAGAMENTO():
     FROM T_FICHA_FINANCEIRA_SINERGY tffs
     LEFT JOIN T_EMPRESAS AS te ON (tffs.FK_CASA = te.ID)
     WHERE tffs.CODIGO_VERBA = 2003; # Gorjeta
+    ''')
+
+
+# @st.cache_data
+# def GET_AUT_ENDIVIDAMENTOS():
+#     return dataframe_query(f'''
+#     SELECT DISTINCT
+#         te.ID as 'ID_Casa',
+#         te.NOME_FANTASIA as 'Casa',
+#         CASE
+#             WHEN tdp.FK_DESPESA IS NOT NULL THEN DATE(tc2.`Data`)
+#             ELSE DATE(tc.`Data`)
+#         END AS 'Data_Competencia',
+#         CASE
+#             WHEN tdp.FK_DESPESA IS NOT NULL THEN date(tdp.`DATA`)
+#             ELSE date(STR_TO_DATE(tdr.VENCIMENTO, '%Y-%m-%d %H:%i:%s'))
+#         END as 'Data_Vencimento',                   
+#         tf.CORPORATE_NAME as 'Fornecedor',
+#         tdr.OBSERVACAO as 'Descricao',
+#         CASE
+#             WHEN tdp.FK_DESPESA IS NOT NULL THEN tdp.VALOR
+#             ELSE IF(tdr.VALOR_LIQUIDO IS NULL, tdr.VALOR_PAGAMENTO, tdr.VALOR_LIQUIDO)
+#         END as 'Valor_Pagamento',
+#         tdr.VALOR_PAGAMENTO as 'Valor_Liquido',                   
+#         tccg.DESCRICAO as 'Classificacao_Contabil_1',
+#         tccg2.DESCRICAO as 'Classificacao_Contabil_2'
+#     FROM T_DESPESA_RAPIDA tdr
+#     INNER JOIN T_EMPRESAS te ON (tdr.FK_LOJA = te.ID)
+#     LEFT JOIN T_LOJAS tl ON (te.FK_LOJA = tl.ID)
+#     LEFT JOIN T_FORNECEDOR tf ON (tdr.FK_FORNECEDOR = tf.ID)
+#     LEFT JOIN T_CLASSIFICACAO_CONTABIL_GRUPO_1 tccg ON (tdr.FK_CLASSIFICACAO_CONTABIL_GRUPO_1 = tccg.ID)
+#     LEFT JOIN T_CLASSIFICACAO_CONTABIL_GRUPO_2 tccg2 ON (tdr.FK_CLASSIFICACAO_CONTABIL_GRUPO_2 = tccg2.ID)
+#     LEFT JOIN T_DEPESA_PARCELAS tdp ON (tdp.FK_DESPESA = tdr.ID)
+#     LEFT JOIN T_CALENDARIO tc ON (tdr.FK_DATA_REALIZACAO_PGTO = tc.ID)
+#     LEFT JOIN T_CALENDARIO tc2 ON (tdp.FK_DATA_REALIZACAO_PGTO = tc2.ID)
+#     LEFT JOIN T_STATUS_PAGAMENTO tsp ON (tdr.FK_STATUS_PGTO = tsp.ID)
+#     WHERE tccg.ID IN (165,206,244)
+#     ORDER BY tdr.ID desc, tdp.ID desc;
+#     ''')
+
+
+@st.cache_data
+def GET_AJUSTES_MANUAIS_DRE():
+    return dataframe_query(f'''
+    SELECT                        
+        CASE
+            WHEN te.ID IN (161, 162) THEN 149
+            ELSE te.ID    
+        END AS 'ID_Casa', 
+        CASE
+            WHEN te.ID IN (161, 162) THEN 'Priceless'
+            ELSE te.NOME_FANTASIA    
+        END AS 'Casa',                  
+        tam.MES_COMPETENCIA AS 'Mês',
+        tam.ANO_COMPETENCIA AS 'Ano',
+        tccg1.DESCRICAO AS 'Classificacao_Contabil_1',
+        tccg2.DESCRICAO AS 'Classificacao_Contabil_2',
+        tam.VALOR AS 'Valor Ajuste',
+        tam.DESCRICAO AS 'Descrição Ajuste'
+    FROM T_AJUSTES_MANUAIS_DRE AS tam
+    LEFT JOIN T_EMPRESAS AS te ON (tam.FK_EMPRESA = te.ID)   
+    LEFT JOIN T_CLASSIFICACAO_CONTABIL_GRUPO_1 tccg1 ON (tam.FK_CLASSIFICACAO_CONTABIL_1 = tccg1.ID)
+    LEFT JOIN T_CLASSIFICACAO_CONTABIL_GRUPO_2 tccg2 ON (tam.FK_CLASSIFICACAO_CONTABIL_2 = tccg2.ID);                                                                                        
+    ''')
+
+
+@st.cache_data
+def GET_CONSUMO_CARTAO_BLACK():
+    return dataframe_query(f'''
+    SELECT 
+        tccb.CARTAO_FB,
+        tccb.NOME,
+        tccb.CENTRO_CUSTO,                                                                                
+        CASE
+            WHEN te.ID IN (161, 162) THEN 149
+            ELSE te.ID    
+        END AS 'ID_Casa', 
+        CASE
+            WHEN te.ID IN (161, 162) THEN 'Priceless'
+            ELSE te.NOME_FANTASIA    
+        END AS 'Casa',                  
+        tccb.MES AS 'Mês',
+        tccb.ANO AS 'Ano',
+        tccb.VALOR AS 'Valor Cartão Black'
+    FROM T_CONSUMO_CARTAO_BLACK AS tccb
+    LEFT JOIN T_EMPRESAS AS te ON (tccb.FK_EMPRESA = te.ID)
+    WHERE te.ID IN (127, 114, 148, 116, 156, 105, 104, 115, 162);                                                                                  
     ''')
