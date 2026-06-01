@@ -273,18 +273,17 @@ def prepara_dados_faturamento_orcamentos_mensais(id_casa, df_orcamentos, df_fatu
         (df_ajustes_manuais['Ano'] == ano_selecionado) &
         (df_ajustes_manuais['Classificacao_Contabil_1'] == 'Faturamento Bruto')
     ].copy()
-    
-    df_ajustes_categoria = df_ajustes_categoria.groupby(['ID_Casa', 'Casa', 'Mês', 'Ano', 'Classificacao_Contabil_1', 'Classificacao_Contabil_2'], as_index=False)['Valor Ajuste'].sum()
-    df_ajustes_categoria = df_ajustes_categoria[['ID_Casa', 'Casa', 'Classificacao_Contabil_2', 'Mês', 'Ano', 'Valor Ajuste']]
-    df_ajustes_categoria = df_ajustes_categoria.rename(columns={'Classificacao_Contabil_2': 'Categoria', 'Valor Ajuste': 'Valor Bruto'})
-    
-    df_ajustes_categoria['Categoria'] = df_ajustes_categoria['Categoria'].replace({
-        'Alimentação': 'Alimentos',
-        'Bebida': 'Bebidas',
-        'Artístico (couvert/shows)': 'Couvert',
-    })
 
-    df_faturamento_mes_casa = pd.concat([df_faturamento_mes_casa, df_ajustes_categoria])
+    if not df_ajustes_categoria.empty:
+        df_ajustes_categoria = df_ajustes_categoria.groupby(['ID_Casa', 'Casa', 'Mês', 'Ano', 'Classificacao_Contabil_1', 'Classificacao_Contabil_2'], as_index=False)['Valor Ajuste'].sum()
+        df_ajustes_categoria = df_ajustes_categoria[['ID_Casa', 'Casa', 'Classificacao_Contabil_2', 'Mês', 'Ano', 'Valor Ajuste']]
+        df_ajustes_categoria = df_ajustes_categoria.rename(columns={'Classificacao_Contabil_2': 'Categoria', 'Valor Ajuste': 'Valor Bruto'})
+        df_ajustes_categoria['Categoria'] = df_ajustes_categoria['Categoria'].replace({
+            'Alimentação': 'Alimentos',
+            'Bebida': 'Bebidas',
+            'Artístico (couvert/shows)': 'Couvert',
+        })
+        df_faturamento_mes_casa = pd.concat([df_faturamento_mes_casa, df_ajustes_categoria])
 
     if id_casa == 149: # Priceless - Eventos Rebate Fornecedores
         df_receitas_extr_rebate = df_receitas_extr_rebate[
