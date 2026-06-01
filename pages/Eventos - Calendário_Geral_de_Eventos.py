@@ -24,8 +24,20 @@ def main():
 
     # Recupera dados dos eventos
     df_eventos = GET_EVENTOS()
+    df_eventos_concierge = GET_EVENTOS_CONCIERGE()
+    df_eventos_concierge['Casa'] = df_eventos_concierge['Casa'].apply(lambda x: 'Concierge Priceless' if x == 'Terraço Notie' else x)
+    df_eventos_concierge['ID Casa'] = df_eventos_concierge['ID Casa'].apply(lambda x: 149 if x == 162 else x)
+    df_eventos_concierge['Valor Comissão BV'] = 0
+    dfs_e = [df for df in [df_eventos, df_eventos_concierge] if not df.empty]
+    df_eventos = pd.concat(dfs_e, ignore_index=True) if dfs_e else pd.DataFrame()
+
     df_aditivos = GET_ADITIVOS()
+    
     df_parcelas = GET_PARCELAS_EVENTOS_PRICELESS()
+    df_parcelas_concierge = GET_PARCELAS_EVENTOS_CONCIERGE()
+    dfs_p = [df for df in [df_parcelas, df_parcelas_concierge] if not df.empty]
+    df_parcelas = pd.concat(dfs_p, ignore_index=True) if dfs_p else pd.DataFrame()
+    st.write(df_parcelas)
 
     df_eventos_aditivos_agrupado = GET_EVENTOS_ADITIVOS_AGRUPADOS()
     
@@ -43,7 +55,7 @@ def main():
     st.divider()
 
     # Filtro de casa:
-    lista_retirar_casas = ['Bar Léo - Vila Madalena', 'Blue Note SP (Novo)', 'Edificio Rolim', 'Todas as Casas', 'Terraço Notie', 'Blue Note SP (Sala 2)', 'Escritório Fabrica de Bares', 'The Cavern - Almoço']
+    lista_retirar_casas = ['Bar Léo - Vila Madalena', 'Blue Note SP (Novo)', 'Edificio Rolim', 'Todas as Casas', 'Blue Note SP (Sala 2)', 'Escritório Fabrica de Bares', 'The Cavern - Almoço']
     id_casa, casa, id_zigpay = input_selecao_casas(lista_retirar_casas, key='calendario')
 
     if casa != 'Todas as Casas':
