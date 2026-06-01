@@ -404,6 +404,8 @@ def GET_EXTRATOS_BANCARIOS():
     AND teb.DESCRICAO_TRANSACAO NOT LIKE '%BB RENDE FCIL - RENDE FACIL%'
     AND teb.DESCRICAO_TRANSACAO NOT LIKE '%BB RENDE FCIL%'
     AND teb.DESCRICAO_TRANSACAO NOT LIKE '%SALDO TOTAL%'
+    AND teb.DESCRICAO_TRANSACAO NOT LIKE '%0000     00000 BB Rende Fácil%'
+    AND teb.DESCRICAO_TRANSACAO NOT LIKE '%0000 00000 BB Rende Fácil Rende Facil%'                                      
     ORDER BY te.NOME_FANTASIA ASC, teb.DATA_TRANSACAO DESC
     ''')
   df_extratos_bancarios['Data_Transacao'] = pd.to_datetime(df_extratos_bancarios['Data_Transacao'], errors='coerce')
