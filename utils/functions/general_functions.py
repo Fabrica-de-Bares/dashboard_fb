@@ -215,6 +215,7 @@ def config_sidebar():
         107: "KPI's de Faturamento - Eventos",
         108: "KPI's de Faturamento - Eventos",
         109: "KPI's de Faturamento - Eventos",
+        147: "KPI's de Faturamento - Eventos",
         110: "KPI's de Faturamento - Eventos",
         111: "KPI's de Faturamento - Eventos",
         112: "KPI's de Faturamento - Eventos",
@@ -277,7 +278,7 @@ def config_sidebar():
 
         ordem_abas = { # Ordena abas nas seções por id
             "KPI's de Faturamento": [100, 101, 102, 103, 104, 105],
-            "KPI's de Faturamento - Eventos": [106, 107, 108, 109, 111, 113, 112, 114, 115, 116],
+            "KPI's de Faturamento - Eventos": [106, 107, 108, 109, 147, 111, 113, 112, 114, 115, 116],
             "KPI's de Resultado Operacional": [124, 125, 126, 128, 127, 129],
             "KPI's de Resultado Operacional - Suprimentos": [131, 130, 132],
             "Conciliação": [122, 121, 123],

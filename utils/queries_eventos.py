@@ -699,3 +699,104 @@ def GET_DATETIME_CONFIRMACAO_EVENTOS():
 		AND (t.Status_Anterior IS NULL OR t.Status_Anterior <> 101)
 		ORDER BY t.ID_Evento, t.LOG_DATE
 	''')
+
+@st.cache_data
+def GET_EVENTOS_CONCIERGE():
+   	return dataframe_query(f'''
+	SELECT 
+		tep.ID AS 'ID Evento',
+		te.NOME_FANTASIA AS 'Casa',
+		te.ID AS 'ID Casa',
+		tc.NOME AS 'Comercial Responsável',
+		tep.NOME_EVENTO AS 'Nome Evento',
+		trec.NOME AS 'Cliente',
+		tep.DATA_CONTRATACAO AS 'Data Contratação',
+		tep.DATA_EVENTO AS 'Data Evento',
+		tte.DESCRICAO AS 'Tipo Evento',
+		tme.DESCRICAO AS 'Modelo Evento',
+		tse.DESCRICAO AS 'Segmento Evento',
+		tep.VALOR_TOTAL_EVENTO AS 'Valor Total Evento',
+		tep.NUM_CLIENTES AS 'Num Pessoas',
+		tep.VALOR_AB AS 'Valor AB',
+		tep.VALOR_TAXA_SERVICO AS 'Valor Taxa Serviço',
+		COALESCE(tep.VALOR_LOCACAO_AROO_1, 0) + COALESCE(tep.VALOR_LOCACAO_AROO_2, 0) + COALESCE(tep.VALOR_LOCACAO_AROO_3, 0) + COALESCE(tep.VALOR_LOCACAO_ANEXO, 0) + COALESCE(tep.VALOR_LOCACAO_NOTIE, 0) + COALESCE(tep.VALOR_LOCACAO_MIRANTE, 0) + COALESCE(tep.VALOR_LOCACAO_BAR, 0) AS 'Valor Total Locação',
+		tep.VALOR_LOCACAO_AROO_1 AS 'Valor Locação Aroo 1',
+		tep.VALOR_LOCACAO_AROO_2 AS 'Valor Locação Aroo 2',
+		tep.VALOR_LOCACAO_AROO_3 AS 'Valor Locação Aroo 3',
+		tep.VALOR_LOCACAO_ANEXO AS 'Valor Locação Anexo',
+		tep.VALOR_LOCACAO_BAR AS 'Valor Locação Bar',
+		tep.VALOR_LOCACAO_NOTIE AS 'Valor Locação Notie',
+		tep.VALOR_LOCACAO_ESPACO AS 'Valor Locação Espaço',
+		tep.VALOR_LOCACAO_MIRANTE AS 'Valor Locação Mirante',
+		tep.VALOR_LOCACAO_GERADOR AS 'Valor Locação Gerador',
+		tep.VALOR_LOCACAO_DECORACAO_MOBILIARIO AS 'Valor Locação Mobiliário',
+		tep.VALOR_LOCACAO_UTENSILIOS AS 'Valor Locação Utensílios',
+		tep.VALOR_MAO_DE_OBRA_EXTRA AS 'Valor Mão de Obra Extra',
+		tep.VALOR_TAXA_ADMINISTRATIVA AS 'Valor Taxa Administrativa',
+		tep.VALOR_EXTRAS_GERAIS AS 'Valor Extras Gerais',
+		tep.VALOR_CONTRATACAO_ARTISTICO AS 'Valor Contratação Artístico',
+		tep.VALOR_CONTRATACAO_TECNICO_SOM AS 'Valor Contratação Técnico de Som',
+		tep.VALOR_COUVERT_ARTISTICO AS 'Valor Contratação Bilheteria/Couvert Artístico',
+		tep.VALOR_ACRESCIMO_FORMA_PAGAMENTO AS 'Valor Acréscimo Forma de Pagamento',
+		tep.VALOR_IMPOSTO AS 'Valor Imposto',
+		tsep.DESCRICAO AS 'Status Evento',
+		tep.OBSERVACOES AS 'Observações',
+		temd.DESCRICAO AS 'Motivo Declínio',
+		tep.OBSERVACAO_MOTIVO_DECLINIO AS 'Observações Motivo Declínio'
+	FROM T_EVENTOS_CONCIERGE tep
+		LEFT JOIN T_EMPRESAS te ON (tep.FK_EMPRESA = te.ID)
+		LEFT JOIN T_RECEITAS_EXTRAORDINARIAS_CLIENTE trec ON (tep.FK_CLIENTE = trec.ID)
+		LEFT JOIN T_STATUS_EVENTO_PRE tsep ON (tep.FK_STATUS_EVENTO = tsep.ID)
+		LEFT JOIN T_EVENTOS_MOTIVOS_DECLINIO temd ON (tep.FK_MOTIVO_DECLINIO = temd.ID)
+		LEFT JOIN T_TIPO_EVENTO tte ON (tep.FK_TIPO_EVENTO = tte.ID)
+		LEFT JOIN T_MODELO_EVENTO tme ON (tep.FK_MODELO_EVENTO = tme.ID)
+		LEFT JOIN T_SEGMENTOS_EVENTOS tse ON (tep.FK_SEGMENTO = tse.ID)
+		LEFT JOIN T_CONCIERGES tc ON (tc.ID = tep.FK_CONCIERGE)
+	''')
+
+@st.cache_data
+def GET_PARCELAS_EVENTOS_CONCIERGE():
+   	return dataframe_query(f'''
+		SELECT
+			tpep.ID AS 'ID Parcela',
+			tpep.FK_EVENTO_CONCIERGE AS 'ID Evento',
+			te.NOME_FANTASIA AS 'Casa',
+			te.ID AS 'ID Casa',
+			tep.NOME_EVENTO AS 'Nome Evento',
+			tsep.DESCRICAO AS 'Status Evento',
+			tcep.DESCRICAO AS 'Categoria Parcela',
+			tpep.VALOR_PARCELA as 'Valor Parcela',
+			tpep.DATA_VENCIMENTO_PARCELA AS 'Data Vencimento',
+			tsp.DESCRICAO AS 'Status Pagamento',
+			tpep.DATA_RECEBIMENTO_PARCELA AS 'Data Recebimento' 
+		FROM T_PARCELAS_EVENTOS_CONCIERGE tpep 
+			LEFT JOIN T_EVENTOS_CONCIERGE tep ON (tpep.FK_EVENTO_CONCIERGE = tep.ID)
+			LEFT JOIN T_STATUS_PAGAMENTO tsp ON (tpep.FK_STATUS_PAGAMENTO = tsp.ID)
+			LEFT JOIN T_CATEGORIA_EVENTO_PRICELESS tcep ON (tpep.FK_CATEGORIA_PARCELA = tcep.ID)
+			LEFT JOIN T_EMPRESAS te ON te.ID = tep.FK_EMPRESA
+			LEFT JOIN T_STATUS_EVENTO_PRE tsep ON tsep.ID = tep.FK_STATUS_EVENTO
+		ORDER BY tep.ID DESC, tpep.ID DESC
+	''')
+
+@st.cache_data
+def GET_ORCAMENTOS_EVENTOS_CONCIERGE():
+	return dataframe_query(f'''
+		SELECT 
+			te.ID AS 'ID Casa',
+			te.NOME_FANTASIA AS 'Casa',
+			to2.ANO AS 'Ano',
+			to2.MES AS 'Mês',
+			CASE
+				WHEN tccg2.DESCRICAO = 'Eventos A&B' THEN 'A&B'
+				WHEN tccg2.DESCRICAO = 'Eventos Couvert' THEN 'Couvert'
+				WHEN tccg2.DESCRICAO = 'Eventos Locações' THEN 'Locação'
+				WHEN tccg2.DESCRICAO = 'Eventos Rebate Fornecedores' THEN 'Repasse Fornecedores'
+			END AS 'Categoria Orcamento',
+			to2.VALOR AS 'Valor'
+		FROM T_ORCAMENTOS_META_EVENTOS_CONCIERGE to2
+			INNER JOIN T_EMPRESAS te ON to2.FK_EMPRESA = te.ID
+			INNER JOIN T_CLASSIFICACAO_CONTABIL_GRUPO_1 tccg ON to2.FK_CLASSIFICACAO_1 = tccg.ID
+			INNER JOIN T_CLASSIFICACAO_CONTABIL_GRUPO_2 tccg2 ON to2.FK_CLASSIFICACAO_2 = tccg2.ID
+		WHERE tccg.DESCRICAO = 'Faturamento Bruto' AND tccg2.ID IN (939, 940, 942, 943)
+		GROUP BY te.NOME_FANTASIA, to2.ANO, to2.MES, to2.FK_CLASSIFICACAO_2
+	''')

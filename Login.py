@@ -30,6 +30,7 @@ ABAS = {
     122: {'nome_aba': '📊 Farol de Conciliação', 'page_link': 'pages/Conciliação - Farol_de_Conciliação.py'},
     102: {'nome_aba': '💵 Faturamento - Outras Receitas', 'page_link': 'pages/Faturamento - Outras_Receitas.py'},
     109: {'nome_aba': '💰 Faturamento Bruto de Eventos', 'page_link': 'pages/Eventos - Faturamento_Bruto_de_Eventos.py'},
+    147: {'nome_aba': '💰 Faturamento Bruto de Eventos - Concierge', 'page_link': 'pages/Eventos - Faturamento_Bruto_de_Eventos_Concierge.py'},
     100: {'nome_aba': '💰 Faturamento Zigpay', 'page_link': 'pages/Financeiro - Faturamento_Zigpay.py'},
     101: {'nome_aba': '💰 Faturamento Zigpay - Média por dia da semana', 'page_link': 'pages/Faturamento - Faturamento ZigPay - Média por dia da semana.py'},
     120: {'nome_aba': '🔮 Fluxo Futuro', 'page_link': 'pages/Conciliação - Fluxo_Futuro.py'},
