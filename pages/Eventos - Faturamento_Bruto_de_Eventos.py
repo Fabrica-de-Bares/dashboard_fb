@@ -91,7 +91,7 @@ def main():
 	# Seletores
 	col1, col2= st.columns([1, 1], gap="large")
 	with col1:
-		lista_retirar_casas = ['Bar Léo - Vila Madalena', 'Blue Note SP (Novo)', 'Edificio Rolim', 'Terraço Notie', 'Blue Note SP (Sala 2)', 'Escritório Fabrica de Bares', 'The Cavern - Almoço']
+		lista_retirar_casas = ['Bar Léo - Vila Madalena', 'Blue Note SP (Novo)', 'Edificio Rolim', 'Terraço Notie', 'Blue Note SP (Sala 2)', 'Escritório Fabrica de Bares', 'The Cavern - Almoço', 'Sanduiche comunicação LTDA ', 'Tempus Fugit  Ltda ']
 		df_casas_selecionadas = input_multiselecao_casas(lista_retirar_casas, key='faturamento_bruto')
 		lista_ids_casa = df_casas_selecionadas['ID_Casa'].tolist()
 	with col2:
