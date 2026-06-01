@@ -51,7 +51,7 @@ if casa == 'Arcos': st.info('Observação: Arcos sem operação às segundas-fei
  df_parc_receitas_extr) = GET_TODOS_FATURAMENTOS_DIA(id_casa)
 
 # Dados - Receitas Extraordinárias (apenas Patrocínios)
-df_parc_receitas_extr_patrocinio = GET_RECEITAS_EXTR_PATROCINIO()
+df_receitas_extr_patrocinio_rebate = GET_RECEITAS_EXTR_PATROCINIO_REBATE()
 
 # Dados - Descontos e Promoções
 df_descontos = GET_DESCONTOS()
@@ -142,7 +142,7 @@ st.divider()
 ###################### PROJEÇÃO DE FATURAMENTO - DRE ###################### 
 
 # Prepara df de faturamento agregado mensal para a casa selecionada
-df_faturamento_mes_casa, df_faturamento_orcamento = prepara_dados_faturamento_orcamentos_mensais(id_casa, df_orcamentos, df_faturamento_agregado_mes, df_ajustes_manuais, datas['ano_passado'], datas['ano_atual'], ano_selecionado)
+df_faturamento_mes_casa, df_faturamento_orcamento = prepara_dados_faturamento_orcamentos_mensais(id_casa, df_orcamentos, df_faturamento_agregado_mes, df_receitas_extr_patrocinio_rebate, df_ajustes_manuais, datas['ano_passado'], datas['ano_atual'], ano_selecionado)
 lista_itens_faturamento = df_faturamento_orcamento['Categoria'].unique().tolist() # Para exibir todos os itens de faturamento, mesmo que não haja valor para a casa
 
 # Faturamento Bruto do mês e Fee Gestão
@@ -253,7 +253,7 @@ lista_df_projecao_despesas = loop_prepara_dados_despesas(
     df_faturamento_meses_futuros, 
     df_aut_folha, 
     df_orcamentos, 
-    df_parc_receitas_extr_patrocinio,
+    df_receitas_extr_patrocinio_rebate,
     df_ajustes_manuais,
     df_valor_fee_gestao,
     lista_df_projecao_despesas, 
