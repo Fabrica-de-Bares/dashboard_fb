@@ -218,38 +218,6 @@ def GET_RECEITAS_EVENTOS_DO_DIA():
   ''')
 
 
-# @st.cache_data
-# def GET_DESPESAS_APROVADAS():
-#   return dataframe_query(f'''
-# SELECT
-# vvap.Empresa as 'Empresa',
-# vvap.Data as 'Data',
-# SUM(vvap.Valores_Aprovados_Previsao) as 'Despesas_Aprovadas_Pendentes' 
-# FROM View_Valores_Aprovados_Previsao vvap
-# WHERE Data >= CURDATE() 
-# AND Data < DATE_ADD(CURDATE(), INTERVAL 14 DAY)
-# AND Empresa IS NOT NULL
-# GROUP BY Data, Empresa  
-# ORDER BY Data ASC
-# ''')
-
-
-# @st.cache_data
-# def GET_DESPESAS_PAGAS():
-#   return dataframe_query(f'''
-# SELECT
-# vvap.Empresa as 'Empresa',
-# vvap.Data as 'Data',
-# SUM(vvap.Valores_Pagos) as 'Despesas_Pagas' 
-# FROM View_Valores_Pagos_por_Previsao vvap
-# WHERE Data >= CURDATE() 
-# AND Data < DATE_ADD(CURDATE(), INTERVAL 14 DAY)
-# AND Empresa IS NOT NULL
-# GROUP BY Data, Empresa  
-# ORDER BY Data ASC
-# ''')
-
-
 @st.cache_data
 def GET_DESPESAS_PENDENTES():
   return dataframe_query(f'''
@@ -290,7 +258,7 @@ def GET_DESPESAS_PENDENTES():
     AND te.FK_GRUPO_EMPRESA = 100
     AND tdr.BIT_CANCELADA = 0
     AND (tdr.FK_APROVACAO_DIRETORIA IS NULL OR tdr.FK_APROVACAO_DIRETORIA IN (100, 101, 103, 105, 108))
-    AND (tdp.PARCELA_PAGA IS NULL OR tdp.PARCELA_PAGA = 0)
+    AND (tdp.PARCELA_PAGA IS NULL OR tdp.PARCELA_PAGA = 0 AND tdp.FK_STATUS_PGTO IN (100, 108))
 ''')
 
 
@@ -334,12 +302,12 @@ def GET_DESPESAS_PAGAS():
     AND te.FK_GRUPO_EMPRESA = 100
     AND tdr.BIT_CANCELADA = 0
     AND (tdr.FK_APROVACAO_DIRETORIA IS NULL OR tdr.FK_APROVACAO_DIRETORIA IN (100, 101, 103, 105, 108))
-    AND (tdp.PARCELA_PAGA = 1)
+    AND (tdp.PARCELA_PAGA = 1 OR tdp.FK_STATUS_PGTO IN (103, 107))
 ''')
 
 
 @st.cache_data
-def GET_DETALHES_DESPESAS_PENDENTES():
+def GET_DETALHES_DESPESAS():
   return dataframe_query(f'''
     SELECT
       DATE_FORMAT(tc.DATA, '%Y-%m-%d') as 'Previsao_Pgto',
@@ -379,7 +347,7 @@ def GET_DETALHES_DESPESAS_PENDENTES():
       tdp.VALOR as 'Valor',
       "True" as 'Parcelamento',
       CASE
-        WHEN tdp.PARCELA_PAGA = 1 THEN 'Pago'
+        WHEN tdp.PARCELA_PAGA = 1 OR tdp.FK_STATUS_PGTO IN (103, 107) THEN 'Pago'
         ELSE 'Pendente'
       END as 'Status_Pgto'
     FROM T_DESPESA_RAPIDA tdr 
@@ -388,10 +356,10 @@ def GET_DETALHES_DESPESAS_PENDENTES():
     LEFT JOIN T_DEPESA_PARCELAS tdp ON (tdp.FK_DESPESA = tdr.ID)
     LEFT JOIN T_CALENDARIO tc ON (tdp.FK_PREVISAO_PGTO = tc.ID)
     LEFT JOIN T_STATUS_APROVACAO_DIRETORIA tsad ON (tdr.FK_APROVACAO_DIRETORIA = tsad.ID)
-    WHERE tdp.ID is NOT NULL 
+    WHERE tdp.ID IS NOT NULL 
     AND tdr.BIT_CANCELADA = 0
     AND (tdr.FK_APROVACAO_DIRETORIA IS NULL OR tdr.FK_APROVACAO_DIRETORIA IN (100, 101, 103, 105, 108))
-    AND (tdp.PARCELA_PAGA IS NULL OR tdp.PARCELA_PAGA = 0 OR tdp.PARCELA_PAGA = 1)                     
+    AND (tdp.PARCELA_PAGA IS NULL OR tdp.PARCELA_PAGA = 0 OR tdp.PARCELA_PAGA = 1 OR tdp.FK_STATUS_PGTO IN (103, 107))                     
 ''')
 
 

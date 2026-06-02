@@ -261,7 +261,7 @@ with st.container(border=True):
     data_inicio = pd.to_datetime(dataSelecionada)
     data_fim = pd.to_datetime(dataSelecionada2)
 
-    despesas_pendentes_pagas = GET_DETALHES_DESPESAS_PENDENTES()
+    despesas_pendentes_pagas = GET_DETALHES_DESPESAS()
     df_despesas_pendentes_pagas = filtra_detalhes_despesas(seletor_status_despesa, despesas_pendentes_pagas, data_inicio, data_fim)
 
     # Filtra para as casas selecionadas
