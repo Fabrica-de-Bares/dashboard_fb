@@ -276,13 +276,10 @@ def GET_DESPESAS_PENDENTES():
     SELECT
       tc.DATA as 'Previsao_Pgto',
       DATE_ADD(tdp.DATA, INTERVAL 30 SECOND) as 'Data_Vencimento',
-        te.NOME_FANTASIA as 'Empresa',
-        tdr.FK_APROVACAO_DIRETORIA as 'Status_Diretoria',
-        tdp.VALOR as 'Valor_Liquido',
-        CASE
-            WHEN tdp.PARCELA_PAGA = 1 THEN 'Pago'
-            ELSE 'Pendente'
-        END as 'Status_Pgto'
+      te.NOME_FANTASIA as 'Empresa',
+      tdr.FK_APROVACAO_DIRETORIA as 'Status_Diretoria',
+      tdp.VALOR as 'Valor_Liquido',
+      'Pendente' as 'Status_Pgto'
     FROM T_DESPESA_RAPIDA tdr 
     INNER JOIN T_EMPRESAS te ON (tdr.FK_LOJA = te.ID)
     LEFT JOIN T_DEPESA_PARCELAS tdp ON (tdp.FK_DESPESA = tdr.ID)
@@ -306,7 +303,7 @@ def GET_DESPESAS_PAGAS():
       te.NOME_FANTASIA as 'Empresa',
       tdr.FK_APROVACAO_DIRETORIA as 'Status_Diretoria',
       tdr.VALOR_LIQUIDO as 'Valor_Liquido',
-      tdr.FK_STATUS_PGTO as 'Status_Pgto'
+      'Pago' as 'Status_Pgto'
     FROM T_DESPESA_RAPIDA tdr 
     INNER JOIN T_EMPRESAS te ON (tdr.FK_LOJA = te.ID)
     LEFT JOIN T_CALENDARIO tc ON (tdr.PREVISAO_PAGAMENTO = tc.ID)
@@ -318,7 +315,7 @@ def GET_DESPESAS_PAGAS():
     AND te.FK_GRUPO_EMPRESA = 100
     AND tdr.BIT_CANCELADA = 0
     AND (tdr.FK_APROVACAO_DIRETORIA IS NULL OR tdr.FK_APROVACAO_DIRETORIA IN (100, 101, 103, 105, 108))
-    AND (tdr.FK_STATUS_PGTO = 103 OR tdr.FK_STATUS_PGTO = 107)
+    AND (tdr.FK_STATUS_PGTO IN (103, 107))
     UNION ALL
     SELECT
       tc.DATA as 'Previsao_Pgto',
@@ -337,7 +334,7 @@ def GET_DESPESAS_PAGAS():
     AND te.FK_GRUPO_EMPRESA = 100
     AND tdr.BIT_CANCELADA = 0
     AND (tdr.FK_APROVACAO_DIRETORIA IS NULL OR tdr.FK_APROVACAO_DIRETORIA IN (100, 101, 103, 105, 108))
-    AND (tdp.PARCELA_PAGA = 1 OR tdp.FK_STATUS_PGTO = 107 OR tdp.FK_STATUS_PGTO = 103)
+    AND (tdp.PARCELA_PAGA = 1)
 ''')
 
 
@@ -356,8 +353,8 @@ def GET_DETALHES_DESPESAS_PENDENTES():
       tdr.VALOR_LIQUIDO as 'Valor',
       "Falso" as 'Parcelamento',
       CASE
-          WHEN tdr.FK_STATUS_PGTO = 103 THEN 'Pago'
-          ELSE 'Pendente'
+        WHEN tdr.FK_STATUS_PGTO IN (103, 107) THEN 'Pago'
+        ELSE 'Pendente'
       END as 'Status_Pgto'
     FROM T_DESPESA_RAPIDA tdr 
     INNER JOIN T_EMPRESAS te ON (tdr.FK_LOJA = te.ID)
@@ -368,7 +365,7 @@ def GET_DETALHES_DESPESAS_PENDENTES():
     WHERE tdp.ID is NULL 
     AND tdr.BIT_CANCELADA = 0
     AND (tdr.FK_APROVACAO_DIRETORIA IS NULL OR tdr.FK_APROVACAO_DIRETORIA IN (100, 101, 103, 105, 108))
-    AND (tdr.FK_STATUS_PGTO IS NULL OR tdr.FK_STATUS_PGTO IN (103, 100, 108))                  
+    AND (tdr.FK_STATUS_PGTO IS NULL OR tdr.FK_STATUS_PGTO IN (103, 100, 108, 107))                  
     UNION ALL
     SELECT
       DATE_FORMAT(tc.DATA, '%Y-%m-%d') as 'Previsao_Pgto',
@@ -382,8 +379,8 @@ def GET_DETALHES_DESPESAS_PENDENTES():
       tdp.VALOR as 'Valor',
       "True" as 'Parcelamento',
       CASE
-          WHEN tdp.PARCELA_PAGA = 1 THEN 'Pago'
-          ELSE 'Pendente'
+        WHEN tdp.PARCELA_PAGA = 1 THEN 'Pago'
+        ELSE 'Pendente'
       END as 'Status_Pgto'
     FROM T_DESPESA_RAPIDA tdr 
     LEFT JOIN T_EMPRESAS te ON (tdr.FK_LOJA = te.ID)
