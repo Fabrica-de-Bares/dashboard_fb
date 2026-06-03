@@ -250,7 +250,7 @@ def destaca_dias_futuros_mes_corrente(row):
 ############################################ PROJEÇÕES - PRÓXIMOS MESES ############################################
 
 # Une faturamentos e orçamentos mensais para calcular histórico de atingimento (%)
-def prepara_dados_faturamento_orcamentos_mensais(id_casa, df_orcamentos, df_faturamento_agregado_mes, df_receitas_extr_rebate, df_ajustes_manuais, ano_passado, ano_atual, ano_selecionado):
+def prepara_dados_faturamento_orcamentos_mensais(id_casa, df_orcamentos, df_faturamento_agregado_mes, df_demais_receitas_extr, df_ajustes_manuais, ano_passado, ano_atual, ano_selecionado):
     # Filtra por casa e período (ano passado e atual)
     df_orcamentos_casa = df_orcamentos[
         (df_orcamentos['ID_Casa'] == id_casa) &
@@ -264,7 +264,21 @@ def prepara_dados_faturamento_orcamentos_mensais(id_casa, df_orcamentos, df_fatu
         (df_faturamento_agregado_mes['Ano'] >= ano_passado) &
         (df_faturamento_agregado_mes['Ano'] <= ano_atual)
     ].copy()
-    
+
+    if id_casa == 110: 
+        # Caso: Abril - Blue Note SP
+        df_faturamento_mes_casa = df_faturamento_mes_casa.drop_duplicates(subset=['ID_Casa', 'Casa', 'Categoria', 'Ano', 'Mês'], keep='first')
+        # Bilheteria  - Blue Note
+        df_bilheteria_blue_note = df_demais_receitas_extr[(df_demais_receitas_extr['Casa'] == 'Blue Note - São Paulo') & (df_demais_receitas_extr['Classificacao'] == 'Bilheteria')].copy()
+        df_bilheteria_blue_note['Mês'] = df_bilheteria_blue_note['Recebimento_Parcela'].dt.month
+        df_bilheteria_blue_note['Ano'] = df_bilheteria_blue_note['Recebimento_Parcela'].dt.year
+        df_bilheteria_blue_note = df_bilheteria_blue_note.groupby(['Casa', 'Ano', 'Mês'], as_index=False)['Valor Bruto'].sum()
+        df_bilheteria_blue_note['Categoria'] = 'Couvert'
+        df_bilheteria_blue_note = df_bilheteria_blue_note.rename(columns={'Valor Bruto': 'Valor Bilheteria'})
+        df_faturamento_mes_casa = pd.merge(df_faturamento_mes_casa, df_bilheteria_blue_note, on=['Casa', 'Categoria', 'Mês', 'Ano'], how='left').fillna(0)
+        df_faturamento_mes_casa['Valor Bilheteria'] = pd.to_numeric(df_faturamento_mes_casa['Valor Bilheteria'], errors='coerce')
+        df_faturamento_mes_casa['Valor Bruto'] += df_faturamento_mes_casa['Valor Bilheteria']
+
     df_faturamento_mes_casa = df_faturamento_mes_casa.groupby(['ID_Casa', 'Casa', 'Categoria', 'Ano', 'Mês'], as_index=False)['Valor Bruto'].sum()
 
     # Inclui ajustes manuais para itens de faturamento que tem lançamento de ajuste
@@ -285,22 +299,29 @@ def prepara_dados_faturamento_orcamentos_mensais(id_casa, df_orcamentos, df_fatu
         })
         df_faturamento_mes_casa = pd.concat([df_faturamento_mes_casa, df_ajustes_categoria])
 
-    if id_casa == 149: # Priceless - Eventos Rebate Fornecedores
-        df_receitas_extr_rebate = df_receitas_extr_rebate[
-            (df_receitas_extr_rebate['Casa'] == 'Priceless') &
-            (df_receitas_extr_rebate['Cliente'] == 'TORANJA ')
-        ].copy()
+    if id_casa in [149, 110]:
+        if id_casa == 149: # Priceless - Eventos Rebate Fornecedores
+            df_receitas_extr = df_demais_receitas_extr[(df_demais_receitas_extr['Casa'] == 'Priceless') & (df_demais_receitas_extr['Cliente'] == 'TORANJA ')].copy()
+            cols_agrupa = ['Casa', 'Cliente', 'Classificacao', 'Mês', 'Ano']
+            
+        if id_casa == 110: # Blue Note - Itens Fechamento Financeiro que vão para Faturamento
+            df_receitas_extr = df_demais_receitas_extr[(df_demais_receitas_extr['Casa'] == 'Blue Note - São Paulo') & (df_demais_receitas_extr['Classificacao'].isin(['Membership', 'Premium Corp']))].copy()
+            cols_agrupa = ['Casa', 'Classificacao', 'Mês', 'Ano']
         
-        df_receitas_extr_rebate['Mês'] = df_receitas_extr_rebate['Data_Ocorrencia'].dt.month
-        df_receitas_extr_rebate['Ano'] = df_receitas_extr_rebate['Data_Ocorrencia'].dt.year
-        df_receitas_extr_rebate = df_receitas_extr_rebate.groupby(['Casa', 'Cliente', 'Classificacao', 'Mês', 'Ano'], as_index=False)['Valor Bruto'].sum()
-        df_receitas_extr_rebate['ID_Casa'] = id_casa
-        df_receitas_extr_rebate = df_receitas_extr_rebate.rename(columns={'Classificacao': 'Categoria'})
-        df_receitas_extr_rebate = df_receitas_extr_rebate[['ID_Casa', 'Casa', 'Categoria', 'Mês', 'Ano', 'Valor Bruto']]
-        df_faturamento_mes_casa = pd.concat([df_faturamento_mes_casa, df_receitas_extr_rebate])
+        df_receitas_extr['Mês'] = df_receitas_extr['Recebimento_Parcela'].dt.month
+        df_receitas_extr['Ano'] = df_receitas_extr['Recebimento_Parcela'].dt.year
+        df_receitas_extr = df_receitas_extr.groupby(cols_agrupa, as_index=False)['Valor Bruto'].sum()
+        df_receitas_extr['ID_Casa'] = id_casa
+        df_receitas_extr = df_receitas_extr.rename(columns={'Classificacao': 'Categoria'})
+        df_receitas_extr = df_receitas_extr[['ID_Casa', 'Casa', 'Categoria', 'Mês', 'Ano', 'Valor Bruto']]
+        df_faturamento_mes_casa = pd.concat([df_faturamento_mes_casa, df_receitas_extr])
 
         df_faturamento_mes_casa['Valor Bruto'] = pd.to_numeric(df_faturamento_mes_casa['Valor Bruto'], errors='coerce')
         df_faturamento_mes_casa = df_faturamento_mes_casa.groupby(['ID_Casa', 'Casa', 'Categoria', 'Mês', 'Ano'], as_index=False)['Valor Bruto'].sum()
+        df_faturamento_mes_casa['Categoria'] = df_faturamento_mes_casa['Categoria'].replace({
+            'Eventos': 'Eventos Rebate Fornecedores',
+            'Premium Corp': 'Eventos Rebate Fornecedores'
+        })
 
     # Merge para calcular faturamento/orçamento
     df_faturamento_orcamento = pd.merge(
@@ -358,7 +379,7 @@ def projecao_faturamento_meses_seguintes(df_faturamento_orcamento, df_meses_futu
         left_on=['Ano', 'Mês', 'Categoria'],
         right_on=['Ano', 'Meses_Ano', 'Categoria']
     )
-    df_meses_seguintes = df_meses_seguintes[df_meses_seguintes['Categoria'].isin(['Alimentos', 'Bebidas', 'Couvert', 'Delivery', 'Eventos A&B', 'Eventos Couvert', 'Eventos Locações', 'Eventos Rebate Fornecedores', 'Gifts', 'Outras Receitas', 'Serviço'])].copy()
+    df_meses_seguintes = df_meses_seguintes[df_meses_seguintes['Categoria'].isin(['Alimentos', 'Bebidas', 'Couvert', 'Delivery', 'Eventos A&B', 'Eventos Couvert', 'Eventos Locações', 'Eventos Rebate Fornecedores', 'Gifts', 'Membership', 'Outras Receitas', 'Serviço'])].copy()
     df_meses_seguintes['Projeção Atingimento'] = None
     df_meses_seguintes['Valor Projetado'] = None
     
@@ -954,11 +975,12 @@ def merge_despesas_complexas(df_tabela_primaria, df_tabela_secundaria, df_tabela
 
         if class_cont == 'Mão de Obra - Benefícios': # Alimentação Funcionário envolve CMV e Cartão Black
             # Consumo Interno - CMV
-            df_tabela_terciaria['Classificacao_Contabil_2'] = '  -  Alimentação Funcionário'
-            df_tabela_terciaria = df_tabela_terciaria[['Casa', 'Mês', 'Ano', 'Classificacao_Contabil_2', 'Consumo Interno']]
-            df_tabela_terciaria = df_tabela_terciaria.rename(columns={'Consumo Interno': 'Custo Real'})
-            df_tabela_resultante = pd.concat([df_tabela_resultante, df_tabela_terciaria])
-            df_tabela_resultante = df_tabela_resultante.groupby(['Casa', 'Mês', 'Ano', 'Classificacao_Contabil_2'], as_index=False)['Custo Real'].sum()
+            if casa not in ['Blue Note - São Paulo']:
+                df_tabela_terciaria['Classificacao_Contabil_2'] = '  -  Alimentação Funcionário'
+                df_tabela_terciaria = df_tabela_terciaria[['Casa', 'Mês', 'Ano', 'Classificacao_Contabil_2', 'Consumo Interno']]
+                df_tabela_terciaria = df_tabela_terciaria.rename(columns={'Consumo Interno': 'Custo Real'})
+                df_tabela_resultante = pd.concat([df_tabela_resultante, df_tabela_terciaria])
+                df_tabela_resultante = df_tabela_resultante.groupby(['Casa', 'Mês', 'Ano', 'Classificacao_Contabil_2'], as_index=False)['Custo Real'].sum()
 
             # Consumo - Cartão Black
             if casa not in ['Arcos', 'Blue Note - São Paulo', 'Love Cabaret', 'Ultra Evil Premium Ltda ']:
@@ -990,7 +1012,7 @@ def merge_despesas_complexas(df_tabela_primaria, df_tabela_secundaria, df_tabela
             df_tabela_resultante['Custo Real'] = df_tabela_resultante['Custo Real'] - df_tabela_resultante['Valor']
         df_tabela_resultante = df_tabela_resultante.drop(columns=['Valor'])
 
-    elif class_cont == 'Patrocínio': # merge com Receitas Extraordinárias (Patrocínio)
+    elif class_cont == 'Patrocínio': # (+) Receitas de Patrocínio (envolve Receitas Extraordinárias)
         df_tabela_secundaria_filtrada['Mês'] = df_tabela_secundaria_filtrada['Recebimento_Parcela'].dt.month
         df_tabela_secundaria_filtrada['Ano'] = df_tabela_secundaria_filtrada['Recebimento_Parcela'].dt.year
         df_tabela_secundaria_filtrada = df_tabela_secundaria_filtrada.groupby(['Casa', 'Mês', 'Ano'], as_index=False)['Valor Bruto'].sum()
@@ -999,22 +1021,33 @@ def merge_despesas_complexas(df_tabela_primaria, df_tabela_secundaria, df_tabela
         df_tabela_secundaria_filtrada = df_tabela_secundaria_filtrada.rename(columns={'Valor Bruto': 'Custo Real'})
         df_tabela_resultante = pd.concat([df_tabela_primaria, df_tabela_secundaria_filtrada])
         df_tabela_resultante = df_tabela_resultante.groupby(['Casa', 'Mês', 'Ano', 'Classificacao_Contabil_2'], as_index=False)['Custo Real'].sum()
+        if casa == 'Blue Note - São Paulo': # (-) Despesas de Patrocínio (envolve Descontos)
+            df_tabela_terciaria_filtrada = df_tabela_terciaria[df_tabela_terciaria['Casa'] == 'Blue Note - São Paulo'].copy()
+            df_tabela_terciaria_filtrada = df_tabela_terciaria_filtrada.groupby(['Casa', 'Mês', 'Ano'], as_index=False)['Permanece no Desconto'].sum()
+            df_tabela_resultante = pd.merge(df_tabela_resultante, df_tabela_terciaria_filtrada, on=['Casa', 'Mês', 'Ano'], how='left').fillna(0)
+            df_tabela_resultante.loc[df_tabela_resultante['Classificacao_Contabil_2'] == '(-) Despesas de Patrocínio', 'Custo Real'] += df_tabela_resultante['Permanece no Desconto']
+            df_tabela_resultante = df_tabela_resultante.drop(columns=['Permanece no Desconto'])
 
-    elif class_cont == 'Despesas Financeiras': # merge com outra class. cont. da aut blueme sem pedido
-        if casa in ['Bar Brahma - Centro', 'Bar Léo - Centro']:
+    elif class_cont == 'Despesas Financeiras': 
+        # merge com outra class. cont. da aut blueme sem pedido
+        if casa in ['Bar Brahma - Centro', 'Bar Léo - Centro']: # Aluguel de Imóveis
             df_tabela_secundaria_filtrada = df_tabela_secundaria_filtrada[df_tabela_secundaria_filtrada['Classificacao_Contabil_2'] == 'Aluguel de Imoveis'].copy()
             df_tabela_secundaria_filtrada['Data_Competencia'] = pd.to_datetime(df_tabela_secundaria_filtrada['Data_Competencia'], errors='coerce')
             df_tabela_secundaria_filtrada['Mês'] = df_tabela_secundaria_filtrada['Data_Competencia'].dt.month
             df_tabela_secundaria_filtrada['Ano'] = df_tabela_secundaria_filtrada['Data_Competencia'].dt.year
             df_tabela_secundaria_filtrada = df_tabela_secundaria_filtrada.groupby(['Casa', 'Mês', 'Ano'], as_index=False)[['Valor_Pagamento', 'Valor_Liquido']].sum()
-            df_tabela_resultante = pd.merge(
-                df_tabela_primaria, 
-                df_tabela_secundaria_filtrada[['Casa', 'Mês', 'Ano', 'Valor_Pagamento', 'Valor_Liquido']], 
-                on=['Casa', 'Mês', 'Ano'], 
-                how='left'
-            )
+            df_tabela_resultante = pd.merge(df_tabela_primaria, df_tabela_secundaria_filtrada[['Casa', 'Mês', 'Ano', 'Valor_Pagamento', 'Valor_Liquido']],  on=['Casa', 'Mês', 'Ano'], how='left')
             df_tabela_resultante['Custo Real'] = (df_tabela_resultante['Custo Real'] - df_tabela_resultante['Valor_Pagamento'] + df_tabela_resultante['Valor_Liquido_y'])
-            df_tabela_resultante.loc[df_tabela_resultante['Custo Real'] < 0, 'Custo Real'] *= (-1)
+            # df_tabela_resultante.loc[df_tabela_resultante['Custo Real'] < 0, 'Custo Real'] *= (-1)
+        # merge com Receitas Extr. Blue Note - Bilheteria-Rebate
+        elif casa in ['Blue Note - São Paulo']:
+            df_tabela_secundaria_filtrada['Mês'] = df_tabela_secundaria_filtrada['Recebimento_Parcela'].dt.month
+            df_tabela_secundaria_filtrada['Ano'] = df_tabela_secundaria_filtrada['Recebimento_Parcela'].dt.year
+            df_tabela_secundaria_filtrada = df_tabela_secundaria_filtrada.groupby(['Casa', 'Classificacao', 'Mês', 'Ano'], as_index=False)[['Valor Bruto']].sum()
+            df_bilheteria_rebate = df_tabela_secundaria_filtrada[df_tabela_secundaria_filtrada['Classificacao'] == 'Bilheteria-Rebate'].copy()
+            df_cashback = df_tabela_secundaria_filtrada[df_tabela_secundaria_filtrada['Classificacao'] == 'Cashback'].copy()
+            df_tabela_resultante = (df_tabela_primaria.merge(df_bilheteria_rebate, on=['Casa', 'Ano', 'Mês'], how='left').merge(df_cashback, on=['Casa', 'Ano', 'Mês'], how='left')).fillna(0)
+            df_tabela_resultante['Custo Real'] = ((df_tabela_resultante['Custo Real'] * (-1)) + df_tabela_resultante['Valor Bruto_x'] + df_tabela_resultante['Valor Bruto_y']) * (-1) # Para ficar positivo no layout final, caso seja
         else: df_tabela_resultante = df_tabela_primaria.copy() # Outras casas não precisam do merge   
 
     return df_tabela_resultante
@@ -1374,7 +1407,7 @@ def filtra_despesas_mes_ano_selecionados(df, mes, ano):
     return df_filtrado
 
 
-def loop_prepara_dados_despesas(lista_categorias_despesas, df_descontos, df_consumo_interno_cmv, df_consumo_cartao_black, df_aut_blueme_sem_pedido, df_aut_blue_me_com_pedido, df_faturamento_meses_futuros, df_aut_folha, df_orcamentos, df_receitas_patrocinio, df_ajustes_manuais, df_valor_fee_gestao, df_resultados, casa, mes_selecionado, ano_selecionado):
+def loop_prepara_dados_despesas(lista_categorias_despesas, df_descontos, df_consumo_interno_cmv, df_consumo_cartao_black, df_aut_blueme_sem_pedido, df_aut_blue_me_com_pedido, df_faturamento_meses_futuros, df_aut_folha, df_orcamentos, df_demais_receitas_extr, df_ajustes_manuais, df_valor_fee_gestao, df_resultados, casa, mes_selecionado, ano_selecionado):
     for categoria_despesa in lista_categorias_despesas:
         # Define df de despesas utilizado pela categoria
         if categoria_despesa == 'Desconto sobre Venda':
@@ -1392,11 +1425,17 @@ def loop_prepara_dados_despesas(lista_categorias_despesas, df_descontos, df_cons
             df_tabela_terciaria = None
             df_tabela_quaternaria = None
         elif categoria_despesa == 'Patrocínio':
-            df_tabela_secundaria = df_receitas_patrocinio[df_receitas_patrocinio['Classificacao'] == 'Patrocínio'].copy()
-            df_tabela_terciaria = None
+            df_tabela_secundaria = df_demais_receitas_extr[df_demais_receitas_extr['Classificacao'] == 'Patrocínio'].copy()
+            if casa == 'Blue Note - São Paulo': 
+                df_tabela_terciaria = df_descontos[df_descontos['Descontos - DRE'] == 'Descontos - Operação'].copy()
+            else:
+                df_tabela_terciaria = None
             df_tabela_quaternaria = None
         elif categoria_despesa == 'Despesas Financeiras': 
-            df_tabela_secundaria = df_aut_blueme_sem_pedido.copy()
+            if casa == 'Blue Note - São Paulo': 
+                df_tabela_secundaria = df_demais_receitas_extr[df_demais_receitas_extr['Classificacao'].isin(['Cashback', 'Bilheteria-Rebate'])].copy()
+            else:
+                df_tabela_secundaria = df_aut_blueme_sem_pedido.copy()
             df_tabela_terciaria = None
             df_tabela_quaternaria = None
         else: 
@@ -1467,7 +1506,7 @@ def aplica_layout_dre(df_faturamento_meses_passados_futuros, df_layout_impostos,
     df_layout_faturamento = df_faturamento_meses_passados_futuros[
         (df_faturamento_meses_passados_futuros['Ano'] == ano_selecionado) &
         (df_faturamento_meses_passados_futuros['Mês'] == mes_selecionado) &
-        (df_faturamento_meses_passados_futuros['Categoria'].isin(['Alimentos', 'Bebidas', 'Couvert', 'Serviço', 'Gifts', 'Eventos A&B', 'Eventos Couvert', 'Eventos Locações', 'Eventos Rebate Fornecedores', 'Delivery', 'Outras Receitas']))
+        (df_faturamento_meses_passados_futuros['Categoria'].isin(['Alimentos', 'Bebidas', 'Couvert', 'Serviço', 'Gifts', 'Eventos A&B', 'Eventos Couvert', 'Eventos Locações', 'Eventos Rebate Fornecedores', 'Membership', 'Delivery', 'Outras Receitas']))
     ].copy()
 
     df_layout_faturamento = df_layout_faturamento.rename(columns={'Valor Bruto': 'Valor Real', 'Atingimento Real': 'Percentual Real (do Orçamento)', 'Projeção Atingimento': 'Percentual Projetado'})
@@ -1515,7 +1554,7 @@ def aplica_layout_dre(df_faturamento_meses_passados_futuros, df_layout_impostos,
 
     # Despesas são consideradas negativas
     df_layout_despesas_final.loc[df_layout_despesas_final['Categoria'] != '(+) Receitas de Patrocínio', 'Valor Projetado'] *= -1    
-    df_layout_despesas_final.loc[df_layout_despesas_final['Categoria'] != '(+) Receitas de Patrocínio', 'Valor Real'] *= -1    
+    df_layout_despesas_final.loc[df_layout_despesas_final['Categoria'] != '(+) Receitas de Patrocínio', 'Valor Real'] *= -1   
 
     # Concatena os dados
     df_layout_dre = pd.concat([df_layout_faturamento, df_layout_despesas_final])

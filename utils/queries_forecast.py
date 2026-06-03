@@ -338,7 +338,7 @@ def GET_EVENTOS_REBATE_FORNEC_PRICELESS():
           vpa.ID AS 'ID_receita', 
           CASE
               WHEN te.ID IN (161, 162) THEN 'Priceless'
-              WHEN te.ID = 178 THEN 'Blue Note - São Paulo'                                                             
+              WHEN te.ID IN (131, 178) THEN 'Blue Note - São Paulo'                                                             
               ELSE te.NOME_FANTASIA
           END AS 'Casa', 
           trec.NOME AS 'Cliente',
@@ -430,22 +430,19 @@ def GET_EVENTOS_REBATE_FORNEC_PRICELESS():
     ''') 
 
 
-# Receitas Extraordinárias: Patrocínio e Priceless - Eventos Rebate Fornecedores
+# Receitas Extraordinárias: Patrocínio, Eventos Rebate Fornecedores (Priceless), Bilheteria, Bilheteria-Rebate, Cashback, Membership, Premium Corp, Patrocínio (Blue Note) 
 @st.cache_data
-def GET_RECEITAS_EXTR_PATROCINIO_REBATE():
+def GET_DEMAIS_RECEITAS_EXTR():
     return dataframe_query(f'''
         SELECT 
-          vpa.ID AS 'ID_receita', 
+          vpa.ID AS 'ID_receita',                  
           CASE
               WHEN te.ID IN (161, 162) THEN 'Priceless'
-              WHEN te.ID = 178 THEN 'Blue Note - São Paulo'                                                             
+              WHEN te.ID IN (131, 178) THEN 'Blue Note - São Paulo'                                                             
               ELSE te.NOME_FANTASIA
           END AS 'Casa', 
           trec.NOME AS 'Cliente', 
-          CASE
-              WHEN trec2.CLASSIFICACAO = 'Eventos' THEN 'Eventos Rebate Fornecedores'
-              ELSE trec2.CLASSIFICACAO                                                     
-          END AS 'Classificacao', 
+          trec2.CLASSIFICACAO AS 'Classificacao', 
           tre.VALOR as 'Valor_Total', 
           tre.DATA_OCORRENCIA AS 'Data_Ocorrencia',
           vpa.DATA_RECEBIMENTO AS 'Recebimento_Parcela',
@@ -515,12 +512,12 @@ def GET_RECEITAS_EXTR_PATROCINIO_REBATE():
       LEFT JOIN T_TIPO_EVENTO tte ON (tep.FK_TIPO_EVENTO = tte.ID)
 	  LEFT JOIN T_MODELO_EVENTO tme ON (tep.FK_MODELO_EVENTO = tme.ID)
       WHERE vpa.DATA_VENCIMENTO IS NOT NULL 
-      AND trec2.ID IN (111, 130) # Eventos, Patrocínios
+      AND trec2.ID IN (111, 130, 131, 133, 142, 144, 152) # Eventos, Patrocínios, Bilheteria, Premium Corp, Bilheteria-Rebate, Cashback, Membership
 	  ORDER BY tre.ID desc;
     ''')
     
 
-# Receitas Extraordinárias: 'Outras receitas' (apenas Coleta de Óleo)
+# Receitas Extraordinárias: (Lojin/Gifts e Coleta de Óleo/Outras Receitas)
 @st.cache_data
 def GET_PARCELAS_RECEIT_EXTR():
     df_parc_receit_extr = dataframe_query(f'''

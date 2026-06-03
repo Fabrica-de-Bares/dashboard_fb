@@ -48,10 +48,10 @@ if casa == 'Arcos': st.info('Observação: Arcos sem operação às segundas-fei
  df_faturamento_agregado_dia, 
  df_faturamento_eventos_inicial, 
  df_faturamento_eventos, 
- df_parc_receitas_extr) = GET_TODOS_FATURAMENTOS_DIA(id_casa)
+ df_receitas_extr_gifts_oleo) = GET_TODOS_FATURAMENTOS_DIA(id_casa)
 
 # Dados - Receitas Extraordinárias (apenas Patrocínios)
-df_receitas_extr_patrocinio_rebate = GET_RECEITAS_EXTR_PATROCINIO_REBATE()
+df_demais_receitas_extr = GET_DEMAIS_RECEITAS_EXTR()
 
 # Dados - Descontos e Promoções
 df_descontos = GET_DESCONTOS()
@@ -79,70 +79,70 @@ PORC_FEE_GESTAO = 0.05 # Calculado para casas 100% FB
 
 ###################### PROJEÇÃO DE FATURAMENTO - MÊS CORRENTE ###################### 
 
-# Prepara df de faturamento agregado diário para a casa selecionada
-df_faturamento_agregado_mes_corrente = prepara_dados_faturam_agregado_diario(id_casa, df_faturamento_agregado_dia, datas['fim_mes_atual'], datas['inicio_dois_meses_antes'])
-if casa == 'Arcos': 
-    # Não abre de segunda-feira: zera segundas com faturamento de A&B para não impactar na projeção (vêm de Eventos)
-    condicao = (df_faturamento_agregado_mes_corrente['Casa'] == 'Arcos') & (df_faturamento_agregado_mes_corrente['Dia Semana'] == 'Segunda-feira')
-    df_faturamento_agregado_mes_corrente.loc[condicao, 'Valor Bruto'] = 0
+# # Prepara df de faturamento agregado diário para a casa selecionada
+# df_faturamento_agregado_mes_corrente = prepara_dados_faturam_agregado_diario(id_casa, df_faturamento_agregado_dia, datas['fim_mes_atual'], datas['inicio_dois_meses_antes'])
+# if casa == 'Arcos': 
+#     # Não abre de segunda-feira: zera segundas com faturamento de A&B para não impactar na projeção (vêm de Eventos)
+#     condicao = (df_faturamento_agregado_mes_corrente['Casa'] == 'Arcos') & (df_faturamento_agregado_mes_corrente['Dia Semana'] == 'Segunda-feira')
+#     df_faturamento_agregado_mes_corrente.loc[condicao, 'Valor Bruto'] = 0
 
-# --- CRIA COMBINAÇÃO DE TODAS AS CATEGORIAS x DIAS (mês anterior e corrente) ---
-df_dias_futuros_com_categorias = lista_dias_mes_anterior_atual(datas['ano_atual'], df_faturamento_agregado_mes_corrente)
+# # --- CRIA COMBINAÇÃO DE TODAS AS CATEGORIAS x DIAS (mês anterior e corrente) ---
+# df_dias_futuros_com_categorias = lista_dias_mes_anterior_atual(datas['ano_atual'], df_faturamento_agregado_mes_corrente)
 
-# Gera projeção para prox dias do mês corrente por dia da semana
-df_dias_futuros_mes = cria_projecao_mes_corrente(df_faturamento_agregado_mes_corrente, df_dias_futuros_com_categorias)
-df_dias_mes = df_dias_futuros_com_categorias[df_dias_futuros_com_categorias['Categoria'] != 'Serviço'].copy()
-df_dias_mes = df_dias_mes[['Data Evento', 'Categoria']]
+# # Gera projeção para prox dias do mês corrente por dia da semana
+# df_dias_futuros_mes = cria_projecao_mes_corrente(df_faturamento_agregado_mes_corrente, df_dias_futuros_com_categorias)
+# df_dias_mes = df_dias_futuros_com_categorias[df_dias_futuros_com_categorias['Categoria'] != 'Serviço'].copy()
+# df_dias_mes = df_dias_mes[['Data Evento', 'Categoria']]
 
-# Aplica layout
-pivot_faturamento_mes_corrente = aplica_layout_mes_corrente(df_dias_futuros_mes, df_faturamento_eventos, df_parc_receitas_extr, df_dias_mes, id_casa, casa, mes_selecionado, ano_selecionado)
-height = (len(pivot_faturamento_mes_corrente) + 1) * 35 # Define altura sem rolagem 
+# # Aplica layout
+# pivot_faturamento_mes_corrente = aplica_layout_mes_corrente(df_dias_futuros_mes, df_faturamento_eventos, df_receitas_extr_gifts_oleo, df_dias_mes, id_casa, casa, mes_selecionado, ano_selecionado)
+# height = (len(pivot_faturamento_mes_corrente) + 1) * 35 # Define altura sem rolagem 
 
-# Formata colunas numéricas
-df_mes_corrente_estilizado = function_format_number_columns(
-    pivot_faturamento_mes_corrente,
-    columns_money=[col for col in pivot_faturamento_mes_corrente if col not in ['Data Evento', 'Dia Semana']]
-)
+# # Formata colunas numéricas
+# df_mes_corrente_estilizado = function_format_number_columns(
+#     pivot_faturamento_mes_corrente,
+#     columns_money=[col for col in pivot_faturamento_mes_corrente if col not in ['Data Evento', 'Dia Semana']]
+# )
 
-# Pinta os dias apenas se for selecionado o mês corrente
-if mes_selecionado == datas['mes_atual'] and ano_selecionado == datas['ano_atual']:
-    df_mes_corrente_estilizado = pivot_faturamento_mes_corrente.style.apply(destaca_dias_futuros_mes_corrente, axis=1)
-else:
-    df_mes_corrente_estilizado = pivot_faturamento_mes_corrente 
-    df_mes_corrente_estilizado = df_mes_corrente_estilizado.style.apply(
-        lambda col: ['background-color: #f0f2f6; color: black;' if col.name == 'Total' else '' for _ in col],
-        axis=0
-    )   
+# # Pinta os dias apenas se for selecionado o mês corrente
+# if mes_selecionado == datas['mes_atual'] and ano_selecionado == datas['ano_atual']:
+#     df_mes_corrente_estilizado = pivot_faturamento_mes_corrente.style.apply(destaca_dias_futuros_mes_corrente, axis=1)
+# else:
+#     df_mes_corrente_estilizado = pivot_faturamento_mes_corrente 
+#     df_mes_corrente_estilizado = df_mes_corrente_estilizado.style.apply(
+#         lambda col: ['background-color: #f0f2f6; color: black;' if col.name == 'Total' else '' for _ in col],
+#         axis=0
+#     )   
 
-if mes_selecionado == datas['mes_atual'] and ano_selecionado == datas['ano_atual']:
-    st.subheader('Faturamento diário - mês corrente')
-else:
-    st.subheader('Faturamento diário - mês selecionado')
+# if mes_selecionado == datas['mes_atual'] and ano_selecionado == datas['ano_atual']:
+#     st.subheader('Faturamento diário - mês corrente')
+# else:
+#     st.subheader('Faturamento diário - mês selecionado')
 
-st.dataframe(df_mes_corrente_estilizado, hide_index=True, width='stretch')
-# Exibe legenda
-st.markdown(f'''
-    <div style="display: flex; align-items: center; padding:10px; border:1px solid #ccc; border-radius:8px";>
-        <div style="width: 15px; height: 15px; background-color: rgba(255,255,224); border: 1px solid #ccc; margin-right: 10px;"></div>
-        <span style="font-size: 14px">Média de faturamento projetado (não real) para dias futuros.</span>
-    </div>
-''', unsafe_allow_html=True)
-st.write("")
-# Premissas
-st.markdown(f'''
-    <div style="display:flex; flex-direction:column; padding:10px; border:1px solid #ccc; border-radius:8px";>
-        <p><strong>Premissas</strong></p>
-        <span style="font-size: 14px">- Para Alimentos, Bebidas, Couvert, Delivery e Gifts: por dia da semana, é calculada a média de faturamento baseada nas das duas últimas semanas.</span>
-        <span style="font-size: 14px">- Para Eventos e Outras Receitas (coleta de óleo): considerar os lançamentos com competência para o dia correspondente.</span>
-    </div>
-''', unsafe_allow_html=True)
-st.divider()
+# st.dataframe(df_mes_corrente_estilizado, hide_index=True, width='stretch')
+# # Exibe legenda
+# st.markdown(f'''
+#     <div style="display: flex; align-items: center; padding:10px; border:1px solid #ccc; border-radius:8px";>
+#         <div style="width: 15px; height: 15px; background-color: rgba(255,255,224); border: 1px solid #ccc; margin-right: 10px;"></div>
+#         <span style="font-size: 14px">Média de faturamento projetado (não real) para dias futuros.</span>
+#     </div>
+# ''', unsafe_allow_html=True)
+# st.write("")
+# # Premissas
+# st.markdown(f'''
+#     <div style="display:flex; flex-direction:column; padding:10px; border:1px solid #ccc; border-radius:8px";>
+#         <p><strong>Premissas</strong></p>
+#         <span style="font-size: 14px">- Para Alimentos, Bebidas, Couvert, Delivery e Gifts: por dia da semana, é calculada a média de faturamento baseada nas das duas últimas semanas.</span>
+#         <span style="font-size: 14px">- Para Eventos e Outras Receitas (coleta de óleo): considerar os lançamentos com competência para o dia correspondente.</span>
+#     </div>
+# ''', unsafe_allow_html=True)
+# st.divider()
 
 
-###################### PROJEÇÃO DE FATURAMENTO - DRE ###################### 
+# ###################### PROJEÇÃO DE FATURAMENTO - DRE ###################### 
 
 # Prepara df de faturamento agregado mensal para a casa selecionada
-df_faturamento_mes_casa, df_faturamento_orcamento = prepara_dados_faturamento_orcamentos_mensais(id_casa, df_orcamentos, df_faturamento_agregado_mes, df_receitas_extr_patrocinio_rebate, df_ajustes_manuais, datas['ano_passado'], datas['ano_atual'], ano_selecionado)
+df_faturamento_mes_casa, df_faturamento_orcamento = prepara_dados_faturamento_orcamentos_mensais(id_casa, df_orcamentos, df_faturamento_agregado_mes, df_demais_receitas_extr, df_ajustes_manuais, datas['ano_passado'], datas['ano_atual'], ano_selecionado)
 lista_itens_faturamento = df_faturamento_orcamento['Categoria'].unique().tolist() # Para exibir todos os itens de faturamento, mesmo que não haja valor para a casa
 
 # Faturamento Bruto do mês e Fee Gestão
@@ -253,7 +253,7 @@ lista_df_projecao_despesas = loop_prepara_dados_despesas(
     df_faturamento_meses_futuros, 
     df_aut_folha, 
     df_orcamentos, 
-    df_receitas_extr_patrocinio_rebate,
+    df_demais_receitas_extr,
     df_ajustes_manuais,
     df_valor_fee_gestao,
     lista_df_projecao_despesas, 
