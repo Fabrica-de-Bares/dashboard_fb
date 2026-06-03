@@ -44,7 +44,9 @@ def logout():
   st.switch_page('Login.py')
 
 
-def handle_login(user_login, password):
+def handle_login():
+  user_login = st.session_state.get('login_input', '')
+  password = st.session_state.get('password_input', '')
   #user data deve conter o usuario
   if user_data := login(user_login, password):
     st.session_state['loggedIn'] = True
