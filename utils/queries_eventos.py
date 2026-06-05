@@ -239,8 +239,61 @@ def GET_PARCELAS_EVENTOS_PRICELESS():
 	''')
 
 @st.cache_data
-def GET_EVENTOS_ADITIVOS_AGRUPADOS():
+def GET_EVENTOS_ADITIVOS_AGRUPADOS_CALENDARIO():
    	return dataframe_query(f'''
+		SELECT
+			COALESCE(tep.FK_EVENTO_DO_ADITIVO, tep.ID) AS 'ID Evento',
+			te.ID AS 'ID Casa',
+			te.NOME_FANTASIA AS 'Casa',
+			tee.NOME_COMPLETO AS 'Comercial Responsável',
+			tee.ID AS 'ID Responsavel Comercial',
+			tep2.NOME_EVENTO AS 'Nome Evento',
+			trec.NOME AS 'Cliente',
+			tep2.DATA_ENVIO_PROPOSTA AS 'Data Envio Proposta',
+			tep2.DATA_CONTRATACAO AS 'Data Contratação',
+			tep2.DATA_RECEBIMENTO_LEAD AS 'Data Recebimento Lead',
+			tep2.DATA_EVENTO AS 'Data Evento',
+			tte.DESCRICAO AS 'Tipo Evento',
+			tme.DESCRICAO AS 'Modelo Evento',
+			SUM(tep.VALOR_TOTAL_EVENTO) AS 'Valor Total Evento',
+			SUM(tep.NUM_CLIENTES) AS 'Num Pessoas',
+			SUM(tep.VALOR_AB) AS 'Valor AB',
+			SUM(COALESCE(tep.VALOR_LOCACAO_AROO_1, 0) + COALESCE(tep.VALOR_LOCACAO_AROO_2, 0) + COALESCE(tep.VALOR_LOCACAO_AROO_3, 0) + COALESCE(tep.VALOR_LOCACAO_ANEXO, 0) + COALESCE(tep.VALOR_LOCACAO_NOTIE, 0) + COALESCE(tep.VALOR_LOCACAO_BAR, 0) + COALESCE(tep.VALOR_LOCACAO_MIRANTE, 0) + COALESCE(tep.VALOR_LOCACAO_ESPACO)) AS 'Valor Locação Total',
+			SUM(tep.VALOR_CONTRATACAO_ARTISTICO) AS 'Valor Contratação Artístico',
+			SUM(tep.VALOR_CONTRATACAO_TECNICO_SOM) AS 'Valor Contratação Técnico de Som',
+			SUM(tep.VALOR_CONTRATACAO_COUVERT_ARTISTICO) AS 'Valor Contratação Bilheteria/Couvert Artístico',
+			SUM(tep.VALOR_IMPOSTO) AS 'Valor Imposto',
+			SUM(tep.VALOR_LOCACAO_GERADOR) AS 'Valor Locação Gerador',
+			SUM(tep.VALOR_LOCACAO_DECORACAO_MOBILIARIO) AS 'Valor Locação Mobiliário',
+			SUM(tep.VALOR_LOCACAO_UTENSILIOS) AS 'Valor Locação Utensílios',
+			SUM(tep.VALOR_MAO_DE_OBRA_EXTRA) AS 'Valor Mão de Obra Extra',
+			SUM(tep.VALOR_TAXA_ADMINISTRATIVA) AS 'Valor Taxa Administrativa',
+			SUM(tep.VALOR_COMISSAO_BV) AS 'Valor Comissão BV',
+			SUM(tep.VALOR_EXTRAS_GERAIS) AS 'Valor Extras Gerais',
+			SUM(tep.VALOR_TAXA_SERVICO) AS 'Valor Taxa Serviço',
+			SUM(tep.VALOR_ACRESCIMO_FORMA_PAGAMENTO) AS 'Valor Acréscimo Forma de Pagamento',
+			tsep.DESCRICAO AS 'Status Evento',
+			tep2.OBSERVACOES AS 'Observações',
+			temd.DESCRICAO AS 'Motivo Declínio',
+			tep2.OBSERVACAO_MOTIVO_DECLINIO AS 'Observações Motivo Declínio',
+			tep2.IS_ADITIVO AS 'Is Aditivo'
+		FROM T_EVENTOS_PRICELESS tep
+			LEFT JOIN T_EVENTOS_PRICELESS tep2 ON COALESCE(tep.FK_EVENTO_DO_ADITIVO, tep.ID) = tep2.ID # tep2 = evento pai
+			LEFT JOIN T_RECEITAS_EXTRAORDINARIAS_CLIENTE trec ON (tep2.FK_CLIENTE = trec.ID)
+			LEFT JOIN T_TIPO_EVENTO tte ON (tep2.FK_TIPO_EVENTO = tte.ID)
+			LEFT JOIN T_MODELO_EVENTO tme ON (tep2.FK_MODELO_EVENTO = tme.ID)
+			LEFT JOIN T_EMPRESAS te ON (tep2.FK_EMPRESA = te.ID)
+			LEFT JOIN T_EVENTOS_MOTIVOS_DECLINIO temd ON (tep2.FK_MOTIVO_DECLINIO = temd.ID)
+			LEFT JOIN T_STATUS_EVENTO_PRE tsep ON (tep2.FK_STATUS_EVENTO = tsep.ID)
+			LEFT JOIN T_EXECUTIVAS_EVENTOS tee ON (tep2.FK_EXECUTIVA_EVENTOS = tee.ID)
+		GROUP BY COALESCE(tep.FK_EVENTO_DO_ADITIVO, tep.ID)
+	''')
+
+
+@st.cache_data
+def GET_EVENTOS_ADITIVOS_AGRUPADOS():
+   	
+	return dataframe_query(f'''
 		SELECT
 			COALESCE(tep.FK_EVENTO_DO_ADITIVO, tep.ID) AS 'ID Evento',
 			te.ID AS 'ID Casa',
@@ -704,9 +757,15 @@ def GET_DATETIME_CONFIRMACAO_EVENTOS():
 def GET_EVENTOS_CONCIERGE():
    	return dataframe_query(f'''
 	SELECT 
-		tep.ID AS 'ID Evento',
-		te.NOME_FANTASIA AS 'Casa',
-		te.ID AS 'ID Casa',
+		CONCAT('C-', tep.ID) AS 'ID Evento',
+		CASE 
+			WHEN te.NOME_FANTASIA = 'Terraço Notie' THEN 'Priceless'
+			ELSE te.NOME_FANTASIA
+		END AS `Casa`,
+		CASE 
+			WHEN te.NOME_FANTASIA = 'Terraço Notie' THEN 149
+			ELSE te.ID
+		END AS `ID Casa`,
 		tc.NOME AS 'Comercial Responsável',
 		tep.NOME_EVENTO AS 'Nome Evento',
 		trec.NOME AS 'Cliente',
@@ -758,10 +817,16 @@ def GET_EVENTOS_CONCIERGE():
 def GET_PARCELAS_EVENTOS_CONCIERGE():
    	return dataframe_query(f'''
 		SELECT
-			tpep.ID AS 'ID Parcela',
-			tpep.FK_EVENTO_CONCIERGE AS 'ID Evento',
-			te.NOME_FANTASIA AS 'Casa',
-			te.ID AS 'ID Casa',
+			CONCAT('C-', tpep.ID) AS 'ID Parcela',
+			CONCAT('C-', tpep.FK_EVENTO_CONCIERGE) AS 'ID Evento',
+			CASE 
+				WHEN te.NOME_FANTASIA = 'Terraço Notie' THEN 'Priceless'
+				ELSE te.NOME_FANTASIA
+			END AS Casa,
+			CASE 
+				WHEN te.NOME_FANTASIA = 'Terraço Notie' THEN 149
+				ELSE te.ID
+			END AS `ID Casa`,
 			tep.NOME_EVENTO AS 'Nome Evento',
 			tsep.DESCRICAO AS 'Status Evento',
 			tcep.DESCRICAO AS 'Categoria Parcela',
@@ -775,7 +840,7 @@ def GET_PARCELAS_EVENTOS_CONCIERGE():
 			LEFT JOIN T_CATEGORIA_EVENTO_PRICELESS tcep ON (tpep.FK_CATEGORIA_PARCELA = tcep.ID)
 			LEFT JOIN T_EMPRESAS te ON te.ID = tep.FK_EMPRESA
 			LEFT JOIN T_STATUS_EVENTO_PRE tsep ON tsep.ID = tep.FK_STATUS_EVENTO
-		ORDER BY tep.ID DESC, tpep.ID DESC
+		ORDER BY `ID Casa` DESC, tpep.ID DESC
 	''')
 
 @st.cache_data

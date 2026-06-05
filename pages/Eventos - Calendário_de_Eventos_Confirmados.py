@@ -24,10 +24,21 @@ def main():
 
     # Recupera dados dos eventos
     df_eventos = GET_EVENTOS()
-    df_aditivos = GET_ADITIVOS()
-    df_parcelas = GET_PARCELAS_EVENTOS_PRICELESS()
+    df_eventos_concierge = GET_EVENTOS_CONCIERGE()
+    df_eventos_concierge['Casa'] = df_eventos_concierge['Casa'].apply(lambda x: 'Concierge Priceless' if x == 'Terraço Notie' else x)
+    df_eventos_concierge['ID Casa'] = df_eventos_concierge['ID Casa'].apply(lambda x: 149 if x == 162 else x)
+    df_eventos_concierge['Valor Comissão BV'] = 0
+    dfs_e = [df for df in [df_eventos, df_eventos_concierge] if not df.empty]
+    df_eventos = pd.concat(dfs_e, ignore_index=True) if dfs_e else pd.DataFrame()
 
-    df_eventos_aditivos_agrupado = GET_EVENTOS_ADITIVOS_AGRUPADOS()
+    df_aditivos = GET_ADITIVOS()
+
+    df_parcelas = GET_PARCELAS_EVENTOS_PRICELESS()
+    df_parcelas_concierge = GET_PARCELAS_EVENTOS_CONCIERGE()
+    dfs_p = [df for df in [df_parcelas, df_parcelas_concierge] if not df.empty]
+    df_parcelas = pd.concat(dfs_p, ignore_index=True) if dfs_p else pd.DataFrame()
+
+    df_eventos_aditivos_agrupado = GET_EVENTOS_ADITIVOS_AGRUPADOS_CALENDARIO()
     
     # Substitui NaT ou datas nulas por uma data padrão ou remove linhas
     df_eventos = df_eventos.dropna(subset=["Data Evento"])
@@ -44,6 +55,10 @@ def main():
     # Filtro eventos confirmados
     df_eventos = df_eventos[df_eventos['Status Evento'] == 'Confirmado']
 
+    df_eventos['ID Evento'] = df_eventos['ID Evento'].astype(str)
+    df_eventos_aditivos_agrupado['ID Evento'] = (
+        df_eventos_aditivos_agrupado['ID Evento'].astype(str)
+    )
     json_eventos = dataframe_to_json_calendar(df_eventos, event_color_type='casa')
 
     # Renderiza o calendário
@@ -122,16 +137,26 @@ def main():
         
         if selected.get("callback") == "eventClick":
             id_evento_selecionado = selected["eventClick"]["event"]["id"]
-            with st.container(border=True):
-                st.write("")
-                col1, col2, col3 = st.columns([1, 15, 1])
-                with col2:
-                    infos_evento(id_evento_selecionado, df_eventos_aditivos_agrupado, df_eventos)
+            if not str(id_evento_selecionado).startswith("C"): # Evento Concierge
+                with st.container(border=True):
                     st.write("")
-                    lista_aditivos = mostrar_aditivos(id_evento_selecionado, df_aditivos)
+                    col1, col2, col3 = st.columns([1, 15, 1])
+                    with col2:
+                        infos_evento(id_evento_selecionado, df_eventos_aditivos_agrupado, df_eventos)
+                        st.write("")
+                        lista_aditivos = mostrar_aditivos(id_evento_selecionado, df_aditivos)
+                        st.write("")
+                        mostrar_parcelas(id_evento_selecionado, df_parcelas, lista_aditivos)
+                        st.write("")
+            else:
+                with st.container(border=True):
                     st.write("")
-                    mostrar_parcelas(id_evento_selecionado, df_parcelas, lista_aditivos)
-                    st.write("")
+                    col1, col2, col3 = st.columns([1, 15, 1])
+                    with col2:
+                        infos_evento(id_evento_selecionado, df_eventos, df_eventos)
+                        st.write("")
+                        mostrar_parcelas(id_evento_selecionado, df_parcelas, [])
+                        st.write("")
         else:
             st.info("Selecione um evento no calendário para ver os detalhes.")
 

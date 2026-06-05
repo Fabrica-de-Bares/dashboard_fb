@@ -37,9 +37,8 @@ def main():
     df_parcelas_concierge = GET_PARCELAS_EVENTOS_CONCIERGE()
     dfs_p = [df for df in [df_parcelas, df_parcelas_concierge] if not df.empty]
     df_parcelas = pd.concat(dfs_p, ignore_index=True) if dfs_p else pd.DataFrame()
-    st.write(df_parcelas)
 
-    df_eventos_aditivos_agrupado = GET_EVENTOS_ADITIVOS_AGRUPADOS()
+    df_eventos_aditivos_agrupado = GET_EVENTOS_ADITIVOS_AGRUPADOS_CALENDARIO()
     
     # Substitui NaT ou datas nulas por uma data padrão ou remove linhas
     df_eventos = df_eventos.dropna(subset=["Data Evento"])
@@ -75,7 +74,10 @@ def main():
                 df_aditivos = df_aditivos.drop(columns=['Valor Contratação Bilheteria/Couvert Artístico'])
                 df_eventos_aditivos_agrupado = df_eventos_aditivos_agrupado.drop(columns=['Valor Contratação Bilheteria/Couvert Artístico'])
 
-
+    df_eventos['ID Evento'] = df_eventos['ID Evento'].astype(str)
+    df_eventos_aditivos_agrupado['ID Evento'] = (
+        df_eventos_aditivos_agrupado['ID Evento'].astype(str)
+    )
     json_eventos = dataframe_to_json_calendar(df_eventos, event_color_type='status')
 
     # Renderiza o calendário
@@ -113,16 +115,26 @@ def main():
         
         if selected.get("callback") == "eventClick":
             id_evento_selecionado = selected["eventClick"]["event"]["id"]
-            with st.container(border=True):
-                st.write("")
-                col1, col2, col3 = st.columns([1, 15, 1])
-                with col2:
-                    infos_evento(id_evento_selecionado, df_eventos_aditivos_agrupado, df_eventos)
+            if not str(id_evento_selecionado).startswith("C"): # Evento Concierge
+                with st.container(border=True):
                     st.write("")
-                    lista_aditivos = mostrar_aditivos(id_evento_selecionado, df_aditivos)
+                    col1, col2, col3 = st.columns([1, 15, 1])
+                    with col2:
+                        infos_evento(id_evento_selecionado, df_eventos_aditivos_agrupado, df_eventos)
+                        st.write("")
+                        lista_aditivos = mostrar_aditivos(id_evento_selecionado, df_aditivos)
+                        st.write("")
+                        mostrar_parcelas(id_evento_selecionado, df_parcelas, lista_aditivos)
+                        st.write("")
+            else:
+                with st.container(border=True):
                     st.write("")
-                    mostrar_parcelas(id_evento_selecionado, df_parcelas, lista_aditivos)
-                    st.write("")
+                    col1, col2, col3 = st.columns([1, 15, 1])
+                    with col2:
+                        infos_evento(id_evento_selecionado, df_eventos, df_eventos)
+                        st.write("")
+                        mostrar_parcelas(id_evento_selecionado, df_parcelas, [])
+                        st.write("")
         else:
             st.info("Selecione um evento no calendário para ver os detalhes.")
 

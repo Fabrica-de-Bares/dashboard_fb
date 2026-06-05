@@ -167,27 +167,31 @@ def get_calendar_options():
 
 def infos_evento(id_evento, df_eventos_aditivos_agrupados, df_eventos):
 
-    id_evento = int(id_evento)
+    evento_inicial = df_eventos.loc[df_eventos['ID Evento'] == str(id_evento)]
+    evento = df_eventos_aditivos_agrupados.loc[df_eventos_aditivos_agrupados['ID Evento'] == str(id_evento)].copy()
 
-    evento_inicial = df_eventos.loc[df_eventos['ID Evento'] == id_evento]
-    evento = df_eventos_aditivos_agrupados.loc[df_eventos_aditivos_agrupados['ID Evento'] == id_evento].copy()
-    evento['Data do Evento'] = evento['Data do Evento'].fillna('Data não informada')
-    evento['Data de Contratação'] = evento['Data de Contratação'].fillna('Data não informada')
+    if evento.empty:
+        st.error(f"Evento {id_evento} não encontrado.")
+        return
+    
+    evento['Data Evento'] = evento['Data Evento'].fillna('Data não informada')
+    evento['Data Contratação'] = evento['Data Contratação'].fillna('Data não informada')
     evento['Observações'] = evento['Observações'].fillna('Nenhuma observação informada')
+
     st.markdown(f"### Evento - {evento['Nome Evento'].values[0]}")
     col1, col2 = st.columns(2)
     with col1:
         st.markdown(f"<b>Comercial Responsável:</b> {evento['Comercial Responsável'].values[0]}", unsafe_allow_html=True)
         st.markdown(f"<b>Cliente:</b> {evento['Cliente'].values[0]}", unsafe_allow_html=True)
-        st.markdown(f"<b>Data do Evento:</b> {formata_data_sem_horario(evento['Data do Evento'].values[0])}", unsafe_allow_html=True)
-        st.markdown(f"<b>Data de Contratação:</b> {formata_data_sem_horario(evento['Data de Contratação'].values[0])}", unsafe_allow_html=True)
-        st.markdown(f"<b>Tipo de Evento:</b> {evento['Tipo do Evento'].values[0]}", unsafe_allow_html=True)
+        st.markdown(f"<b>Data do Evento:</b> {formata_data_sem_horario(evento['Data Evento'].values[0])}", unsafe_allow_html=True)
+        st.markdown(f"<b>Data de Contratação:</b> {formata_data_sem_horario(evento['Data Contratação'].values[0])}", unsafe_allow_html=True)
+        st.markdown(f"<b>Tipo de Evento:</b> {evento['Tipo Evento'].values[0]}", unsafe_allow_html=True)
     with col2:
-        st.markdown(f"<b>Número de Pessoas:</b> {evento['Número de Pessoas'].values[0]}", unsafe_allow_html=True)
-        st.markdown(f"<b>Valor Total do Evento:</b> R$ {format_brazilian(evento['Valor Total'].values[0])}", unsafe_allow_html=True)
-        st.markdown(f"<b>Status:</b> {evento['Status do Evento'].values[0]}", unsafe_allow_html=True)
-        if evento['Status do Evento'].values[0] == 'Declinado':
-            st.markdown(f"<b>Motivo do Declinio:</b> {evento['Motivo do Declínio'].values[0]}", unsafe_allow_html=True)
+        st.markdown(f"<b>Número de Pessoas:</b> {evento['Num Pessoas'].values[0]}", unsafe_allow_html=True)
+        st.markdown(f"<b>Valor Total do Evento:</b> R$ {format_brazilian(evento['Valor Total Evento'].values[0])}", unsafe_allow_html=True)
+        st.markdown(f"<b>Status:</b> {evento['Status Evento'].values[0]}", unsafe_allow_html=True)
+        if evento['Status Evento'].values[0] == 'Declinado':
+            st.markdown(f"<b>Motivo do Declinio:</b> {evento['Motivo Declínio'].values[0]}", unsafe_allow_html=True)
         
         texto_observacoes = escape_dolar(evento['Observações'].values[0])
         st.markdown(f"<b>Observações:</b> {texto_observacoes}", unsafe_allow_html=True)
@@ -229,7 +233,7 @@ def infos_evento(id_evento, df_eventos_aditivos_agrupados, df_eventos):
 
 
 def mostrar_aditivos(id_evento, df_aditivos):
-    id_evento = int(id_evento)
+    id_evento = str(id_evento)
     lista_aditivos = df_aditivos[df_aditivos['ID Evento do Aditivo'] == id_evento]['ID Aditivo'].tolist()
     if len(lista_aditivos) == 0:
         st.warning("Nenhum aditivo encontrado para este evento.")
@@ -242,7 +246,7 @@ def mostrar_aditivos(id_evento, df_aditivos):
     return lista_aditivos
 
 def mostrar_parcelas(id_evento, df_parcelas, lista_aditivos):
-    id_evento = int(id_evento)
+    id_evento = str(id_evento)
     
     if df_parcelas[(df_parcelas['ID Evento'] == id_evento) | (df_parcelas['ID Evento'].isin(lista_aditivos))].empty:
         st.warning("Nenhuma parcela encontrada para este evento.")

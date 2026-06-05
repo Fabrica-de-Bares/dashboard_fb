@@ -81,18 +81,17 @@ def main():
         st.write("")
 
         with st.container(border=True):
-            login = st.text_input(
-                label="Login", value="", placeholder="nome@email.com"
+            st.text_input(
+                label="Login", value="", placeholder="nome@email.com", key="login_input"
             )
-            password = st.text_input(
-                label="Senha", value="", placeholder="senha", type="password"
+            st.text_input(
+                label="Senha", value="", placeholder="senha", type="password", key="password_input"
             )
             col1, col2, col3 = st.columns([1, 1, 1])
             with col2:
                 st.button(
                     "Login",
                     on_click=handle_login,
-                    args=(login, password),
                     type="primary",
                     width='stretch',
                 )
