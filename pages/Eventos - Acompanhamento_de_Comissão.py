@@ -258,7 +258,7 @@ def main():
                     df_vendedor['Ano Recebimento'] = df_vendedor['Ano Recebimento'].astype(int).astype(str)
                     df_vendedor['Mês Recebimento'] = df_vendedor['Mês Recebimento'].astype(int).astype(str)
                     
-                    if 149 in ids_casas_vendedor and cargo_vendedor == 'Gerente de Eventos':
+                    if 149 in ids_casas_vendedor and cargo_vendedor == 'Gerente de Eventos do Squad':
                         df_recebimentos_total_mes_outros_vendedores = df_recebimentos_total_mes[(df_recebimentos_total_mes['ID - Responsavel'] != vendedor) & (df_recebimentos_total_mes['ID Casa'] == 149)].copy()
                         df_recebimentos_gerente_priceless = calcular_comissao_gerente_priceless(df_recebimentos_total_mes_outros_vendedores, vendedor, id_casa, meta_atingida)
                         df_vendedor = pd.concat([df_vendedor, df_recebimentos_gerente_priceless], ignore_index=True)
