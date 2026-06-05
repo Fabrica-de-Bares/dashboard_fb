@@ -1267,3 +1267,23 @@ def GET_CONSUMO_CARTAO_BLACK():
     LEFT JOIN T_EMPRESAS AS te ON (tccb.FK_EMPRESA = te.ID)
     WHERE te.ID IN (127, 114, 148, 116, 156, 105, 104, 115, 162);                                                                                  
     ''')
+
+
+@st.cache_data
+def GET_PARAMETROS_IMPOSTOS():
+    return dataframe_query(f'''
+    SELECT 
+        te.ID AS 'ID_Casa',
+        te.NOME_FANTASIA AS 'Casa',                   
+        DATE(tpci.DATA_INICIO_VIGENCIA) AS 'Data Inicio',
+        DATE(tpci.DATA_FIM_VIGENCIA) AS 'Data Fim',
+        tccg1.DESCRICAO AS 'Classificacao_Contabil_1',
+        tccg2.DESCRICAO AS 'Classificacao_Contabil_2',
+        # NOME_IMPOSTO,
+        tpci.PORC_TAXA_APLICADA AS 'Taxa',
+        tpci.DESCRICAO AS 'Descrição'
+    FROM T_PARAMETROS_CALCULO_IMPOSTOS AS tpci
+    LEFT JOIN T_EMPRESAS AS te ON (te.ID = tpci.FK_EMPRESA)   
+    LEFT JOIN T_CLASSIFICACAO_CONTABIL_GRUPO_1 AS tccg1 ON (tpci.FK_CLASSIFICACAO_CONT_GRUPO_1 = tccg1.ID)
+    LEFT JOIN T_CLASSIFICACAO_CONTABIL_GRUPO_2 AS tccg2 ON (tpci.FK_CLASSIFICACAO_CONT_GRUPO_2 = tccg2.ID);                                                                                                                                                  
+    ''')

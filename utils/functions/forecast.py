@@ -447,6 +447,7 @@ def projecao_faturamento_servico_meses_seguintes(df_faturamento_meses_futuros, a
             )
             
             # usa o Atingimento (real) quando existir, senão a Projecao (que pode vir de meses anteriores)
+            historico['Faturamento_Usado'] = pd.to_numeric(historico['Faturamento_Usado'], errors='coerce')
             soma_ab = historico['Faturamento_Usado'].sum()
             valor_servico = soma_ab * 0.13
             
@@ -456,23 +457,19 @@ def projecao_faturamento_servico_meses_seguintes(df_faturamento_meses_futuros, a
     return df_faturamento_meses_futuros
 
 
-def projecao_impostos(df_faturamento_para_impostos, lista_itens_impostos, df_impostos_meses_futuros, PORC_ISS, PORC_ICMS, PORC_PIS, PORC_COFINS, casa):
+def projecao_impostos_venda(df_faturamento_para_impostos, lista_itens_impostos, df_impostos_meses_futuros, df_parametros_impostos, casa):
     df_final = df_impostos_meses_futuros.copy() # Df com lista com meses futuros
     df_final = df_final.rename(columns={'Meses_Ano': 'Mês'})
 
     for item in lista_itens_impostos:
         if item == 'ISS':
             categorias_fat_para_soma = ['Eventos Couvert', 'Eventos Locações', 'Eventos Rebate Fornecedores', 'Gifts']
-            porcentagem_item = PORC_ISS
         elif item == 'ICMS':
             categorias_fat_para_soma = ['Eventos A&B', 'Alimentos', 'Bebidas', 'Couvert', 'Delivery']
-            porcentagem_item = PORC_ICMS
         elif item == 'PIS':
             categorias_fat_para_soma = ['Alimentos', 'Bebidas', 'Couvert', 'Delivery', 'Eventos A&B', 'Eventos Couvert', 'Eventos Locações', 'Eventos Rebate Fornecedores', 'Gifts']
-            porcentagem_item = PORC_PIS
         elif item == 'COFINS':
             categorias_fat_para_soma = ['Alimentos', 'Bebidas', 'Couvert', 'Delivery', 'Eventos A&B', 'Eventos Couvert', 'Eventos Locações', 'Eventos Rebate Fornecedores', 'Gifts']
-            porcentagem_item = PORC_COFINS
 
         # Calcula o valor do imposto a partir dos itens de faturamento e porcentagem correspondente
         df_imposto = df_faturamento_para_impostos[df_faturamento_para_impostos['Categoria'].isin(categorias_fat_para_soma)].copy()
@@ -481,12 +478,27 @@ def projecao_impostos(df_faturamento_para_impostos, lista_itens_impostos, df_imp
             df_imposto["Valor Projetado"],       # usa o projetado se mês >= atual
             df_imposto["Valor Bruto"]            # senão usa o real
         )
+        df_imposto['Valor'] = pd.to_numeric(df_imposto['Valor'], errors='coerce')
         df_imposto = df_imposto.groupby(['Ano', 'Mês', 'Data'], as_index=False)['Valor'].sum()
-        
+        df_imposto['Imposto'] = item
+
+        # Aplica taxas de acordo com as faixas de data de vigência
+        df_imposto = df_imposto.merge(df_parametros_impostos[['Data Inicio', 'Data Fim', 'Taxa', 'Classificacao_Contabil_2']], how='cross')
+        df_imposto = df_imposto[
+            ((df_imposto['Data Fim'].notna()) &
+            (df_imposto['Data'] >= df_imposto['Data Inicio']) &
+            (df_imposto['Data'] <= df_imposto['Data Fim']) &
+            (df_imposto['Imposto'] == df_imposto['Classificacao_Contabil_2']))
+            |
+            ((df_imposto['Data Fim'].isna()) & # Caso a data de fim de vigência seja nula (vigência atual)
+            (df_imposto['Data'] >= df_imposto['Data Inicio']) &
+            (df_imposto['Imposto'] == df_imposto['Classificacao_Contabil_2']))]
+
         if casa == 'Bar Léo - Centro' and item == 'ICMS': # Caso específico
             df_imposto[f'Valor {item}'] = 0
         else:
-            df_imposto[f'Valor {item}'] = df_imposto['Valor'] * porcentagem_item
+            df_imposto['Taxa'] = pd.to_numeric(df_imposto['Taxa'])
+            df_imposto[f'Valor {item}'] = df_imposto['Valor'] * (df_imposto['Taxa'] / 100) 
 
         # Dependem do ICMS
         if item in ['PIS', 'COFINS']:
@@ -497,7 +509,7 @@ def projecao_impostos(df_faturamento_para_impostos, lista_itens_impostos, df_imp
                 on=['Ano', 'Mês', 'Data'],
                 how='left'
             )
-            df_imposto[f'Valor {item}'] = (df_imposto['Valor'] - df_imposto['Valor ICMS']) * porcentagem_item
+            df_imposto[f'Valor {item}'] = (df_imposto['Valor'] - df_imposto['Valor ICMS']) * (df_imposto['Taxa'] / 100) 
 
         df_final = df_final.merge(
             df_imposto[['Ano', 'Mês', 'Data', f'Valor {item}']],
@@ -880,6 +892,8 @@ def calcula_cmv_proximos_meses(df_faturamento_meses_futuros, df_calculo_cmv, ano
     ].copy()
     
     # Resgata faturamentos projetados por mês
+    df_resgata_faturamento_meses_futuros['Valor Bruto'] = pd.to_numeric(df_resgata_faturamento_meses_futuros['Valor Bruto'], errors='coerce')
+    df_resgata_faturamento_meses_futuros['Valor Projetado'] = pd.to_numeric(df_resgata_faturamento_meses_futuros['Valor Projetado'], errors='coerce')
     df_resgata_faturamento_meses_futuros = df_resgata_faturamento_meses_futuros.groupby(['Ano', 'Mês'], as_index=False)[['Valor Bruto', 'Valor Projetado']].sum()
     df_resgata_faturamento_meses_futuros['Mês'] = df_resgata_faturamento_meses_futuros['Mês'].astype(int)
     df_resgata_faturamento_meses_futuros['Mes_Ano'] = (df_resgata_faturamento_meses_futuros['Ano'].astype(int).astype(str) + '-' + df_resgata_faturamento_meses_futuros['Mês'].astype(int).astype(str).str.zfill(2))    
@@ -1171,7 +1185,7 @@ def prepara_dados_custos_mensais(df_custos_gerais, df_faturamento_meses_futuros,
         df_custos_filtrado = df_descontos_filtrado.copy()
     
     # Implementa cálculo de Sistema de Franquias - Fee Gestão FB para casas 100% FB (meses passados para ser possível projetar)
-    elif class_cont == 'Sistema de Franquias': 
+    elif class_cont == 'Sistema de Franquias' and casa not in ['Arcos', 'Blue Note - São Paulo', 'Love Cabaret', 'Ultra Evil Premium Ltda ']:
         df_custos_filtrado = df_valor_fee_gestao.copy()
         df_custos_filtrado['Data_Competencia'] = pd.to_datetime({
             'year': df_custos_filtrado['Ano'],
@@ -1245,6 +1259,8 @@ def prepara_dados_custos_mensais(df_custos_gerais, df_faturamento_meses_futuros,
         df_custos_filtrado_mensal = df_merge[['Casa', 'Mês', 'Ano', 'Classificacao_Contabil_2', 'Custo Real']]
 
     # Resgata faturamentos projetados por mês
+    df_faturamento_meses_futuros['Valor Bruto'] = pd.to_numeric(df_faturamento_meses_futuros['Valor Bruto'], errors='coerce')
+    df_faturamento_meses_futuros['Valor Projetado'] = pd.to_numeric(df_faturamento_meses_futuros['Valor Projetado'], errors='coerce')
     df_resgata_faturamento_meses_futuros = df_faturamento_meses_futuros.groupby(['Ano', 'Mês'], as_index=False)[['Valor Bruto', 'Valor Projetado']].sum()
     df_resgata_faturamento_meses_futuros = df_resgata_faturamento_meses_futuros.rename(columns={'Valor Bruto':'Faturamento Real', 'Valor Projetado':'Faturamento Projetado'})
     
@@ -1407,7 +1423,110 @@ def filtra_despesas_mes_ano_selecionados(df, mes, ano):
     return df_filtrado
 
 
-def loop_prepara_dados_despesas(lista_categorias_despesas, df_descontos, df_consumo_interno_cmv, df_consumo_cartao_black, df_aut_blueme_sem_pedido, df_aut_blue_me_com_pedido, df_faturamento_meses_futuros, df_aut_folha, df_orcamentos, df_demais_receitas_extr, df_ajustes_manuais, df_valor_fee_gestao, df_resultados, casa, mes_selecionado, ano_selecionado):
+def padroes_calculo_mdo_encargos_provisoes(df_mdo, df_gorjeta, df_salarios, df_parametros_mdo, categoria, casa):
+    if categoria in ['  -  Adicional Noturno', '  -  Férias', '  -  13º Salário']: # Incidência: Gorjeta e Salários
+        df_categoria = pd.merge(df_gorjeta, df_salarios, on=['Mês', 'Ano'], how='left')
+        df_categoria[categoria] = df_categoria['Custo Gorjeta'] + df_categoria['Custo Salários'] 
+        df_categoria[categoria] = pd.to_numeric(df_categoria[categoria]).astype(float)
+
+        # Cálculo específico de cada categoria (hardcoded)
+        if categoria == '  -  Adicional Noturno': df_categoria[categoria] = (df_categoria[categoria] / 220) * (5*1.14)
+        elif categoria == '  -  Férias': df_categoria[categoria] = (df_categoria[categoria] * 0.333) / 12
+
+        df_categoria['Classificacao_Contabil_2'] = categoria
+        df_mdo = pd.merge(df_mdo, df_categoria[['Mês', 'Ano', 'Classificacao_Contabil_2', categoria]], on=['Mês', 'Ano', 'Classificacao_Contabil_2'], how='left')
+        df_mdo['Custo Real'] = pd.to_numeric(df_mdo['Custo Real']).astype(float)
+        df_mdo['Taxa'] = pd.to_numeric(df_mdo['Taxa']).astype(float)
+
+        if categoria in ['  -  Adicional Noturno', '  -  Férias']:
+            df_mdo.loc[df_mdo['Classificacao_Contabil_2'] == categoria, 'Custo Real'] = df_mdo[categoria]
+        elif categoria == '  -  13º Salário': # 13º Salário é dividido por 12 e multiplicado pela taxa
+            df_mdo.loc[df_mdo['Classificacao_Contabil_2'] == categoria, 'Custo Real'] = (df_mdo[categoria] / 12) * (df_mdo['Taxa'] / 100)
+        
+        df_mdo = df_mdo.drop(columns=[categoria])
+
+    elif categoria in ['  -  FGTS', '  -  INSS Patronal', '  -  INSS Segurados']: # Incidêcia: Gorjeta, Salários, Adicional Noturno
+        df_adicional_noturno = df_mdo[df_mdo['Classificacao_Contabil_2'] == '  -  Adicional Noturno'].copy()
+        df_adicional_noturno = df_adicional_noturno[['Classificacao_Contabil_2', 'Mês', 'Ano', 'Custo Real']]
+        df_adicional_noturno = df_adicional_noturno.rename(columns={'Custo Real': 'Custo Adicional Noturno'})
+        df_categoria = df_gorjeta.merge(df_salarios, on=['Mês', 'Ano'], how='left').merge(df_adicional_noturno, on=['Mês', 'Ano'], how='left')
+        
+        df_categoria['Custo Gorjeta'] = pd.to_numeric(df_categoria['Custo Gorjeta']).astype(float).fillna(0)
+        df_categoria['Custo Salários'] = pd.to_numeric(df_categoria['Custo Salários']).astype(float).fillna(0)
+        df_categoria['Custo Adicional Noturno'] = pd.to_numeric(df_categoria['Custo Adicional Noturno']).astype(float).fillna(0)
+        df_categoria[categoria] = df_categoria['Custo Gorjeta'] + df_categoria['Custo Salários'] + df_categoria['Custo Adicional Noturno']
+        df_categoria['Classificacao_Contabil_2'] = categoria
+        df_mdo = pd.merge(df_mdo, df_categoria[['Mês', 'Ano', 'Classificacao_Contabil_2', categoria]], on=['Mês', 'Ano', 'Classificacao_Contabil_2'], how='left')
+        
+        df_mdo['Custo Real'] = pd.to_numeric(df_mdo['Custo Real']).astype(float)
+        df_mdo[categoria] = pd.to_numeric(df_mdo[categoria]).astype(float)
+        df_mdo['Taxa'] = pd.to_numeric(df_mdo['Taxa']).astype(float)
+        df_mdo.loc[df_mdo['Classificacao_Contabil_2'] == categoria, 'Custo Real'] = df_mdo[categoria] * (df_mdo['Taxa'] / 100)
+
+    elif categoria in ['  -  FGTS sobre 13º Salários', '  -  INSS sobre 13º Salários', '  -  INSS sobre Férias']: # Incidência: 13º Salário ou Férias
+        if categoria in ['  -  FGTS sobre 13º Salários', '  -  INSS sobre 13º Salários']:
+            df_categoria = df_mdo[df_mdo['Classificacao_Contabil_2'] == '  -  13º Salário'].copy()
+        elif categoria == '  -  INSS sobre Férias':
+            df_categoria = df_mdo[df_mdo['Classificacao_Contabil_2'] == '  -  Férias'].copy()
+        
+        df_categoria = df_categoria[['Classificacao_Contabil_2', 'Mês', 'Ano', 'Custo Real']]
+        df_categoria = df_categoria.rename(columns={'Custo Real': categoria})
+        df_categoria['Classificacao_Contabil_2'] = categoria
+        
+        df_mdo = pd.merge(df_mdo, df_categoria[['Mês', 'Ano', 'Classificacao_Contabil_2', categoria]], on=['Mês', 'Ano', 'Classificacao_Contabil_2'], how='left')
+        df_mdo.loc[df_mdo['Classificacao_Contabil_2'] == categoria, 'Custo Real'] = df_mdo[categoria] * (df_mdo['Taxa'] / 100)
+
+    return df_mdo
+        
+
+def calculo_mdo_encargos_provisoes(df_despesas_mdo, df_gorjeta, df_salarios, df_parametros_mdo, casa):    
+    # Aplica taxas de acordo com as faixas de data de vigência
+    df_despesas_mdo['Data'] = pd.to_datetime({
+        'year': df_despesas_mdo['Ano'],
+        'month': df_despesas_mdo['Mês'],
+        'day': 1
+    })
+    df_mdo = df_despesas_mdo.merge(df_parametros_mdo[['Data Inicio', 'Data Fim', 'Taxa', 'Classificacao_Contabil_2']], how='cross')
+    df_mdo = df_mdo[
+        ((df_mdo['Data Fim'].notna()) &
+        (df_mdo['Data'] >= df_mdo['Data Inicio']) &
+        (df_mdo['Data'] <= df_mdo['Data Fim']) &
+        (df_mdo['Classificacao_Contabil_2_x'] == df_mdo['Classificacao_Contabil_2_y']))
+        |
+        ((df_mdo['Data Fim'].isna()) & # Caso a data de fim de vigência seja nula (vigência atual)
+        (df_mdo['Data'] >= df_mdo['Data Inicio']) &
+        (df_mdo['Classificacao_Contabil_2_x'] == df_mdo['Classificacao_Contabil_2_y']))]
+    
+    df_mdo = df_mdo.drop(columns=['Classificacao_Contabil_2_y', 'Data', 'Data Inicio', 'Data Fim'])
+    df_mdo = df_mdo.rename(columns={'Classificacao_Contabil_2_x': 'Classificacao_Contabil_2'})
+    df_mdo['Custo Real'] = df_mdo['Custo Real'].fillna(0)
+
+    # Prepara df de gorjeta e salários
+    df_gorjeta = df_gorjeta[['Classificacao_Contabil_1', 'Mês', 'Ano', 'Custo Real']]
+    df_gorjeta = df_gorjeta.rename(columns={'Custo Real': 'Custo Gorjeta'})
+    df_salarios = df_salarios[['Classificacao_Contabil_1', 'Mês', 'Ano', 'Custo Real']]
+    df_salarios = df_salarios.rename(columns={'Custo Real': 'Custo Salários'})
+
+    # Aplica a lógica de cada casa
+    # Se aplicam a todas as casas
+    if casa in ['Arcos', 'Bar Brahma - Centro', 'Bar Brahma - Granja', 'Bar Léo - Centro', 'Blue Note - São Paulo', 'Jacaré', 'Love Cabaret', 'Orfeu', 'Riviera Bar', 'Priceless', 'Ultra Evil Premium Ltda ']: 
+        df_mdo = padroes_calculo_mdo_encargos_provisoes(df_mdo, df_gorjeta, df_salarios, df_parametros_mdo, '  -  13º Salário', casa)
+        df_mdo = padroes_calculo_mdo_encargos_provisoes(df_mdo, df_gorjeta, df_salarios, df_parametros_mdo, '  -  FGTS sobre 13º Salários', casa)
+        df_mdo = padroes_calculo_mdo_encargos_provisoes(df_mdo, df_gorjeta, df_salarios, df_parametros_mdo, '  -  INSS sobre 13º Salários', casa)
+    if casa in ['Bar Brahma - Centro']: # Apenas BBC
+        df_mdo = padroes_calculo_mdo_encargos_provisoes(df_mdo, df_gorjeta, df_salarios, df_parametros_mdo, '  -  Adicional Noturno', casa)
+        df_mdo = padroes_calculo_mdo_encargos_provisoes(df_mdo, df_gorjeta, df_salarios, df_parametros_mdo, '  -  Férias', casa)
+        df_mdo = padroes_calculo_mdo_encargos_provisoes(df_mdo, df_gorjeta, df_salarios, df_parametros_mdo, '  -  FGTS', casa)
+        df_mdo = padroes_calculo_mdo_encargos_provisoes(df_mdo, df_gorjeta, df_salarios, df_parametros_mdo, '  -  INSS Patronal', casa)
+        df_mdo = padroes_calculo_mdo_encargos_provisoes(df_mdo, df_gorjeta, df_salarios, df_parametros_mdo, '  -  INSS Segurados', casa)
+        df_mdo = padroes_calculo_mdo_encargos_provisoes(df_mdo, df_gorjeta, df_salarios, df_parametros_mdo, '  -  INSS sobre Férias', casa)
+    if casa in ['Bar Brahma - Granja']: # Apenas BBG
+        df_mdo = padroes_calculo_mdo_encargos_provisoes(df_mdo, df_gorjeta, df_salarios, df_parametros_mdo, '  -  Adicional Noturno', casa)
+
+    return df_mdo
+
+
+def loop_prepara_dados_despesas(lista_categorias_despesas, df_descontos, df_consumo_interno_cmv, df_consumo_cartao_black, df_aut_blueme_sem_pedido, df_aut_blue_me_com_pedido, df_faturamento_meses_futuros, df_aut_folha, df_orcamentos, df_demais_receitas_extr, df_ajustes_manuais, df_parametros_mdo, df_valor_fee_gestao, df_resultados, casa, mes_selecionado, ano_selecionado):
     for categoria_despesa in lista_categorias_despesas:
         # Define df de despesas utilizado pela categoria
         if categoria_despesa == 'Desconto sobre Venda':
@@ -1461,7 +1580,18 @@ def loop_prepara_dados_despesas(lista_categorias_despesas, df_descontos, df_cons
             df_tabela_terciaria=df_tabela_terciaria, 
             df_tabela_quaternaria=df_tabela_quaternaria
         )
-        
+
+        # Cálculo - Encargos e Provisões
+        if categoria_despesa == 'Gorjeta':
+            df_gorjeta = df_despesas_mensais_passadas.copy()
+        if categoria_despesa == 'Mão de Obra - Salários':
+            df_salarios = df_despesas_mensais_passadas.copy()
+        if categoria_despesa == 'Mão de Obra - Encargos e Provisões': 
+            lista_categorias_calculadas = df_parametros_mdo['Classificacao_Contabil_2'].unique().tolist()
+            df_despesas_mensais_blueme = df_despesas_mensais_passadas[~df_despesas_mensais_passadas['Classificacao_Contabil_2'].isin(lista_categorias_calculadas)]
+            df_despesas_mensais_calculadas = calculo_mdo_encargos_provisoes(df_despesas_mensais_passadas, df_gorjeta, df_salarios, df_parametros_mdo, casa)
+            df_despesas_mensais_passadas = pd.concat([df_despesas_mensais_blueme, df_despesas_mensais_calculadas])
+
         # Merge com ajustes manuais para despesas que tem lançamento de ajuste
         df_ajustes_categoria = df_ajustes_manuais[
             (df_ajustes_manuais['Casa'] == casa) &

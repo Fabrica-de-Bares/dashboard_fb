@@ -37,7 +37,7 @@ with col1: # Casas sem DRE
 with col2:
     mes_selecionado = int(seletor_mes('Selecione um mês', 'mes_forecast'))
 with col3:
-    ano_selecionado = seletor_ano(2025, datas['ano_atual'], 'ano_forecast')
+    ano_selecionado = seletor_ano(2026, datas['ano_atual'], 'ano_forecast')
 st.divider()
 
 if casa == 'Arcos': st.info('Observação: Arcos sem operação às segundas-feiras.')
@@ -65,16 +65,13 @@ df_aut_blue_me_sem_pedido = GET_AUT_BLUE_ME_SEM_PEDIDO() # Dados - Despesas por 
 df_aut_folha = GET_AUT_FOLHA_PAGAMENTO() 
 df_ajustes_manuais = GET_AJUSTES_MANUAIS_DRE() 
 df_consumo_cartao_black = GET_CONSUMO_CARTAO_BLACK() 
+df_parametros_impostos = GET_PARAMETROS_IMPOSTOS() # Parâmetros e taxas - Impostos e Encargos e Provisões
 
 # Filtrando Datas
 datas = calcular_datas()
 
-# Constantes - Impostos (iguais para todas as casas)
-PORC_ISS = 0.05
-PORC_PIS = 0.0065
-PORC_COFINS = 0.03
-PORC_ICMS = 0.04
-PORC_FEE_GESTAO = 0.05 # Calculado para casas 100% FB
+# Calculado para casas 100% FB
+PORC_FEE_GESTAO = 0.05 
 
 
 ###################### PROJEÇÃO DE FATURAMENTO - MÊS CORRENTE ###################### 
@@ -151,6 +148,7 @@ valor_fat_bruto_mes = (df_faturamento_mes_casa[
     (df_faturamento_mes_casa['Mês'] == mes_selecionado)
 ])['Valor Bruto'].sum()
 
+df_faturamento_mes_casa['Valor Bruto'] = pd.to_numeric(df_faturamento_mes_casa['Valor Bruto'], errors='coerce')
 df_valor_fee_gestao = df_faturamento_mes_casa.groupby(['ID_Casa', 'Casa', 'Mês', 'Ano'], as_index=False)['Valor Bruto'].sum()
 df_valor_fee_gestao['Valor Bruto'] = df_valor_fee_gestao['Valor Bruto'] * PORC_FEE_GESTAO
 df_valor_fee_gestao['Classificacao_Contabil_1'] = 'Sistema de Franquias'
@@ -165,10 +163,15 @@ df_faturamento_meses_futuros = projecao_faturamento_servico_meses_seguintes(df_f
 
 # Calcula Impostos sobre Venda
 df_faturamento_para_impostos = df_faturamento_meses_futuros.copy()
-lista_itens_impostos = ['ISS', 'ICMS', 'PIS', 'COFINS', 'PIS / COFINS'] 
-df_impostos_meses_futuros = lista_meses_ano(lista_itens_impostos)
 
-df_projecao_impostos = projecao_impostos(df_faturamento_para_impostos, lista_itens_impostos, df_impostos_meses_futuros, PORC_ISS, PORC_ICMS, PORC_PIS, PORC_COFINS, casa)
+lista_impostos_venda = df_parametros_impostos[df_parametros_impostos['Classificacao_Contabil_1'] == 'Impostos sobre Venda']['Classificacao_Contabil_2'].unique().tolist()
+lista_impostos_venda = lista_impostos_venda + ['PIS / COFINS']
+# Coloca ICMS na segunda posição
+lista_impostos_venda.remove('ICMS')
+lista_impostos_venda.insert(1, 'ICMS') 
+df_impostos_meses_futuros = lista_meses_ano(lista_impostos_venda)
+
+df_projecao_impostos = projecao_impostos_venda(df_faturamento_para_impostos, lista_impostos_venda, df_impostos_meses_futuros, df_parametros_impostos, casa)
 df_impostos_dre = formata_impostos_para_dre(df_projecao_impostos, df_orcamentos, casa, mes_selecionado, ano_selecionado)
 
 
@@ -243,6 +246,11 @@ lista_categorias_despesas = [
     'Dividendos e Remunerações Variáveis', # (+/-) Outras variações no fluxo de caixa
 ]
 
+df_parametros_mdo_casa = df_parametros_impostos[
+    (df_parametros_impostos['Casa'] == casa) & 
+    (df_parametros_impostos['Classificacao_Contabil_1'] == 'Mão de Obra - Encargos e Provisões')
+].copy()
+
 lista_df_projecao_despesas = loop_prepara_dados_despesas(
     lista_categorias_despesas,
     df_descontos, 
@@ -255,6 +263,7 @@ lista_df_projecao_despesas = loop_prepara_dados_despesas(
     df_orcamentos, 
     df_demais_receitas_extr,
     df_ajustes_manuais,
+    df_parametros_mdo_casa,
     df_valor_fee_gestao,
     lista_df_projecao_despesas, 
     casa, 
