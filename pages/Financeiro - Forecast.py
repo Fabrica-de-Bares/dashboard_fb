@@ -51,7 +51,7 @@ if casa == 'Arcos': st.info('Observação: Arcos sem operação às segundas-fei
  df_receitas_extr_gifts_oleo) = GET_TODOS_FATURAMENTOS_DIA(id_casa)
 
 # Dados - Receitas Extraordinárias (apenas Patrocínios)
-df_demais_receitas_extr = GET_DEMAIS_RECEITAS_EXTR()
+df_demais_receitas_extr = GET_DEMAIS_RECEITAS_EXTR() # Patrocínio, Eventos Rebate Fornecedores (Priceless) e itens (Blue Note) 
 
 # Dados - Descontos e Promoções
 df_descontos = GET_DESCONTOS()
@@ -163,17 +163,27 @@ df_faturamento_meses_futuros = projecao_faturamento_servico_meses_seguintes(df_f
 
 # Calcula Impostos sobre Venda
 df_faturamento_para_impostos = df_faturamento_meses_futuros.copy()
-
-lista_impostos_venda = df_parametros_impostos[df_parametros_impostos['Classificacao_Contabil_1'] == 'Impostos sobre Venda']['Classificacao_Contabil_2'].unique().tolist()
+df_parametros_impostos_venda = df_parametros_impostos[(df_parametros_impostos['Casa'] == casa) & (df_parametros_impostos['Classificacao_Contabil_1'] == 'Impostos sobre Venda')].copy()
+lista_impostos_venda = df_parametros_impostos_venda['Classificacao_Contabil_2'].unique().tolist()
 lista_impostos_venda = lista_impostos_venda + ['PIS / COFINS']
 # Coloca ICMS na segunda posição
 lista_impostos_venda.remove('ICMS')
 lista_impostos_venda.insert(1, 'ICMS') 
 df_impostos_meses_futuros = lista_meses_ano(lista_impostos_venda)
 
-df_projecao_impostos = projecao_impostos_venda(df_faturamento_para_impostos, lista_impostos_venda, df_impostos_meses_futuros, df_parametros_impostos, casa)
-df_impostos_dre = formata_impostos_para_dre(df_projecao_impostos, df_orcamentos, casa, mes_selecionado, ano_selecionado)
+df_projecao_impostos_venda = projecao_impostos_venda(df_faturamento_para_impostos, lista_impostos_venda, df_impostos_meses_futuros, df_parametros_impostos_venda, casa)
+df_impostos_venda_dre = formata_impostos_para_dre(df_projecao_impostos_venda, df_orcamentos, casa, mes_selecionado, ano_selecionado, 'Impostos sobre Venda')
 
+# Calcula Impostos de Renda
+df_faturamento_para_impostos = df_faturamento_meses_futuros.copy()
+df_parametros_impostos_renda = df_parametros_impostos[(df_parametros_impostos['Casa'] == casa) & (df_parametros_impostos['Classificacao_Contabil_1'] == 'Imposto de Renda')].copy()
+lista_impostos_renda = df_parametros_impostos_renda['Classificacao_Contabil_2'].unique().tolist()
+lista_impostos_renda = lista_impostos_renda + ['IRPJ Total', 'CSLL Total']
+df_impostos_meses_futuros = lista_meses_ano(lista_impostos_renda)
+
+df_projecao_impostos_renda = projecao_impostos_renda(df_faturamento_para_impostos, lista_impostos_renda, df_impostos_meses_futuros, df_parametros_impostos_renda, casa)
+df_impostos_renda_dre = formata_impostos_para_dre(df_projecao_impostos_renda, df_orcamentos, casa, mes_selecionado, ano_selecionado, 'Imposto de Renda')
+# st.write(df_impostos_renda_dre)
 
 # Itens CMV 
 df_faturamento_zig, faturamento_bruto_alimentos, faturamento_bruto_bebidas, faturamento_delivery = config_faturamento_bruto_zig(df_faturamento_agregado_dia, datas['jan_ano_passado'], datas['dez_ano_atual'], casa)
@@ -274,7 +284,15 @@ lista_df_projecao_despesas = loop_prepara_dados_despesas(
 st.subheader('Real vs Tendência do mês - Faturamento e Despesas')
 df_despesas_concatenadas = pd.concat(lista_df_projecao_despesas, ignore_index=True)
 
-df_layout_dre = aplica_layout_dre(df_faturamento_meses_futuros, df_impostos_dre, df_cmv_meses_anteriores_seguintes, df_despesas_concatenadas, mes_selecionado, ano_selecionado)
+df_layout_dre = aplica_layout_dre(
+    df_faturamento_meses_futuros, 
+    df_impostos_venda_dre, 
+    df_impostos_renda_dre,
+    df_cmv_meses_anteriores_seguintes, 
+    df_despesas_concatenadas, 
+    mes_selecionado, 
+    ano_selecionado
+)
 
 # Remove linhas que não quero exibir ou renomeia
 df_layout_dre = df_layout_dre[~df_layout_dre['Categoria'].isin(['Patrocínio', 'Endividamento', 'Custas Cartório / Operação'])].reset_index(drop=True)
@@ -282,6 +300,7 @@ df_layout_dre['Categoria'] = df_layout_dre['Categoria'].replace({
     'Dividendos e Remunerações Variáveis': '(+/-) Outras variações no fluxo de caixa',
     'Despesas Financeiras': '(+/-) Receitas/Despesas Financeiras',
     'Investimento - CAPEX': '(-) CAPEX (Investimentos)',
+    'Imposto de Renda': '(-) Impostos',
 })
 
 mapa_insercao = { # Mapeamentos manuais         
@@ -305,16 +324,9 @@ colunas_valores = (df_layout_dre.select_dtypes(include='number').drop(columns=['
 df_layout_dre = define_linhas_calculadas(df_layout_dre, colunas_valores, lista_categorias_despesas, mapa_insercao)
 
 # Formata colunas numéricas
-colunas_moeda_variavel = [
-    'Orçamento',
-    'Valor Projetado',
-    'Valor Real'
-]
-colunas_percentuais = [
-    'Percentual Projetado',
-    'Percentual Real (do Orçamento)'
-]
-linhas_percentual = df_layout_dre['Categoria'].str.contains('%', na=False) 
+colunas_moeda_variavel = ['Orçamento', 'Valor Projetado', 'Valor Real']
+colunas_percentuais = ['Percentual Projetado', 'Percentual Real (do Orçamento)']
+linhas_percentual = df_layout_dre['Categoria'].str.contains('%', na=False) & (df_layout_dre['Categoria'] != 'IRPJ 10%')
 
 df_layout_dre_styled = (
     df_layout_dre.style

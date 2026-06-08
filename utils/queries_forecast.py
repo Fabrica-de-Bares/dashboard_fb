@@ -1278,8 +1278,11 @@ def GET_PARAMETROS_IMPOSTOS():
         DATE(tpci.DATA_INICIO_VIGENCIA) AS 'Data Inicio',
         DATE(tpci.DATA_FIM_VIGENCIA) AS 'Data Fim',
         tccg1.DESCRICAO AS 'Classificacao_Contabil_1',
-        tccg2.DESCRICAO AS 'Classificacao_Contabil_2',
-        # NOME_IMPOSTO,
+        CASE                   
+            WHEN tpci.NOME_IMPOSTO IN ('CSLL s/ Serviço', 'IRPJ s/ Serviço', 'CSLL s/ Comercio', 'IRPJ s/ Comercio', 'CSLL Não operacional', 'IRPJ Não operacional') THEN tpci.NOME_IMPOSTO                
+            ELSE tccg2.DESCRICAO 
+        END AS 'Classificacao_Contabil_2',
+        tpci.NOME_IMPOSTO AS 'Nome Imposto',
         tpci.PORC_TAXA_APLICADA AS 'Taxa',
         tpci.DESCRICAO AS 'Descrição'
     FROM T_PARAMETROS_CALCULO_IMPOSTOS AS tpci
