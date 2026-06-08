@@ -107,7 +107,7 @@ if tipo_formatacao == 'Inputar - Orçamentos':
         df_transformado = df_transformado[['Unnamed: 0', 'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro']]
         df_transformado = df_transformado.dropna(subset=['Unnamed: 0'])
         
-        indice = df_transformado[df_transformado['Unnamed: 0'] == '(-) Impostos'].index # Remove todas as linhas abaixo disso
+        indice = df_transformado[df_transformado['Unnamed: 0'] == '(-) CAPEX (Investimentos)'].index # Remove todas as linhas abaixo disso
         if not indice.empty:
             df_transformado = df_transformado.loc[:indice[0] - 1]
         df_transformado = df_transformado.iloc[:-1]

@@ -246,6 +246,8 @@ def limpeza_linhas(df, casa):
         'TOTAL - DESPESAS OPERATIVAS',
         'EBITDA', 'EBIT',
         '(+/-) Receitas/Despesas Financeiras',
+        'Resultado Antes do IR', 
+        'Resultado Líquido'
     }
 
     # Regra especial para o Blue Note
