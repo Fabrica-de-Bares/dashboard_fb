@@ -1,6 +1,7 @@
 import pandas as pd
 import streamlit as st
 import io
+import re
 from utils.functions.date_functions import *
 from utils.queries_eventos import *
 from utils.queries_produto import *
@@ -295,8 +296,12 @@ def seletor_ano(ano_inicio, ano_fim, key, label='Selecione um ano', help=None):
 
 def button_download(df, file_name, key):
     output = io.BytesIO()
+
+    # Remove caracteres inválidos e limita a 31 caracteres
+    sheet_name = re.sub(r'[\[\]:*?/\\]', '_', str(file_name).strip())[:31]
+
     with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
-        df.to_excel(writer, index=False, sheet_name=f"{file_name}")
+        df.to_excel(writer, index=False, sheet_name=f"{sheet_name}")
     excel_data = output.getvalue()
 
     st.download_button(
