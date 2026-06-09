@@ -298,6 +298,14 @@ def prepara_dados_faturamento_orcamentos_mensais(id_casa, df_orcamentos, df_fatu
             'Artístico (couvert/shows)': 'Couvert',
         })
         df_faturamento_mes_casa = pd.concat([df_faturamento_mes_casa, df_ajustes_categoria])
+        df_faturamento_mes_casa['Valor Bruto'] = pd.to_numeric(df_faturamento_mes_casa['Valor Bruto'], errors='coerce')
+        df_faturamento_mes_casa = df_faturamento_mes_casa.groupby(['ID_Casa', 'Casa', 'Categoria', 'Mês', 'Ano'], as_index=False)['Valor Bruto'].sum()
+        if id_casa == 128: # Love Cabaret
+            df_faturamento_mes_casa.loc[
+                (df_faturamento_mes_casa['Categoria'] == 'Outras Receitas') & 
+                (df_faturamento_mes_casa['Casa'] == 'Love Cabaret') &
+                (df_faturamento_mes_casa['Ano'] == 2026), 
+                'Valor Bruto'] = 35000
 
     if id_casa in [149, 110]:
         if id_casa == 149: # Priceless - Eventos Rebate Fornecedores
@@ -310,6 +318,9 @@ def prepara_dados_faturamento_orcamentos_mensais(id_casa, df_orcamentos, df_fatu
         
         df_receitas_extr['Mês'] = df_receitas_extr['Data_Ocorrencia'].dt.month
         df_receitas_extr['Ano'] = df_receitas_extr['Data_Ocorrencia'].dt.year
+        df_receitas_extr = df_receitas_extr.drop(columns=['Valor Bruto'])
+        df_receitas_extr = df_receitas_extr.rename(columns={'Valor_Total': 'Valor Bruto'}) # A VERIFICAR # 
+
         df_receitas_extr = df_receitas_extr.groupby(cols_agrupa, as_index=False)['Valor Bruto'].sum()
         df_receitas_extr['ID_Casa'] = id_casa
         df_receitas_extr = df_receitas_extr.rename(columns={'Classificacao': 'Categoria'})
@@ -603,7 +614,7 @@ def projecao_impostos_renda(df_faturamento_para_impostos, lista_itens_impostos, 
         on=['Ano', 'Trimestre'],
         how='left'
     )
-    df_final['Valor IRPJ 10%'] = 0 # Zera todos os meses
+    df_final['Valor IRPJ 10%'] = 0.0 # Zera todos os meses
 
     # Aplica apenas no último mês de cada trimestre
     df_final.loc[df_final['Mês'].isin([3, 6, 9, 12]), 'Valor IRPJ 10%'] = df_final.loc[df_final['Mês'].isin([3, 6, 9, 12]), 'IRPJ 10%']
@@ -622,6 +633,86 @@ def projecao_impostos_renda(df_faturamento_para_impostos, lista_itens_impostos, 
     })
     df_long = df_long.drop_duplicates()
     return df_long
+
+
+def projecao_imposto_simples(df_gorjeta, df_salarios, df_faturamento, df_aliquotas_imp_simples, df_impostos_renda_dre, mes_selecionado, ano_selecionado, casa):
+    data_atual = pd.Timestamp(year=datas['ano_atual'], month=datas['mes_atual'], day=1)
+    
+    if casa == 'Bar Léo - Centro': # Calcula imposto com base no Faturamento Bruto
+        df_faturamento = df_faturamento.groupby(['Ano', 'Mês', 'Data'], as_index=False)[['Valor Bruto', 'Valor Projetado']].sum()
+        df_faturamento['Valor'] = np.where(
+            df_faturamento['Data'] >= data_atual,
+            df_faturamento['Valor Projetado'],
+            df_faturamento['Valor Bruto']
+        )
+        df_base_imposto = df_faturamento[['Data', 'Valor']]
+
+    elif casa in ['Bar Brahma - Centro', 'Bar Brahma - Granja', 'Jacaré', 'Orfeu', 'Priceless', 'Riviera Bar']: # Calcula imposto com base em Gorjeta + Salários
+        df_gorjeta['Valor'] = np.where(
+            df_gorjeta['Data'] >= data_atual,
+            df_gorjeta['Custo Projetado'],
+            df_gorjeta['Custo Real']
+        )
+        df_salarios['Valor'] = np.where(
+            df_salarios['Data'] >= data_atual,
+            df_salarios['Custo Projetado'],
+            df_salarios['Custo Real']
+        )
+        df_base_imposto = pd.concat([df_gorjeta[['Data', 'Valor']], df_salarios[['Data', 'Valor']]])
+        df_base_imposto = df_base_imposto.groupby('Data', as_index=False)['Valor'].sum() # Soma gorjeta e salários por mês
+    
+    primeiro_ano = df_base_imposto['Data'].dt.year.min() # Primeiro ano da projeção (2025)
+    valor_base = df_base_imposto.loc[ # Pega o acumulado de janeiro do ano seguinte
+        (df_base_imposto['Data'].dt.year == primeiro_ano + 1)
+        & (df_base_imposto['Data'].dt.month == 1),
+        'Valor'
+    ].iloc[0]
+
+    df_base_imposto.loc[df_base_imposto['Data'].dt.year == primeiro_ano, 'Valor'] = valor_base # Aplica em todos os meses do primeiro ano
+    df_base_imposto['Acumulado_12M'] = df_base_imposto['Valor'].shift(1).rolling(12, min_periods=12).sum() # Acumulado de cada mês - soma os 12 meses anteriores
+    
+    # Aplica data de vigência e alíquota de acordo com acumulado de cada mês
+    df_imposto = df_base_imposto.merge(df_aliquotas_imp_simples, how='cross')
+    df_imposto['MINIMO_RECEITA_BRUTA'] = pd.to_numeric(df_imposto['MINIMO_RECEITA_BRUTA'], errors='coerce')
+    df_imposto['MAXIMO_RECEITA_BRUTA'] = pd.to_numeric(df_imposto['MAXIMO_RECEITA_BRUTA'], errors='coerce')
+    df_imposto['ALIQUOTA'] = pd.to_numeric(df_imposto['ALIQUOTA'], errors='coerce')
+    df_imposto['VALOR_DEDUZIR'] = pd.to_numeric(df_imposto['VALOR_DEDUZIR'], errors='coerce')
+    df_imposto['Valor'] = pd.to_numeric(df_imposto['Valor'], errors='coerce')
+    # st.write(df_imposto)
+    df_imposto = df_imposto[
+        ((df_imposto['Data Fim'].notna()) &
+        (df_imposto['Data'] >= df_imposto['Data Inicio']) &
+        (df_imposto['Data'] <= df_imposto['Data Fim']) &
+        (df_imposto['Acumulado_12M'] >= df_imposto['MINIMO_RECEITA_BRUTA']) &
+        (df_imposto['Acumulado_12M'] <= df_imposto['MAXIMO_RECEITA_BRUTA'])) 
+        |
+        ((df_imposto['Data Fim'].isna()) & # Caso a data de fim de vigência seja nula (vigência atual)
+        (df_imposto['Data'] >= df_imposto['Data Inicio']) &
+        (df_imposto['Acumulado_12M'] >= df_imposto['MINIMO_RECEITA_BRUTA']) &
+        (df_imposto['Acumulado_12M'] <= df_imposto['MAXIMO_RECEITA_BRUTA']))]
+    
+    # Calcula alíquota real e valor do imposto por mês
+    df_imposto['Aliquota Real'] = ((df_imposto['Acumulado_12M'] * (df_imposto['ALIQUOTA'] / 100)) - df_imposto['VALOR_DEDUZIR']) / df_imposto['Acumulado_12M']
+    df_imposto['Valor Imposto'] = df_imposto['Aliquota Real'] * df_imposto['Valor']
+
+    if casa == 'Bar Léo - Centro': # Calcula valor recolhimento ICMS
+        df_imposto['Valor Recolhimento'] = df_imposto['Valor'] * 0.04 # HARDCODED # TAXA DO ICMS #
+        df_imposto['Valor Imposto'] = df_imposto['Valor Imposto'] + df_imposto['Valor Recolhimento']
+    # st.write('simples', df_imposto)
+    # Incui valor do SIMPLES do layout de impostos de renda
+    df_imposto_simples_dre = df_imposto[['Data', 'Valor Imposto']]
+    df_imposto_simples_dre['Categoria'] = 'SIMPLES'
+    df_imposto_simples_dre = df_imposto_simples_dre[(df_imposto_simples_dre['Data'].dt.month == mes_selecionado) & (df_imposto_simples_dre['Data'].dt.year == ano_selecionado)]
+
+    df_impostos_renda_dre = pd.merge(
+        df_impostos_renda_dre,
+        df_imposto_simples_dre[['Categoria', 'Valor Imposto']],
+        on=['Categoria'],
+        how='left'
+    )
+    df_impostos_renda_dre.loc[df_impostos_renda_dre['Categoria'] == 'SIMPLES', 'Valor Real'] += df_impostos_renda_dre['Valor Imposto']
+    df_impostos_renda_dre = df_impostos_renda_dre.drop(columns=['Valor Imposto'])
+    return df_impostos_renda_dre
 
 
 # Formata df de impostos para inseri-los no grupo de despesas formatadas (Impostos sobre Venda / Imposto de Renda)
@@ -1523,6 +1614,8 @@ def padroes_calculo_mdo_encargos_provisoes(df_mdo, df_gorjeta, df_salarios, cate
         df_categoria = pd.merge(df_gorjeta, df_salarios, on=['Mês', 'Ano'], how='left')
         df_categoria['Custo Gorjeta'] = df_categoria['Custo Gorjeta'].fillna(0)
         df_categoria['Custo Salários'] = df_categoria['Custo Salários'].fillna(0)
+        df_categoria['Custo Gorjeta'] = pd.to_numeric(df_categoria['Custo Gorjeta'], errors='coerce')
+        df_categoria['Custo Salários'] = pd.to_numeric(df_categoria['Custo Salários'], errors='coerce')
 
         df_categoria[categoria] = df_categoria['Custo Gorjeta'] + df_categoria['Custo Salários'] 
         df_categoria[categoria] = pd.to_numeric(df_categoria[categoria]).astype(float)
@@ -1720,11 +1813,16 @@ def loop_prepara_dados_despesas(lista_categorias_despesas, df_descontos, df_cons
             df_despesas_com_ajustes = df_despesas_mensais_passadas.copy()
 
         df_projecao_despesa = projecao_custos_proximos_meses(df_despesas_com_ajustes, categoria_despesa, datas['ano_atual'], datas['mes_atual'])
+        if categoria_despesa == 'Gorjeta': # Guarda para utilizar no cálculo do Imposto Simples
+            df_gorjeta = df_projecao_despesa.copy()
+        if categoria_despesa == 'Mão de Obra - Salários':
+            df_salarios = df_projecao_despesa.copy()
+
         df_projecao_despesa = filtra_despesas_mes_ano_selecionados(df_projecao_despesa, mes_selecionado, ano_selecionado)
         df_projecao_despesa = calcula_linha_total(df_projecao_despesa, 'Classificacao_Contabil_2', categoria_despesa, 'Custo Projetado', 'Custo Real')
         df_resultados.append(df_projecao_despesa)
 
-    return df_resultados
+    return df_resultados, df_gorjeta, df_salarios
 
 
 ############################################ CRIAÇÃO LAYOUT E ESTILOS - DRE ############################################

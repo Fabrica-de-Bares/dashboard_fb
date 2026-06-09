@@ -1290,3 +1290,17 @@ def GET_PARAMETROS_IMPOSTOS():
     LEFT JOIN T_CLASSIFICACAO_CONTABIL_GRUPO_1 AS tccg1 ON (tpci.FK_CLASSIFICACAO_CONT_GRUPO_1 = tccg1.ID)
     LEFT JOIN T_CLASSIFICACAO_CONTABIL_GRUPO_2 AS tccg2 ON (tpci.FK_CLASSIFICACAO_CONT_GRUPO_2 = tccg2.ID);                                                                                                                                                  
     ''')
+
+
+@st.cache_data
+def GET_IMPOSTO_SIMPLES():
+    return dataframe_query(f'''
+    SELECT 
+        tais.MINIMO_RECEITA_BRUTA,
+        tais.MAXIMO_RECEITA_BRUTA,
+        tais.ALIQUOTA,
+        tais.VALOR_DEDUZIR,
+        tais.DATA_INICIO_VIGENCIA AS 'Data Inicio',
+        tais.DATA_FIM_VIGENCIA AS 'Data Fim'                                                                                               
+    FROM T_ALIQUOTAS_IMPOSTO_SIMPLES AS tais;                                                                                                                                                
+    ''')

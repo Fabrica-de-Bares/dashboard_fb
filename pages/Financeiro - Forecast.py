@@ -66,6 +66,7 @@ df_aut_folha = GET_AUT_FOLHA_PAGAMENTO()
 df_ajustes_manuais = GET_AJUSTES_MANUAIS_DRE() 
 df_consumo_cartao_black = GET_CONSUMO_CARTAO_BLACK() 
 df_parametros_impostos = GET_PARAMETROS_IMPOSTOS() # Parâmetros e taxas - Impostos e Encargos e Provisões
+df_aliquotas_imp_simples = GET_IMPOSTO_SIMPLES() # Faixas e alíquotas - Simples Nacional
 
 # Filtrando Datas
 datas = calcular_datas()
@@ -143,6 +144,7 @@ df_faturamento_mes_casa, df_faturamento_orcamento = prepara_dados_faturamento_or
 lista_itens_faturamento = df_faturamento_orcamento['Categoria'].unique().tolist() # Para exibir todos os itens de faturamento, mesmo que não haja valor para a casa
 
 # Faturamento Bruto do mês e Fee Gestão
+df_faturamento_mes_casa['Valor Bruto'] = pd.to_numeric(df_faturamento_mes_casa['Valor Bruto'], errors='coerce')
 valor_fat_bruto_mes = (df_faturamento_mes_casa[
     (df_faturamento_mes_casa['Ano'] == ano_selecionado) &
     (df_faturamento_mes_casa['Mês'] == mes_selecionado)
@@ -183,7 +185,7 @@ df_impostos_meses_futuros = lista_meses_ano(lista_impostos_renda)
 
 df_projecao_impostos_renda = projecao_impostos_renda(df_faturamento_para_impostos, lista_impostos_renda, df_impostos_meses_futuros, df_parametros_impostos_renda, casa)
 df_impostos_renda_dre = formata_impostos_para_dre(df_projecao_impostos_renda, df_orcamentos, casa, mes_selecionado, ano_selecionado, 'Imposto de Renda')
-# st.write(df_impostos_renda_dre)
+
 
 # Itens CMV 
 df_faturamento_zig, faturamento_bruto_alimentos, faturamento_bruto_bebidas, faturamento_delivery = config_faturamento_bruto_zig(df_faturamento_agregado_dia, datas['jan_ano_passado'], datas['dez_ano_atual'], casa)
@@ -261,7 +263,7 @@ df_parametros_mdo_casa = df_parametros_impostos[
     (df_parametros_impostos['Classificacao_Contabil_1'] == 'Mão de Obra - Encargos e Provisões')
 ].copy()
 
-lista_df_projecao_despesas = loop_prepara_dados_despesas(
+lista_df_projecao_despesas, df_gorjeta, df_salarios = loop_prepara_dados_despesas(
     lista_categorias_despesas,
     df_descontos, 
     df_consumo_interno_cmv,
@@ -281,6 +283,12 @@ lista_df_projecao_despesas = loop_prepara_dados_despesas(
     ano_selecionado
 )
 
+# Atualiza layout dos impostos de renda: inclui SIMPLES no df 
+if casa not in ['Arcos', 'Love Cabaret', 'Ultra Evil Premium Ltda ']: # Não calculam SIMPLES
+    df_impostos_renda_dre = projecao_imposto_simples(df_gorjeta, df_salarios, df_faturamento_para_impostos, df_aliquotas_imp_simples, df_impostos_renda_dre, mes_selecionado, ano_selecionado, casa)
+
+
+# Exibe layout DRE
 st.subheader('Real vs Tendência do mês - Faturamento e Despesas')
 df_despesas_concatenadas = pd.concat(lista_df_projecao_despesas, ignore_index=True)
 
