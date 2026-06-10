@@ -646,6 +646,17 @@ def projecao_imposto_simples(df_gorjeta, df_salarios, df_faturamento, df_aliquot
             df_faturamento['Valor Bruto']
         )
         df_base_imposto = df_faturamento[['Data', 'Valor']]
+    
+    elif casa == 'Blue Note - São Paulo': # Calcula imposto sobre (Alimentos + Bebidas) * 25%
+        df_faturamento = df_faturamento[df_faturamento['Categoria'].isin(['Alimentos', 'Bebidas'])].copy()
+        df_faturamento = df_faturamento.groupby(['Ano', 'Mês', 'Data'], as_index=False)[['Valor Bruto', 'Valor Projetado']].sum()
+        df_faturamento['Valor'] = np.where(
+            df_faturamento['Data'] >= data_atual,
+            df_faturamento['Valor Projetado'],
+            df_faturamento['Valor Bruto']
+        )
+        df_faturamento['Valor'] *= 0.25
+        df_base_imposto = df_faturamento[['Data', 'Valor']]
 
     elif casa in ['Bar Brahma - Centro', 'Bar Brahma - Granja', 'Jacaré', 'Orfeu', 'Priceless', 'Riviera Bar']: # Calcula imposto com base em Gorjeta + Salários
         df_gorjeta['Valor'] = np.where(
@@ -1887,17 +1898,22 @@ def aplica_layout_dre(df_faturamento_meses_passados_futuros, df_layout_impostos_
     ]).reset_index(drop=True)
 
     # Calcula coluna de Percentual Real 
+    df_layout_despesas_final['Orçamento'] = pd.to_numeric(df_layout_despesas_final['Orçamento'], errors='coerce')
     df_layout_despesas_final['Percentual Real (do Orçamento)'] = (df_layout_despesas_final['Valor Real'] / df_layout_despesas_final['Orçamento'].replace(0, np.nan)) * 100
 
     # Despesas são consideradas negativas
+    df_layout_despesas_final.loc[df_layout_despesas_final['Categoria'] != '(+) Receitas de Patrocínio', 'Orçamento'] *= -1    
     df_layout_despesas_final.loc[df_layout_despesas_final['Categoria'] != '(+) Receitas de Patrocínio', 'Valor Projetado'] *= -1    
     df_layout_despesas_final.loc[df_layout_despesas_final['Categoria'] != '(+) Receitas de Patrocínio', 'Valor Real'] *= -1   
 
     # Concatena os dados
     df_layout_dre = pd.concat([df_layout_faturamento, df_layout_despesas_final])
     df_layout_dre['Orçamento'] = df_layout_dre['Orçamento'].fillna(0)
-    df_layout_dre['Percentual Projetado'] = pd.to_numeric(df_layout_dre['Percentual Projetado'], errors='coerce')
     df_layout_dre['Percentual Projetado'] = df_layout_dre['Percentual Projetado'].fillna(0)
+    df_layout_dre['Valor Projetado'] = pd.to_numeric(df_layout_dre['Valor Projetado'], errors='coerce')
+    df_layout_dre['Valor Real'] = pd.to_numeric(df_layout_dre['Valor Real'], errors='coerce')
+    df_layout_dre['Percentual Projetado'] = pd.to_numeric(df_layout_dre['Percentual Projetado'], errors='coerce')
+    df_layout_dre['Percentual Real (do Orçamento)'] = pd.to_numeric(df_layout_dre['Percentual Real (do Orçamento)'], errors='coerce')
 
     return df_layout_dre
 
@@ -1976,7 +1992,7 @@ def define_linhas_calculadas(df_dre, colunas_valores, lista_categorias_despesas,
         ['PESSOAL', 'Custo de Ocupação', 'Utilidades', 'Informática e TI', 'Manutenção', 'Marketing', 'Serviços de Terceiros', 'Locação de Equipamentos', 'Sistema de Franquias'],
         colunas_valores
     )
-    df_final = insere_nova_linha(df_final, colunas_valores, total_despesas_operativas, 'Royalties', 'Categoria', 'TOTAL - DESPESAS OPERATIVAS')
+    df_final = insere_nova_linha(df_final, colunas_valores, total_despesas_operativas, mapa_insercao['Sistema de Franquias'], 'Categoria', 'TOTAL - DESPESAS OPERATIVAS')
     lista_categorias_despesas.append('TOTAL - DESPESAS OPERATIVAS')
     
     # EBTIDA e EBIT
@@ -1997,12 +2013,18 @@ def define_linhas_calculadas(df_dre, colunas_valores, lista_categorias_despesas,
     )
     df_final = insere_nova_linha(df_final, colunas_valores, resultado_antes_ir, '(-) Despesas de Patrocínio', 'Categoria', 'Resultado Antes do IR')
 
+    # Resultado Líquido
+    resultado_liquido = soma_categorias(df_final, ['Resultado Antes do IR', '(-) Impostos'], colunas_valores)
+    df_final = insere_nova_linha(df_final, colunas_valores, resultado_liquido, 'SIMPLES', 'Categoria', 'Resultado Líquido')
+    lista_categorias_despesas.append('Resultado Líquido')
+
     # Total - Variações s/ Resultado Líquido
     total_variacoes = soma_categorias(df_final, ['Investimento - CAPEX', '(+/-) Outras variações no fluxo de caixa'], colunas_valores)
     df_final = insere_nova_linha(df_final, colunas_valores, total_variacoes, 'Remuneração Variável', 'Categoria', 'Total - Variações s/ Resultado Líquido')
 
     # FCF
-    # Falta fazer os impostos
+    fcf = soma_categorias(df_final, ['Resultado Líquido', 'Total - Variações s/ Resultado Líquido'], colunas_valores)
+    df_final = insere_nova_linha(df_final, colunas_valores, fcf, 'Total - Variações s/ Resultado Líquido', 'Categoria', 'FCF')
 
     # Calcula % sobre Receita Bruta de cada categoria
     for categoria in lista_categorias_despesas:
@@ -2013,7 +2035,7 @@ def define_linhas_calculadas(df_dre, colunas_valores, lista_categorias_despesas,
             ]:
             custos_categoria = df_final[df_final['Categoria'] == categoria][colunas_valores].sum()
             porc_faturamento_bruto_categoria = (custos_categoria / faturamento_bruto).round(2)
-            if categoria in ['MARGEM BRUTA DE CONTRIBUIÇÃO', 'TOTAL - DESPESAS OPERATIVAS', 'EBITDA']:
+            if categoria in ['MARGEM BRUTA DE CONTRIBUIÇÃO', 'TOTAL - DESPESAS OPERATIVAS', 'EBITDA', 'Resultado Líquido']:
                 apos_linha = categoria
             else:
                 apos_linha = mapa_insercao.get(categoria, categoria)
