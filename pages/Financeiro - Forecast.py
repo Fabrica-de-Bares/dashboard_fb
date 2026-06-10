@@ -37,7 +37,7 @@ with col1: # Casas sem DRE
 with col2:
     mes_selecionado = int(seletor_mes('Selecione um mês', 'mes_forecast'))
 with col3:
-    ano_selecionado = seletor_ano(2025, datas['ano_atual'], 'ano_forecast')
+    ano_selecionado = seletor_ano(2026, datas['ano_atual'], 'ano_forecast')
 st.divider()
 
 if casa == 'Arcos': st.info('Observação: Arcos sem operação às segundas-feiras.')
@@ -48,10 +48,10 @@ if casa == 'Arcos': st.info('Observação: Arcos sem operação às segundas-fei
  df_faturamento_agregado_dia, 
  df_faturamento_eventos_inicial, 
  df_faturamento_eventos, 
- df_parc_receitas_extr) = GET_TODOS_FATURAMENTOS_DIA(id_casa)
+ df_receitas_extr_gifts_oleo) = GET_TODOS_FATURAMENTOS_DIA(id_casa)
 
 # Dados - Receitas Extraordinárias (apenas Patrocínios)
-df_receitas_extr_patrocinio_rebate = GET_RECEITAS_EXTR_PATROCINIO_REBATE()
+df_demais_receitas_extr = GET_DEMAIS_RECEITAS_EXTR() # Patrocínio, Eventos Rebate Fornecedores (Priceless) e itens (Blue Note) 
 
 # Dados - Descontos e Promoções
 df_descontos = GET_DESCONTOS()
@@ -65,16 +65,14 @@ df_aut_blue_me_sem_pedido = GET_AUT_BLUE_ME_SEM_PEDIDO() # Dados - Despesas por 
 df_aut_folha = GET_AUT_FOLHA_PAGAMENTO() 
 df_ajustes_manuais = GET_AJUSTES_MANUAIS_DRE() 
 df_consumo_cartao_black = GET_CONSUMO_CARTAO_BLACK() 
+df_parametros_impostos = GET_PARAMETROS_IMPOSTOS() # Parâmetros e taxas - Impostos e Encargos e Provisões
+df_aliquotas_imp_simples = GET_IMPOSTO_SIMPLES() # Faixas e alíquotas - Simples Nacional
 
 # Filtrando Datas
 datas = calcular_datas()
 
-# Constantes - Impostos (iguais para todas as casas)
-PORC_ISS = 0.05
-PORC_PIS = 0.0065
-PORC_COFINS = 0.03
-PORC_ICMS = 0.04
-PORC_FEE_GESTAO = 0.05 # Calculado para casas 100% FB
+# Calculado para casas 100% FB
+PORC_FEE_GESTAO = 0.05 
 
 
 ###################### PROJEÇÃO DE FATURAMENTO - MÊS CORRENTE ###################### 
@@ -95,7 +93,7 @@ df_dias_mes = df_dias_futuros_com_categorias[df_dias_futuros_com_categorias['Cat
 df_dias_mes = df_dias_mes[['Data Evento', 'Categoria']]
 
 # Aplica layout
-pivot_faturamento_mes_corrente = aplica_layout_mes_corrente(df_dias_futuros_mes, df_faturamento_eventos, df_parc_receitas_extr, df_dias_mes, id_casa, casa, mes_selecionado, ano_selecionado)
+pivot_faturamento_mes_corrente = aplica_layout_mes_corrente(df_dias_futuros_mes, df_faturamento_eventos, df_receitas_extr_gifts_oleo, df_dias_mes, id_casa, casa, mes_selecionado, ano_selecionado)
 height = (len(pivot_faturamento_mes_corrente) + 1) * 35 # Define altura sem rolagem 
 
 # Formata colunas numéricas
@@ -120,14 +118,16 @@ else:
     st.subheader('Faturamento diário - mês selecionado')
 
 st.dataframe(df_mes_corrente_estilizado, hide_index=True, width='stretch')
-# Exibe legenda
-st.markdown(f'''
-    <div style="display: flex; align-items: center; padding:10px; border:1px solid #ccc; border-radius:8px";>
-        <div style="width: 15px; height: 15px; background-color: rgba(255,255,224); border: 1px solid #ccc; margin-right: 10px;"></div>
-        <span style="font-size: 14px">Média de faturamento projetado (não real) para dias futuros.</span>
-    </div>
-''', unsafe_allow_html=True)
-st.write("")
+
+if mes_selecionado == datas['mes_atual'] and ano_selecionado == datas['ano_atual']: # Exibe legenda
+    st.markdown(f'''
+        <div style="display: flex; align-items: center; padding:10px; border:1px solid #ccc; border-radius:8px";>
+            <div style="width: 15px; height: 15px; background-color: rgba(255,255,224); border: 1px solid #ccc; margin-right: 10px;"></div>
+            <span style="font-size: 14px">Média de faturamento projetado (não real) para próximos dias do mês.</span>
+        </div>
+    ''', unsafe_allow_html=True)
+    st.write("")
+
 # Premissas
 st.markdown(f'''
     <div style="display:flex; flex-direction:column; padding:10px; border:1px solid #ccc; border-radius:8px";>
@@ -142,15 +142,17 @@ st.divider()
 ###################### PROJEÇÃO DE FATURAMENTO - DRE ###################### 
 
 # Prepara df de faturamento agregado mensal para a casa selecionada
-df_faturamento_mes_casa, df_faturamento_orcamento = prepara_dados_faturamento_orcamentos_mensais(id_casa, df_orcamentos, df_faturamento_agregado_mes, df_receitas_extr_patrocinio_rebate, df_ajustes_manuais, datas['ano_passado'], datas['ano_atual'], ano_selecionado)
+df_faturamento_mes_casa, df_faturamento_orcamento = prepara_dados_faturamento_orcamentos_mensais(id_casa, df_orcamentos, df_faturamento_agregado_mes, df_demais_receitas_extr, df_ajustes_manuais, datas['ano_passado'], datas['ano_atual'], ano_selecionado)
 lista_itens_faturamento = df_faturamento_orcamento['Categoria'].unique().tolist() # Para exibir todos os itens de faturamento, mesmo que não haja valor para a casa
 
 # Faturamento Bruto do mês e Fee Gestão
+df_faturamento_mes_casa['Valor Bruto'] = pd.to_numeric(df_faturamento_mes_casa['Valor Bruto'], errors='coerce')
 valor_fat_bruto_mes = (df_faturamento_mes_casa[
     (df_faturamento_mes_casa['Ano'] == ano_selecionado) &
     (df_faturamento_mes_casa['Mês'] == mes_selecionado)
 ])['Valor Bruto'].sum()
 
+df_faturamento_mes_casa['Valor Bruto'] = pd.to_numeric(df_faturamento_mes_casa['Valor Bruto'], errors='coerce')
 df_valor_fee_gestao = df_faturamento_mes_casa.groupby(['ID_Casa', 'Casa', 'Mês', 'Ano'], as_index=False)['Valor Bruto'].sum()
 df_valor_fee_gestao['Valor Bruto'] = df_valor_fee_gestao['Valor Bruto'] * PORC_FEE_GESTAO
 df_valor_fee_gestao['Classificacao_Contabil_1'] = 'Sistema de Franquias'
@@ -165,11 +167,26 @@ df_faturamento_meses_futuros = projecao_faturamento_servico_meses_seguintes(df_f
 
 # Calcula Impostos sobre Venda
 df_faturamento_para_impostos = df_faturamento_meses_futuros.copy()
-lista_itens_impostos = ['ISS', 'ICMS', 'PIS', 'COFINS', 'PIS / COFINS'] 
-df_impostos_meses_futuros = lista_meses_ano(lista_itens_impostos)
+df_parametros_impostos_venda = df_parametros_impostos[(df_parametros_impostos['Casa'] == casa) & (df_parametros_impostos['Classificacao_Contabil_1'] == 'Impostos sobre Venda')].copy()
+lista_impostos_venda = df_parametros_impostos_venda['Classificacao_Contabil_2'].unique().tolist()
+lista_impostos_venda = lista_impostos_venda + ['PIS / COFINS']
+# Coloca ICMS na segunda posição
+lista_impostos_venda.remove('ICMS')
+lista_impostos_venda.insert(1, 'ICMS') 
+df_impostos_meses_futuros = lista_meses_ano(lista_impostos_venda)
 
-df_projecao_impostos = projecao_impostos(df_faturamento_para_impostos, lista_itens_impostos, df_impostos_meses_futuros, PORC_ISS, PORC_ICMS, PORC_PIS, PORC_COFINS, casa)
-df_impostos_dre = formata_impostos_para_dre(df_projecao_impostos, df_orcamentos, casa, mes_selecionado, ano_selecionado)
+df_projecao_impostos_venda = projecao_impostos_venda(df_faturamento_para_impostos, lista_impostos_venda, df_impostos_meses_futuros, df_parametros_impostos_venda, casa)
+df_impostos_venda_dre = formata_impostos_para_dre(df_projecao_impostos_venda, df_orcamentos, casa, mes_selecionado, ano_selecionado, 'Impostos sobre Venda')
+
+# Calcula Impostos de Renda
+df_faturamento_para_impostos = df_faturamento_meses_futuros.copy()
+df_parametros_impostos_renda = df_parametros_impostos[(df_parametros_impostos['Casa'] == casa) & (df_parametros_impostos['Classificacao_Contabil_1'] == 'Imposto de Renda')].copy()
+lista_impostos_renda = df_parametros_impostos_renda['Classificacao_Contabil_2'].unique().tolist()
+lista_impostos_renda = lista_impostos_renda + ['IRPJ Total', 'CSLL Total']
+df_impostos_meses_futuros = lista_meses_ano(lista_impostos_renda)
+
+df_projecao_impostos_renda = projecao_impostos_renda(df_faturamento_para_impostos, lista_impostos_renda, df_impostos_meses_futuros, df_parametros_impostos_renda, casa)
+df_impostos_renda_dre = formata_impostos_para_dre(df_projecao_impostos_renda, df_orcamentos, casa, mes_selecionado, ano_selecionado, 'Imposto de Renda')
 
 
 # Itens CMV 
@@ -243,7 +260,12 @@ lista_categorias_despesas = [
     'Dividendos e Remunerações Variáveis', # (+/-) Outras variações no fluxo de caixa
 ]
 
-lista_df_projecao_despesas = loop_prepara_dados_despesas(
+df_parametros_mdo_casa = df_parametros_impostos[
+    (df_parametros_impostos['Casa'] == casa) & 
+    (df_parametros_impostos['Classificacao_Contabil_1'] == 'Mão de Obra - Encargos e Provisões')
+].copy()
+
+lista_df_projecao_despesas, df_gorjeta, df_salarios = loop_prepara_dados_despesas(
     lista_categorias_despesas,
     df_descontos, 
     df_consumo_interno_cmv,
@@ -253,8 +275,9 @@ lista_df_projecao_despesas = loop_prepara_dados_despesas(
     df_faturamento_meses_futuros, 
     df_aut_folha, 
     df_orcamentos, 
-    df_receitas_extr_patrocinio_rebate,
+    df_demais_receitas_extr,
     df_ajustes_manuais,
+    df_parametros_mdo_casa,
     df_valor_fee_gestao,
     lista_df_projecao_despesas, 
     casa, 
@@ -262,10 +285,28 @@ lista_df_projecao_despesas = loop_prepara_dados_despesas(
     ano_selecionado
 )
 
+# Atualiza layout dos impostos de renda: inclui SIMPLES no df 
+if casa not in ['Arcos', 'Love Cabaret', 'Ultra Evil Premium Ltda ']: # Não calculam SIMPLES
+    df_impostos_renda_dre = projecao_imposto_simples(df_gorjeta, df_salarios, df_faturamento_para_impostos, df_aliquotas_imp_simples, df_impostos_renda_dre, mes_selecionado, ano_selecionado, casa)
+    # Recalcula total da categoria incluido o SIMPLES
+    df_impostos_renda_dre = df_impostos_renda_dre[df_impostos_renda_dre['Categoria'] != 'Imposto de Renda'].copy()
+    df_impostos_renda_dre = df_impostos_renda_dre.sort_values(by=['Categoria'], ascending=True)
+    df_impostos_renda_dre = calcula_linha_total(df_impostos_renda_dre, 'Categoria', 'Imposto de Renda', 'Valor Projetado', 'Valor Real')
+
+
+# Exibe layout DRE
 st.subheader('Real vs Tendência do mês - Faturamento e Despesas')
 df_despesas_concatenadas = pd.concat(lista_df_projecao_despesas, ignore_index=True)
 
-df_layout_dre = aplica_layout_dre(df_faturamento_meses_futuros, df_impostos_dre, df_cmv_meses_anteriores_seguintes, df_despesas_concatenadas, mes_selecionado, ano_selecionado)
+df_layout_dre = aplica_layout_dre(
+    df_faturamento_meses_futuros, 
+    df_impostos_venda_dre, 
+    df_impostos_renda_dre,
+    df_cmv_meses_anteriores_seguintes, 
+    df_despesas_concatenadas, 
+    mes_selecionado, 
+    ano_selecionado
+)
 
 # Remove linhas que não quero exibir ou renomeia
 df_layout_dre = df_layout_dre[~df_layout_dre['Categoria'].isin(['Patrocínio', 'Endividamento', 'Custas Cartório / Operação'])].reset_index(drop=True)
@@ -273,6 +314,7 @@ df_layout_dre['Categoria'] = df_layout_dre['Categoria'].replace({
     'Dividendos e Remunerações Variáveis': '(+/-) Outras variações no fluxo de caixa',
     'Despesas Financeiras': '(+/-) Receitas/Despesas Financeiras',
     'Investimento - CAPEX': '(-) CAPEX (Investimentos)',
+    'Imposto de Renda': '(-) Impostos',
 })
 
 mapa_insercao = { # Mapeamentos manuais         
@@ -291,21 +333,14 @@ for df in lista_df_projecao_despesas:
             ordem_class_cont_2 = [class_cont_2 for class_cont_2 in ordem_class_cont_2 if class_cont_2 != class_cont_1]
             ordem_class_cont_2.sort() # Ordena lista de class. cont. 2
             mapa_insercao[class_cont_1] = ordem_class_cont_2[-1] # Última class. cont. 2
-            
+
 colunas_valores = (df_layout_dre.select_dtypes(include='number').drop(columns=['Percentual Real (do Orçamento)']).columns)
 df_layout_dre = define_linhas_calculadas(df_layout_dre, colunas_valores, lista_categorias_despesas, mapa_insercao)
 
 # Formata colunas numéricas
-colunas_moeda_variavel = [
-    'Orçamento',
-    'Valor Projetado',
-    'Valor Real'
-]
-colunas_percentuais = [
-    'Percentual Projetado',
-    'Percentual Real (do Orçamento)'
-]
-linhas_percentual = df_layout_dre['Categoria'].str.contains('%', na=False) 
+colunas_moeda_variavel = ['Orçamento', 'Valor Projetado', 'Valor Real']
+colunas_percentuais = ['Percentual Projetado', 'Percentual Real (do Orçamento)']
+linhas_percentual = df_layout_dre['Categoria'].str.contains('%', na=False) & (df_layout_dre['Categoria'] != 'IRPJ 10%')
 
 df_layout_dre_styled = (
     df_layout_dre.style
@@ -318,8 +353,8 @@ df_layout_dre_styled = (
 height = (len(df_layout_dre) + 1) * 35 # Define altura sem rolagem
 st.dataframe(df_layout_dre_styled, hide_index=True, width='stretch', height=height)
 
-# # Premissas
-# # Falta ajustar Benefícios e Outros B (Mão de Obra - Benefícios)
+# Premissas
+# Falta ajustar Benefícios e Outros B (Mão de Obra - Benefícios)
 # st.markdown(f'''
 #     <div style="display:flex; flex-direction:column; padding:10px; border:1px solid #ccc; border-radius:8px";>
 #         <p><strong>Premissas</strong></p>
