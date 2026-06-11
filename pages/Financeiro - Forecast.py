@@ -288,10 +288,10 @@ lista_df_projecao_despesas, df_gorjeta, df_salarios = loop_prepara_dados_despesa
 # Atualiza layout dos impostos de renda: inclui SIMPLES no df 
 if casa not in ['Arcos', 'Love Cabaret', 'Ultra Evil Premium Ltda ']: # Não calculam SIMPLES
     df_impostos_renda_dre = projecao_imposto_simples(df_gorjeta, df_salarios, df_faturamento_para_impostos, df_aliquotas_imp_simples, df_impostos_renda_dre, mes_selecionado, ano_selecionado, casa)
-    # Recalcula total da categoria incluido o SIMPLES
-    df_impostos_renda_dre = df_impostos_renda_dre[df_impostos_renda_dre['Categoria'] != 'Imposto de Renda'].copy()
-    df_impostos_renda_dre = df_impostos_renda_dre.sort_values(by=['Categoria'], ascending=True)
-    df_impostos_renda_dre = calcula_linha_total(df_impostos_renda_dre, 'Categoria', 'Imposto de Renda', 'Valor Projetado', 'Valor Real')
+# Recalcula total da categoria incluido o SIMPLES
+df_impostos_renda_dre = df_impostos_renda_dre[df_impostos_renda_dre['Categoria'] != 'Imposto de Renda'].copy()
+df_impostos_renda_dre = df_impostos_renda_dre.sort_values(by=['Categoria'], ascending=True)
+df_impostos_renda_dre = calcula_linha_total(df_impostos_renda_dre, 'Categoria', 'Imposto de Renda', 'Valor Projetado', 'Valor Real')
 
 
 # Exibe layout DRE
