@@ -738,7 +738,7 @@ def FATURAMENTO_MENSAL_AB(df_faturamento_categoria_mensal, df_descontos, df_prom
         valor_descontos = 'Dedução Faturamento - Bebida'
 
     # Adapta Descontos, Promoções e Eventos para merge
-    df_descontos = df_descontos[df_descontos['Categoria'] == 'EVENTOS'].copy()
+    df_descontos = df_descontos[df_descontos['Categoria'].isin(['EVENTOS', 'EVENTO'])].copy()
     df_promocoes = df_promocoes[(df_promocoes['Categoria'] == 'Eventos') & (df_promocoes['A&B'] == categoria_promocoes)].copy()
     df_promocoes = df_promocoes.groupby(['Casa', 'Mês', 'Ano'], as_index=False)['Desconto total'].sum()
 
@@ -989,13 +989,14 @@ def GET_AUT_BLUE_ME_SEM_PEDIDO():
 
 
 @st.cache_data
-def GET_AUT_BLUE_ME_COM_PEDIDO():
+def GET_AUT_BLUE_ME_COM_PEDIDO(): # Nova versão - considerando data de recebimento
     return dataframe_query(f'''
         WITH despesa_com_insumos AS (
             SELECT
                 tdr.ID,
                 tdr.FK_LOJA,
                 tdr.COMPETENCIA,
+                tdr.DATA_ENTREGA,           
                 tdr.VALOR_LIQUIDO,
                 SUM(tdri.VALOR) AS Valor_Total_Insumos,
                 SUM(CASE WHEN tin1.DESCRICAO = 'ALIMENTOS' THEN tdri.VALOR ELSE 0 END) AS Valor_Alimentos,
@@ -1015,12 +1016,16 @@ def GET_AUT_BLUE_ME_COM_PEDIDO():
             LEFT JOIN T_INSUMOS_NIVEL_1 tin1 ON tin2.FK_INSUMOS_NIVEL_1 = tin1.ID
             WHERE tdri.ID IS NOT NULL
             AND tdr.BIT_CANCELADA = 0
-            GROUP BY tdr.ID, tdr.FK_LOJA, tdr.COMPETENCIA, tdr.VALOR_LIQUIDO, tf.CORPORATE_NAME
+            GROUP BY tdr.ID, tdr.FK_LOJA, tdr.COMPETENCIA, tdr.DATA_ENTREGA, tdr.VALOR_LIQUIDO, tf.CORPORATE_NAME
         )
         SELECT
             CASE WHEN te.NOME_FANTASIA = 'Blue Note SP (Novo)' THEN 'Blue Note - São Paulo' ELSE te.NOME_FANTASIA END AS Casa,
             dci.CORPORATE_NAME AS Fornecedor,
-            STR_TO_DATE(dci.COMPETENCIA, '%Y-%m-%d') AS Data_Emissao,
+            CASE
+                WHEN dci.DATA_ENTREGA IS NOT NULL THEN STR_TO_DATE(dci.DATA_ENTREGA, '%Y-%m-%d')
+                ELSE STR_TO_DATE(dci.COMPETENCIA, '%Y-%m-%d')
+            END AS Data_Emissao,              
+            # STR_TO_DATE(dci.COMPETENCIA, '%Y-%m-%d') AS Data_Emissao,
             dci.VALOR_LIQUIDO AS Valor_Liquido,
             dci.Valor_Total_Insumos AS Valor_Cotacao,
             ROUND((dci.VALOR_LIQUIDO * (dci.Valor_Alimentos / dci.Valor_Total_Insumos)), 2) AS Valor_Liq_Alimentos,
@@ -1056,7 +1061,11 @@ def GET_INSUMOS_AGRUPADOS_BLUE_ME_POR_CATEG_COM_PEDIDO_PERIODO_LOJA():
         te.NOME_FANTASIA AS Casa,
         tdr.VALOR_LIQUIDO AS Valor_Liquido,
         SUM(tdri.VALOR) AS Valor_Insumos,
-        CAST(DATE_FORMAT(CAST(tdr.COMPETENCIA AS DATE),'%Y-%m-01') AS DATE) AS Primeiro_Dia_Mes,
+        CASE
+            WHEN tdr.DATA_ENTREGA IS NOT NULL THEN CAST(DATE_FORMAT(tdr.DATA_ENTREGA, '%Y-%m-01') AS DATE)
+            ELSE CAST(DATE_FORMAT(CAST(tdr.COMPETENCIA AS DATE), '%Y-%m-01') AS DATE)
+        END AS Primeiro_Dia_Mes,                 
+        # CAST(DATE_FORMAT(CAST(tdr.COMPETENCIA AS DATE),'%Y-%m-01') AS DATE) AS Primeiro_Dia_Mes,
         ROUND(
           tdr.VALOR_LIQUIDO * (
             SUM(CASE
@@ -1101,21 +1110,13 @@ def GET_INSUMOS_AGRUPADOS_BLUE_ME_POR_CATEG_COM_PEDIDO_PERIODO_LOJA():
           2
         ) AS Valor_Liq_Outros
       FROM
-        T_DESPESA_RAPIDA tdr
-        JOIN T_EMPRESAS te
-          ON tdr.FK_LOJA = te.ID
-        JOIN T_DESPESA_RAPIDA_ITEM tdri
-          ON tdr.ID = tdri.FK_DESPESA_RAPIDA
-        LEFT JOIN T_INSUMOS_NIVEL_5 tin5
-          ON tdri.FK_INSUMO = tin5.ID
-        LEFT JOIN T_INSUMOS_NIVEL_4 tin4
-          ON tin5.FK_INSUMOS_NIVEL_4 = tin4.ID
-        LEFT JOIN T_INSUMOS_NIVEL_3 tin3
-          ON tin4.FK_INSUMOS_NIVEL_3 = tin3.ID
-        LEFT JOIN T_INSUMOS_NIVEL_2 tin2
-          ON tin3.FK_INSUMOS_NIVEL_2 = tin2.ID
-        LEFT JOIN T_INSUMOS_NIVEL_1 tin1
-          ON tin2.FK_INSUMOS_NIVEL_1 = tin1.ID
+        T_DESPESA_RAPIDA tdr JOIN T_EMPRESAS te ON tdr.FK_LOJA = te.ID
+        JOIN T_DESPESA_RAPIDA_ITEM tdri ON tdr.ID = tdri.FK_DESPESA_RAPIDA
+        LEFT JOIN T_INSUMOS_NIVEL_5 tin5 ON tdri.FK_INSUMO = tin5.ID
+        LEFT JOIN T_INSUMOS_NIVEL_4 tin4 ON tin5.FK_INSUMOS_NIVEL_4 = tin4.ID
+        LEFT JOIN T_INSUMOS_NIVEL_3 tin3 ON tin4.FK_INSUMOS_NIVEL_3 = tin3.ID
+        LEFT JOIN T_INSUMOS_NIVEL_2 tin2 ON tin3.FK_INSUMOS_NIVEL_2 = tin2.ID
+        LEFT JOIN T_INSUMOS_NIVEL_1 tin1 ON tin2.FK_INSUMOS_NIVEL_1 = tin1.ID
       WHERE
         tdri.ID IS NOT NULL
         AND te.ID <> 135
@@ -1125,7 +1126,8 @@ def GET_INSUMOS_AGRUPADOS_BLUE_ME_POR_CATEG_COM_PEDIDO_PERIODO_LOJA():
         te.ID,
         te.NOME_FANTASIA,
         tdr.VALOR_LIQUIDO,
-        tdr.COMPETENCIA
+        tdr.COMPETENCIA,
+        tdr.DATA_ENTREGA                 
     ) q
     GROUP BY
       q.ID_Casa,

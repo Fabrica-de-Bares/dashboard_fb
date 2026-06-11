@@ -1320,12 +1320,14 @@ def prepara_dados_custos_mensais(df_custos_gerais, df_faturamento_meses_futuros,
         if casa == 'Blue Note - São Paulo':
             df_custos_filtrado = df_custos_filtrado[
                 (df_custos_filtrado['Classificacao_Contabil_1'] == class_cont) &
-                (~df_custos_filtrado['Cargo_DRE'].isin(['MDO Terceirizada - Eventos', '  - Administrativa']))
+                (~df_custos_filtrado['Cargo_DRE'].isin(['MDO Terceirizada - Eventos', '  - Administrativa']) &
+                (~df_custos_filtrado['Cargo_DRE'].isna()))
             ].copy()
         else:
             df_custos_filtrado = df_custos_filtrado[
                 (df_custos_filtrado['Classificacao_Contabil_1'] == class_cont) &
-                (~df_custos_filtrado['Cargo_DRE'].isin(['MDO Terceirizada - Eventos', '  - Diretoria', '  - Assistente']))
+                (~df_custos_filtrado['Cargo_DRE'].isin(['MDO Terceirizada - Eventos', '  - Diretoria', '  - Assistente']) &
+                (~df_custos_filtrado['Cargo_DRE'].isna()))
             ].copy()
     
     elif class_cont == 'Mão de Obra - Encargos e Provisões':
@@ -1960,7 +1962,7 @@ def define_linhas_calculadas(df_dre, colunas_valores, lista_categorias_despesas,
     df_final = insere_nova_linha(df_final, colunas_valores, porc_receita_liquida_cmv, '% sobre Receita Bruta', 'Categoria', '% sobre Receita Líquida')
 
     # % sobre Receita Artístico
-    porc_receita_artistico = (custos_artistico / faturamento_artistico).round(2)
+    porc_receita_artistico = custos_artistico.div(faturamento_artistico.replace(0, np.nan)).fillna(0).round(2)
     df_final = insere_nova_linha(df_final, colunas_valores, porc_receita_artistico, mapa_insercao['Custos Artístico Geral'], 'Categoria', '% sobre Receita Artístico')
 
     # % sobre Receita de Eventos
