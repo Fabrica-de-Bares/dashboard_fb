@@ -658,7 +658,10 @@ def GET_INSUMOS_AGRUPADOS_BLUE_ME_POR_CATEG_COM_PEDIDO_PERIODO_LOJA(data_inicio,
         te.NOME_FANTASIA AS Loja,
         tdr.VALOR_LIQUIDO AS Valor_Liquido,
         SUM(tdri.VALOR) AS Valor_Insumos,
-        CAST(DATE_FORMAT(CAST(tdr.COMPETENCIA AS DATE),'%Y-%m-01') AS DATE) AS Primeiro_Dia_Mes,
+        CASE
+        	WHEN tdr.DATA_ENTREGA IS NOT NULL THEN CAST(DATE_FORMAT(CAST(tdr.DATA_ENTREGA AS DATE),'%Y-%m-01') AS DATE)
+        	ELSE CAST(DATE_FORMAT(CAST(tdr.COMPETENCIA AS DATE),'%Y-%m-01') AS DATE)
+        END AS Primeiro_Dia_Mes,
         ROUND(
           tdr.VALOR_LIQUIDO * (
             SUM(CASE
@@ -727,7 +730,8 @@ def GET_INSUMOS_AGRUPADOS_BLUE_ME_POR_CATEG_COM_PEDIDO_PERIODO_LOJA(data_inicio,
         te.ID,
         te.NOME_FANTASIA,
         tdr.VALOR_LIQUIDO,
-        tdr.COMPETENCIA
+        tdr.COMPETENCIA,
+        tdr.DATA_ENTREGA
     ) q
     WHERE
       q.Primeiro_Dia_Mes >= '{data_inicio}'
