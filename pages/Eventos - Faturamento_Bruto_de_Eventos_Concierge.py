@@ -37,7 +37,13 @@ def main():
 
 	# Recupera dados dos eventos e parcelas
 	df_eventos = GET_EVENTOS_CONCIERGE()
+	# Substitui nome e ID da casa Priceless
+	df_eventos['Casa'] = df_eventos['Casa'].apply(lambda x: 'Terraço Notie' if x == 'Priceless' else x)
+	df_eventos['ID Casa'] = df_eventos['ID Casa'].apply(lambda x: 162 if x == 149 else x)
+
 	df_parcelas = GET_PARCELAS_EVENTOS_CONCIERGE()
+	df_parcelas['ID Casa'] = df_parcelas['ID Casa'].apply(lambda x: 162 if x == 149 else x)
+	df_parcelas['Casa'] = df_parcelas['Casa'].apply(lambda x: 'Terraço Notie' if x == 'Priceless' else x)
 	df_orcamentos = GET_ORCAMENTOS_EVENTOS_CONCIERGE()
 
 	# Formata tipos de dados do dataframe de eventos
@@ -138,6 +144,7 @@ def main():
 					df_orcamentos,
 					exibir_painel_ano=True,
 				)
+
 			else:
 				montar_tabs_priceless(
 					df_parcelas_casa,
