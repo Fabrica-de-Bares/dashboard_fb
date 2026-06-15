@@ -18,14 +18,14 @@ def GET_ITENS_VENDIDOS_DIA_DA_SEMANA():
       CASE
         WHEN tivd.FK_CASA = 117 THEN 118 -- Delivery BBC
         WHEN te.ID IN (161, 162) THEN 149 -- Priceless
-        WHEN te.ID = 131 THEN 110 -- Blue Note
+        # WHEN te.ID = 131 THEN 110 -- Blue Note
         WHEN te.ID = 177 THEN 176 -- The Cavern                                    
         ELSE tivd.FK_CASA
       END AS 'ID_Casa',
       CASE
         WHEN te.NOME_FANTASIA = 'Hotel Maraba' THEN 'Delivery Brahma Centro'
         WHEN te.NOME_FANTASIA IN ('Terraço Notie', 'Notiê - Priceless') THEN 'Priceless'
-        WHEN te.NOME_FANTASIA = 'Blue Note SP (Novo)' THEN 'Blue Note - São Paulo'
+        # WHEN te.NOME_FANTASIA = 'Blue Note SP (Novo)' THEN 'Blue Note - São Paulo'
         WHEN te.NOME_FANTASIA = 'The Cavern - Almoço' THEN 'The Cavern'                                    
         ELSE te.NOME_FANTASIA
       END AS 'Casa',

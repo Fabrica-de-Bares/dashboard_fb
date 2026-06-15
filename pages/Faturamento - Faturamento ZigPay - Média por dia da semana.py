@@ -36,7 +36,7 @@ st.divider()
 col1, col2 = st.columns(2, vertical_alignment='center')
 
 with col1:
-    lista_retirar_casas = ['Todas as Casas']
+    lista_retirar_casas = ['Todas as Casas', 'Terraço Notie']
     df_casas_selecionadas = input_multiselecao_casas(lista_retirar_casas, key='faturamento_bruto', adicionar_delivery=True)
     lista_casas_selecionadas = df_casas_selecionadas['Casa'].tolist()
     lista_ids_casas_selecionadas = df_casas_selecionadas['ID_Casa'].tolist()
