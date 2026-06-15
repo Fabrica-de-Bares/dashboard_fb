@@ -58,8 +58,7 @@ df_faturamento_diario_casa = prepara_dados_faturamento_casa(df_faturamento_diari
 
 # Gera projeção para prox dias do mês corrente/seguinte por dia da semana
 df_dias_futuros_com_categorias = lista_dias_mes_anterior_atual(
-    datas['ano_atual'], 
-    datas['mes_atual'], 
+    datas['ano_atual'],  
     df_faturamento_diario_casa
 )
 
