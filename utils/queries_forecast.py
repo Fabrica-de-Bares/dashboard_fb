@@ -933,13 +933,13 @@ def GET_AUT_BLUE_ME_SEM_PEDIDO():
         CASE              
             WHEN tccg2.ID = 867 THEN 'Mão de Obra - Encargos e Provisões' -- Ações Trabalhistas  
             -- Endividamentos
-            WHEN te.NOME_FANTASIA NOT IN ('Priceless', 'Bar Brahma - Granja', 'Orfeu') AND tccg2.DESCRICAO IN ('Endividamento Geral', 'Processo Judicial', 'Processo Civil', 'Recurso Processual', 'Empréstimos Gerais') THEN 'Dividendos e Remunerações Variáveis'
-            WHEN te.NOME_FANTASIA IN ('Priceless', 'Bar Brahma - Granja', 'Orfeu') AND tccg2.DESCRICAO IN ('Endividamento Geral', 'Processo Civil', 'Recurso Processual', 'Empréstimos Gerais') THEN 'Dividendos e Remunerações Variáveis'
-            WHEN te.NOME_FANTASIA IN ('Priceless', 'Bar Brahma - Granja', 'Orfeu') AND tccg2.DESCRICAO IN ('Processo Judicial') THEN 'Mão de Obra - Encargos e Provisões'
+            WHEN te.NOME_FANTASIA NOT IN ('Priceless', 'Bar Brahma - Centro', 'Bar Brahma - Granja', 'Orfeu') AND tccg2.DESCRICAO IN ('Endividamento Geral', 'Processo Judicial', 'Processo Civil', 'Recurso Processual', 'Empréstimos Gerais') THEN 'Dividendos e Remunerações Variáveis'
+            WHEN te.NOME_FANTASIA IN ('Priceless', 'Bar Brahma - Centro', 'Bar Brahma - Granja', 'Orfeu') AND tccg2.DESCRICAO IN ('Endividamento Geral', 'Processo Civil', 'Recurso Processual', 'Empréstimos Gerais') THEN 'Dividendos e Remunerações Variáveis'
+            WHEN te.NOME_FANTASIA IN ('Priceless', 'Bar Brahma - Centro', 'Bar Brahma - Granja', 'Orfeu') AND tccg2.DESCRICAO IN ('Processo Judicial') THEN 'Mão de Obra - Encargos e Provisões'
             ELSE tccg.DESCRICAO
         END AS 'Classificacao_Contabil_1', 
         CASE
-            WHEN te.NOME_FANTASIA IN ('Priceless', 'Bar Brahma - Granja', 'Orfeu') AND tccg2.DESCRICAO = 'Processo Judicial' THEN '  -  Ações trabalhistas'  
+            WHEN te.NOME_FANTASIA IN ('Priceless', 'Bar Brahma - Centro', 'Bar Brahma - Granja', 'Orfeu') AND tccg2.DESCRICAO = 'Processo Judicial' THEN '  -  Ações trabalhistas'  
             ELSE tccg2.DESCRICAO                                                                              
         END AS 'Classificacao_Contabil_2',              
         NULL AS 'Cargo_DRE'

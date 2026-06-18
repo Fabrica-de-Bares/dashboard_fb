@@ -2,10 +2,13 @@ import streamlit as st
 from utils.components import input_selecao_casas, seletor_ano, seletor_mes
 from utils.functions.forecast import *
 from utils.functions.general_functions import config_sidebar
-from utils.functions.general_functions_conciliacao import *
 from utils.functions.cmv_teorico_fichas_tecnicas import function_format_number_columns
 from utils.functions.controladoria_planejamento_anual import highlight_secoes_dre
 from utils.queries_forecast import *
+from utils.queries_dre_download import *
+import os
+import openpyxl
+import traceback
 
 
 st.set_page_config(
@@ -32,7 +35,7 @@ st.divider()
 # Seletores de casa e data
 col1, col2, col3 = st.columns(3)
 with col1: # Casas sem DRE
-    lista_retirar_casas = ['Todas as Casas', 'Bar Brahma Paulista', 'Bar Léo - Vila Madalena', 'Blue Note SP (Novo)', 'Blue Note SP (Sala 2)', 'Brahminha', 'Edificio Rolim', 'Sanduiche comunicação LTDA ', 'Terraço Notie', 'Tempus Fugit  Ltda ', 'The Cavern - Almoço']
+    lista_retirar_casas = ['Todas as Casas', 'Bar Brahma Paulista', 'Bar Léo - Vila Madalena', 'Blue Note SP (Novo)', 'Blue Note SP (Sala 2)', 'Bar Brahma - Paulista', 'Brahminha', 'Edificio Rolim', 'Sanduiche comunicação LTDA ', 'Terraço Notie', 'Tempus Fugit  Ltda ', 'The Cavern - Almoço']
     id_casa, casa, id_zigpay = input_selecao_casas(lista_retirar_casas, key='faturamento_bruto')
 with col2:
     mes_selecionado = int(seletor_mes('Selecione um mês', 'mes_forecast'))
@@ -77,66 +80,66 @@ PORC_FEE_GESTAO = 0.05
 
 ###################### PROJEÇÃO DE FATURAMENTO - MÊS CORRENTE ###################### 
 
-# Prepara df de faturamento agregado diário para a casa selecionada
-df_faturamento_agregado_mes_corrente = prepara_dados_faturam_agregado_diario(id_casa, df_faturamento_agregado_dia, datas['fim_mes_atual'], datas['inicio_dois_meses_antes'])
-if casa == 'Arcos': 
-    # Não abre de segunda-feira: zera segundas com faturamento de A&B para não impactar na projeção (vêm de Eventos)
-    condicao = (df_faturamento_agregado_mes_corrente['Casa'] == 'Arcos') & (df_faturamento_agregado_mes_corrente['Dia Semana'] == 'Segunda-feira')
-    df_faturamento_agregado_mes_corrente.loc[condicao, 'Valor Bruto'] = 0
+# # Prepara df de faturamento agregado diário para a casa selecionada
+# df_faturamento_agregado_mes_corrente = prepara_dados_faturam_agregado_diario(id_casa, df_faturamento_agregado_dia, datas['fim_mes_atual'], datas['inicio_dois_meses_antes'])
+# if casa == 'Arcos': 
+#     # Não abre de segunda-feira: zera segundas com faturamento de A&B para não impactar na projeção (vêm de Eventos)
+#     condicao = (df_faturamento_agregado_mes_corrente['Casa'] == 'Arcos') & (df_faturamento_agregado_mes_corrente['Dia Semana'] == 'Segunda-feira')
+#     df_faturamento_agregado_mes_corrente.loc[condicao, 'Valor Bruto'] = 0
 
-# --- CRIA COMBINAÇÃO DE TODAS AS CATEGORIAS x DIAS (mês anterior e corrente) ---
-df_dias_futuros_com_categorias = lista_dias_mes_anterior_atual(datas['ano_atual'], df_faturamento_agregado_mes_corrente)
+# # --- CRIA COMBINAÇÃO DE TODAS AS CATEGORIAS x DIAS (mês anterior e corrente) ---
+# df_dias_futuros_com_categorias = lista_dias_mes_anterior_atual(datas['ano_atual'], df_faturamento_agregado_mes_corrente)
 
-# Gera projeção para prox dias do mês corrente por dia da semana
-df_dias_futuros_mes = cria_projecao_mes_corrente(df_faturamento_agregado_mes_corrente, df_dias_futuros_com_categorias)
-df_dias_mes = df_dias_futuros_com_categorias[df_dias_futuros_com_categorias['Categoria'] != 'Serviço'].copy()
-df_dias_mes = df_dias_mes[['Data Evento', 'Categoria']]
+# # Gera projeção para prox dias do mês corrente por dia da semana
+# df_dias_futuros_mes = cria_projecao_mes_corrente(df_faturamento_agregado_mes_corrente, df_dias_futuros_com_categorias)
+# df_dias_mes = df_dias_futuros_com_categorias[df_dias_futuros_com_categorias['Categoria'] != 'Serviço'].copy()
+# df_dias_mes = df_dias_mes[['Data Evento', 'Categoria']]
 
-# Aplica layout
-pivot_faturamento_mes_corrente = aplica_layout_mes_corrente(df_dias_futuros_mes, df_faturamento_eventos, df_receitas_extr_gifts_oleo, df_dias_mes, id_casa, casa, mes_selecionado, ano_selecionado)
-height = (len(pivot_faturamento_mes_corrente) + 1) * 35 # Define altura sem rolagem 
+# # Aplica layout
+# pivot_faturamento_mes_corrente = aplica_layout_mes_corrente(df_dias_futuros_mes, df_faturamento_eventos, df_receitas_extr_gifts_oleo, df_dias_mes, id_casa, casa, mes_selecionado, ano_selecionado)
+# height = (len(pivot_faturamento_mes_corrente) + 1) * 35 # Define altura sem rolagem 
 
-# Formata colunas numéricas
-df_mes_corrente_estilizado = function_format_number_columns(
-    pivot_faturamento_mes_corrente,
-    columns_money=[col for col in pivot_faturamento_mes_corrente if col not in ['Data Evento', 'Dia Semana']]
-)
+# # Formata colunas numéricas
+# df_mes_corrente_estilizado = function_format_number_columns(
+#     pivot_faturamento_mes_corrente,
+#     columns_money=[col for col in pivot_faturamento_mes_corrente if col not in ['Data Evento', 'Dia Semana']]
+# )
 
-# Pinta os dias apenas se for selecionado o mês corrente
-if mes_selecionado == datas['mes_atual'] and ano_selecionado == datas['ano_atual']:
-    df_mes_corrente_estilizado = pivot_faturamento_mes_corrente.style.apply(destaca_dias_futuros_mes_corrente, axis=1)
-else:
-    df_mes_corrente_estilizado = pivot_faturamento_mes_corrente 
-    df_mes_corrente_estilizado = df_mes_corrente_estilizado.style.apply(
-        lambda col: ['background-color: #f0f2f6; color: black;' if col.name == 'Total' else '' for _ in col],
-        axis=0
-    )   
+# # Pinta os dias apenas se for selecionado o mês corrente
+# if mes_selecionado == datas['mes_atual'] and ano_selecionado == datas['ano_atual']:
+#     df_mes_corrente_estilizado = pivot_faturamento_mes_corrente.style.apply(destaca_dias_futuros_mes_corrente, axis=1)
+# else:
+#     df_mes_corrente_estilizado = pivot_faturamento_mes_corrente 
+#     df_mes_corrente_estilizado = df_mes_corrente_estilizado.style.apply(
+#         lambda col: ['background-color: #f0f2f6; color: black;' if col.name == 'Total' else '' for _ in col],
+#         axis=0
+#     )   
 
-if mes_selecionado == datas['mes_atual'] and ano_selecionado == datas['ano_atual']:
-    st.subheader('Faturamento diário - mês corrente')
-else:
-    st.subheader('Faturamento diário - mês selecionado')
+# if mes_selecionado == datas['mes_atual'] and ano_selecionado == datas['ano_atual']:
+#     st.subheader('Faturamento diário - mês corrente')
+# else:
+#     st.subheader('Faturamento diário - mês selecionado')
 
-st.dataframe(df_mes_corrente_estilizado, hide_index=True, width='stretch')
+# st.dataframe(df_mes_corrente_estilizado, hide_index=True, width='stretch')
 
-if mes_selecionado == datas['mes_atual'] and ano_selecionado == datas['ano_atual']: # Exibe legenda
-    st.markdown(f'''
-        <div style="display: flex; align-items: center; padding:10px; border:1px solid #ccc; border-radius:8px";>
-            <div style="width: 15px; height: 15px; background-color: rgba(255,255,224); border: 1px solid #ccc; margin-right: 10px;"></div>
-            <span style="font-size: 14px">Média de faturamento projetado (não real) para próximos dias do mês.</span>
-        </div>
-    ''', unsafe_allow_html=True)
-    st.write("")
+# if mes_selecionado == datas['mes_atual'] and ano_selecionado == datas['ano_atual']: # Exibe legenda
+#     st.markdown(f'''
+#         <div style="display: flex; align-items: center; padding:10px; border:1px solid #ccc; border-radius:8px";>
+#             <div style="width: 15px; height: 15px; background-color: rgba(255,255,224); border: 1px solid #ccc; margin-right: 10px;"></div>
+#             <span style="font-size: 14px">Média de faturamento projetado (não real) para próximos dias do mês.</span>
+#         </div>
+#     ''', unsafe_allow_html=True)
+#     st.write("")
 
-# Premissas
-st.markdown(f'''
-    <div style="display:flex; flex-direction:column; padding:10px; border:1px solid #ccc; border-radius:8px";>
-        <p><strong>Premissas</strong></p>
-        <span style="font-size: 14px">- Para Alimentos, Bebidas, Couvert, Delivery e Gifts: por dia da semana, é calculada a média de faturamento baseada nas das duas últimas semanas.</span>
-        <span style="font-size: 14px">- Para Eventos e Outras Receitas (coleta de óleo): considerar os lançamentos com competência para o dia correspondente.</span>
-    </div>
-''', unsafe_allow_html=True)
-st.divider()
+# # Premissas
+# st.markdown(f'''
+#     <div style="display:flex; flex-direction:column; padding:10px; border:1px solid #ccc; border-radius:8px";>
+#         <p><strong>Premissas</strong></p>
+#         <span style="font-size: 14px">- Para Alimentos, Bebidas, Couvert, Delivery e Gifts: por dia da semana, é calculada a média de faturamento baseada nas das duas últimas semanas.</span>
+#         <span style="font-size: 14px">- Para Eventos e Outras Receitas (coleta de óleo): considerar os lançamentos com competência para o dia correspondente.</span>
+#     </div>
+# ''', unsafe_allow_html=True)
+# st.divider()
 
 
 ###################### PROJEÇÃO DE FATURAMENTO - DRE ###################### 
@@ -372,3 +375,134 @@ st.dataframe(df_layout_dre_styled, hide_index=True, width='stretch', height=heig
 # ''', unsafe_allow_html=True)
 
 
+# # Exportando em Excel
+# excel_filename = f'assets/sheets/Base_DRE - {id_casa}.xlsx'
+
+# # st.write("Arquivo:", excel_filename) # Verificação do arquivo
+# # st.write("Existe:", os.path.exists(excel_filename))
+# # st.write("Tamanho:", os.path.getsize(excel_filename))
+
+# # try:
+# #     wb = openpyxl.load_workbook(excel_filename)
+# # except Exception:
+# #     st.code(traceback.format_exc())
+
+# # Casas com mais de um place
+# if casa == 'Blue Note - São Paulo': ids_casa_query = [110, 131]
+# elif casa == 'Priceless': ids_casa_query = [149, 161, 162, 179]
+# elif casa == 'Girondino': ids_casa_query = [156, 160]
+# else: ids_casa_query = [id_casa]
+# # Casas com delivery
+# if casa == 'Bar Brahma - Centro': ids_casa_delivery = [117, 118]
+# elif casa == 'Bar Léo - Centro': ids_casa_delivery = [103]
+# elif casa == 'Bar Brahma - Granja': ids_casa_delivery = [169]
+# elif casa == 'Jacaré': ids_casa_delivery = [139]
+# elif casa == 'Orfeu': ids_casa_delivery = [112]
+
+# # Formata para utilizar na query
+# ids_casa_query = ",".join(map(str, ids_casa_query))
+
+
+# if casa != 'Girondino - CCBB':
+#     # Carrega dados das abas
+#     df_aut_blue_me_sem_pedido = DRE_AUT_BLUE_ME_SEM_PEDIDO(ids_casa_query)
+#     df_aut_blue_me_com_pedido = DRE_AUT_BLUE_ME_COM_PEDIDO(ids_casa_query)
+#     df_aut_faturamento_zig = DRE_AUT_FATURAMENTO_ZIG(ids_casa_query)
+#     df_aut_receitas_extraord = DRE_AUT_RECEITAS_EXTRAORD(ids_casa_query)
+#     if casa == 'Priceless': df_bd_eventos_novo = DRE_BD_EVENTOS_NOVO_PRICELESS(ids_casa_query)
+#     else: df_bd_eventos_novo = DRE_BD_EVENTOS_NOVO(ids_casa_query)
+#     df_aut_folha = DRE_AUT_FOLHA(ids_casa_query)
+#     df_aut_descontos = DRE_AUT_DESCONTOS(ids_casa_query)
+#     df_aut_promocoes = DRE_AUT_PROMOCOES_UTILIZADAS(ids_casa_query)
+#     df_aut_endividamentos = DRE_AUT_ENDIVIDAMENTOS(ids_casa_query)
+#     df_aut_contagem = DRE_AUT_CONTAGEM(ids_casa_query)
+#     df_aut_precos_insumos = DRE_AUT_PRECOS_INSUMOS(ids_casa_query)
+#     df_aut_valor_estoque = DRE_AUT_VALOR_ESTOQUE(ids_casa_query)
+#     df_aut_precos_consolidados = DRE_AUT_PRECOS_CONSOLIDADOS(ids_casa_query)
+#     df_aut_eventos_aeb = DRE_AUT_EVENTOS_AEB(ids_casa_query)
+#     df_aut_transferencias = DRE_AUT_TRANSFERENCIAS(ids_casa_query)
+#     df_aut_consumo_func = DRE_AUT_CONSUMO_FUNCIONARIOS(ids_casa_query)
+#     df_aut_insumos_prod = DRE_AUT_INSUMOS_PRODUCAO(ids_casa_query)
+#     df_aut_ajustes_manuais = DRE_AJUSTES_MANUAIS(ids_casa_query)
+#     st.write(df_aut_ajustes_manuais)
+
+#     if st.button('Atualizar Dados DRE'):
+#         wb = openpyxl.load_workbook(excel_filename)
+
+#         sheet_name = 'Aut_BlueMe_Sem_Pedido'
+#         export_to_excel(wb, df_aut_blue_me_sem_pedido, sheet_name)
+
+#         sheet_name = 'Aut_BlueMe_Com_Pedido'
+#         export_to_excel(wb, df_aut_blue_me_com_pedido, sheet_name)
+
+#         sheet_name = 'Aut_Faturamento_Zig'
+#         export_to_excel(wb, df_aut_faturamento_zig, sheet_name)
+
+#         if casa in ['Bar Brahma - Centro', 'Bar Brahma - Granja', 'Bar Léo - Centro', 'Jacaré', 'Orfeu']:
+#             ids_casa_delivery = ",".join(map(str, ids_casa_delivery)) 
+#             df_aut_faturamento_zig_delivery = DRE_AUT_FATURAMENTO_ZIG_DELIVERY(ids_casa_delivery)
+#             sheet_name = 'Aut_Faturamento_Zig_Delivery'
+#             export_to_excel(wb, df_aut_faturamento_zig_delivery, sheet_name)
+        
+#         if casa == 'Priceless':
+#             df_bd_eventos_concierge = DRE_EVENTOS_CONCIERGE(ids_casa_query)
+#             sheet_name = 'BD_Eventos_Concierge'
+#             export_to_excel(wb, df_bd_eventos_concierge, sheet_name)
+
+#         sheet_name = 'Aut_Receitas_Extraord'
+#         export_to_excel(wb, df_aut_receitas_extraord, sheet_name)
+        
+#         sheet_name = 'BD_Eventos_Novo'
+#         export_to_excel(wb, df_bd_eventos_novo, sheet_name)
+        
+#         sheet_name = 'Aut_Folha'
+#         export_to_excel(wb, df_aut_folha, sheet_name)
+        
+#         sheet_name = 'Aut_Descontos'
+#         export_to_excel(wb, df_aut_descontos, sheet_name)
+        
+#         sheet_name = 'Aut_Promocoes_Utilizadas'
+#         export_to_excel(wb, df_aut_promocoes, sheet_name)  
+        
+#         sheet_name = 'Aut_Endividamentos'
+#         export_to_excel(wb, df_aut_endividamentos, sheet_name)    
+        
+#         sheet_name = 'Aut_Contagem'
+#         export_to_excel(wb, df_aut_contagem, sheet_name)    
+        
+#         sheet_name = 'Aut_Precos_Insumos'
+#         export_to_excel(wb, df_aut_precos_insumos, sheet_name)    
+        
+#         sheet_name = 'Aut_Valor_Estoque'
+#         export_to_excel(wb, df_aut_valor_estoque, sheet_name)   
+        
+#         sheet_name = 'Aut_Precos_Consolidados_Mes'
+#         export_to_excel(wb, df_aut_precos_consolidados, sheet_name)    
+        
+#         sheet_name = 'Aut_Eventos_AeB'
+#         export_to_excel(wb, df_aut_eventos_aeb, sheet_name) 
+        
+#         sheet_name = 'Aut_Transferencias'
+#         export_to_excel(wb, df_aut_transferencias, sheet_name)    
+        
+#         sheet_name = 'Aut_Consumo_Funcionarios'
+#         export_to_excel(wb, df_aut_consumo_func, sheet_name)    
+        
+#         sheet_name = 'Aut_Insumos_Producao'
+#         export_to_excel(wb, df_aut_insumos_prod, sheet_name) 
+
+#         sheet_name = 'Aut_Ajustes_Manuais'
+#         export_to_excel(wb, df_aut_ajustes_manuais, sheet_name)    
+
+#         wb.save(excel_filename)
+#         st.success('Dados atualizados com sucesso!')
+
+#     if os.path.exists(excel_filename): # Botão de Download 
+#         with open(excel_filename, "rb") as file:
+#             file_content = file.read()
+#             st.download_button(
+#             label="Baixar Excel",
+#             data=file_content,
+#             file_name=f"DRE - {casa}.xlsx",
+#             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+#         )
