@@ -1676,9 +1676,10 @@ def padroes_calculo_mdo_encargos_provisoes(df_mdo, df_gorjeta, df_salarios, cate
         df_categoria = df_categoria[['Classificacao_Contabil_2', 'Mês', 'Ano', 'Custo Real']]
         df_categoria = df_categoria.rename(columns={'Custo Real': categoria})
         df_categoria['Classificacao_Contabil_2'] = categoria
+        # st.write(df_mdo)
         df_mdo = pd.merge(df_mdo, df_categoria, on=['Mês', 'Ano', 'Classificacao_Contabil_2'], how='left')
         df_mdo.loc[df_mdo['Classificacao_Contabil_2'] == categoria, 'Custo Real'] = df_mdo[categoria] * (df_mdo['Taxa'] / 100)
-
+        # st.write(df_categoria, df_mdo)
     return df_mdo
         
 
@@ -1699,7 +1700,7 @@ def calculo_mdo_encargos_provisoes(df_despesas_mdo, df_gorjeta, df_salarios, df_
         ((df_mdo['Data Fim'].isna()) & # Caso a data de fim de vigência seja nula (vigência atual)
         (df_mdo['Data'] >= df_mdo['Data Inicio']) &
         (df_mdo['Classificacao_Contabil_2_x'] == df_mdo['Classificacao_Contabil_2_y']))]
-    
+
     df_mdo = df_mdo.drop(columns=['Classificacao_Contabil_2_y', 'Data', 'Data Inicio', 'Data Fim'])
     df_mdo = df_mdo.rename(columns={'Classificacao_Contabil_2_x': 'Classificacao_Contabil_2'})
     df_mdo['Custo Real'] = df_mdo['Custo Real'].fillna(0)
@@ -2068,3 +2069,19 @@ def formatar_linhas_porcentagem(valor):
         return "-"
     else:
         return f"{valor*100:,.2f}%".replace(".", ",")
+    
+
+# Exportação do Excel
+def export_to_excel(wb, df, sheet_name):
+    if sheet_name in wb.sheetnames:
+        wb.remove(wb[sheet_name])
+    ws = wb.create_sheet(title=sheet_name)
+    
+    # Escrever os cabeçalhos
+    for col_idx, column_title in enumerate(df.columns, start=1):
+        ws.cell(row=1, column=col_idx, value=column_title)
+    
+    # Escrever os dados
+    for row_idx, row in enumerate(df.itertuples(index=False, name=None), start=2):
+        for col_idx, value in enumerate(row, start=1):
+            ws.cell(row=row_idx, column=col_idx, value=value)
