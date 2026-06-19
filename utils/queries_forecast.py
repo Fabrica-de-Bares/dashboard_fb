@@ -17,7 +17,7 @@ def GET_ITENS_VENDIDOS_DIA_DA_SEMANA():
     SELECT 
       CASE
         WHEN tivd.FK_CASA = 117 THEN 118 -- Delivery BBC
-        WHEN te.ID IN (161, 162) THEN 149 -- Priceless
+        WHEN te.ID IN (149, 161, 162, 179) THEN 149 -- Priceless
         # WHEN te.ID = 131 THEN 110 -- Blue Note
         WHEN te.ID = 177 THEN 176 -- The Cavern                                    
         ELSE tivd.FK_CASA
@@ -58,7 +58,7 @@ def GET_ITENS_VENDIDOS_DIA():
         WHEN tivd.FK_CASA = 169 THEN 148
         WHEN tivd.FK_CASA = 139 THEN 105
         WHEN tivd.FK_CASA = 112 THEN 104
-        WHEN te.ID IN (161, 162) THEN 149 -- Priceless
+        WHEN te.ID IN (161, 162, 179) THEN 149 -- Priceless
         WHEN te.ID = 131 THEN 110 -- Blue Note
         WHEN te.ID = 177 THEN 176 -- The Cavern                                    
         ELSE tivd.FK_CASA
@@ -423,7 +423,7 @@ def GET_EVENTOS_REBATE_FORNEC_PRICELESS():
       LEFT JOIN T_TIPO_EVENTO tte ON (tep.FK_TIPO_EVENTO = tte.ID)
 	  LEFT JOIN T_MODELO_EVENTO tme ON (tep.FK_MODELO_EVENTO = tme.ID)
       WHERE vpa.DATA_VENCIMENTO IS NOT NULL 
-      AND te.ID IN (149, 161, 162)
+      AND te.ID IN (149, 161, 162, 179)
       AND trec2.ID IN (111,124,130,109,104) # Eventos / Coleta de Oleo / Patrocínios / Visibilidade nos Bares (mkt)
 	  AND (STR_TO_DATE(tre.DATA_OCORRENCIA, '%Y-%m-%d') >= '2025-12-01 00:00:00' OR STR_TO_DATE(vpa.DATA_RECEBIMENTO, '%Y-%m-%d') >= '2025-12-01 00:00:00')
 	  ORDER BY tre.ID desc;                                         
@@ -519,7 +519,7 @@ def GET_DEMAIS_RECEITAS_EXTR():
 
 # Receitas Extraordinárias: (Lojin/Gifts e Coleta de Óleo/Outras Receitas)
 @st.cache_data
-def GET_PARCELAS_RECEIT_EXTR():
+def GET_PARCELAS_RECEIT_EXTR(id_casa):
     df_parc_receit_extr = dataframe_query(f'''
     SELECT 
         CASE
@@ -540,20 +540,20 @@ def GET_PARCELAS_RECEIT_EXTR():
         LEFT JOIN T_RECEITAS_EXTRAORDINARIAS tre ON (vpa.ID = tre.ID)
         LEFT JOIN T_RECEITAS_EXTRAORDINARIAS_CLASSIFICACAO trec2 ON (tre.FK_CLASSIFICACAO = trec2.ID)
         WHERE YEAR(tre.DATA_OCORRENCIA) > 2024 
-        AND trec2.CLASSIFICACAO IN ('Coleta de Óleo', 'Lojinha')                                  
+        AND trec2.CLASSIFICACAO IN ('Coleta de Óleo', 'Lojinha', 'Aluguel')                                  
         AND te.NOME_FANTASIA IN ({casas_str})
         ORDER BY te.NOME_FANTASIA ASC, tre.DATA_OCORRENCIA
         ''')
     
+    if id_casa == 128: # Love Cabaret considera apenas Aluguel em 'Outras Receitas'
+        df_parc_receit_extr = df_parc_receit_extr[df_parc_receit_extr['Categoria'] == 'Aluguel'].copy()
+
     df_parc_receit_extr = df_parc_receit_extr.groupby(['ID_Casa', 'Casa', 'Data Ocorrencia', 'Categoria'], as_index=False)['Valor Parcela'].sum()
-    df_parc_receit_extr['Categoria'] = df_parc_receit_extr['Categoria'].replace(
-        'Coleta de Óleo',
-        'Outras Receitas'
-    )
-    df_parc_receit_extr['Categoria'] = df_parc_receit_extr['Categoria'].replace(
-        'Lojinha',
-        'Gifts'
-    )
+    df_parc_receit_extr['Categoria'] = df_parc_receit_extr['Categoria'].replace({
+        'Coleta de Óleo': 'Outras Receitas',
+        'Aluguel': 'Outras Receitas',
+        'Lojinha': 'Gifts'
+    })
     
     # Adequa para poder concatenar ao faturamento agregado
     df_parc_receit_extr = df_parc_receit_extr.rename(columns={
@@ -566,7 +566,76 @@ def GET_PARCELAS_RECEIT_EXTR():
     df_parc_receit_extr = df_parc_receit_extr[['ID_Casa', 'Casa', 'Categoria', 'Data Evento', 'Valor Bruto', 'Desconto', 'Valor Liquido']]
     
     return df_parc_receit_extr
- 
+
+
+@st.cache_data
+def GET_EVENTOS_CONCIERGE_PRICELESS():
+    return dataframe_query(f'''
+    WITH TOTALS AS (
+        SELECT
+            ID,
+            ROUND(
+                COALESCE(VALOR_LOCACAO_AROO_1,0)+
+                COALESCE(VALOR_LOCACAO_AROO_2,0)+
+                COALESCE(VALOR_LOCACAO_AROO_3,0)+
+                COALESCE(VALOR_LOCACAO_ANEXO,0)+
+                COALESCE(VALOR_LOCACAO_NOTIE,0)+
+                COALESCE(VALOR_LOCACAO_MIRANTE,0)+
+                COALESCE(VALOR_LOCACAO_BAR,0),2) AS Valor_Locacao_Total,
+            ROUND(
+                COALESCE(VALOR_TAXA_SERVICO,0)+
+                COALESCE(VALOR_LOCACAO_DECORACAO_MOBILIARIO,0)+
+                COALESCE(VALOR_LOCACAO_GERADOR,0)+
+                COALESCE(VALOR_LOCACAO_UTENSILIOS,0)+
+                COALESCE(VALOR_MAO_DE_OBRA_EXTRA,0)+
+                COALESCE(VALOR_TAXA_ADMINISTRATIVA,0)+
+                COALESCE(VALOR_EXTRAS_GERAIS,0)+
+                COALESCE(VALOR_IMPOSTO,0)+
+                COALESCE(VALOR_ACRESCIMO_FORMA_PAGAMENTO,0),2) AS Valor_Outros_Total
+        FROM T_EVENTOS_CONCIERGE
+        )
+        SELECT
+        149 AS 'ID_Casa',                   
+        'Priceless' AS 'Casa',
+        tpep.ID AS 'ID_Parcela',
+        tep.ID AS 'ID_Evento',
+        tep.DATA_EVENTO AS 'Data Evento',
+        tep.NOME_EVENTO AS 'Nome_do_Evento',
+        tcep.DESCRICAO AS 'Categoria Parcela',
+        ROUND(COALESCE(tpep.VALOR_PARCELA,0),2) AS 'Valor_Parcela',
+        ROUND(COALESCE(tep.VALOR_TOTAL_EVENTO,0),2) AS 'Valor Total',
+        CASE WHEN tcep.DESCRICAO='A&B' THEN ROUND(COALESCE(tep.VALOR_AB,0) * COALESCE(tpep.VALOR_PARCELA / NULLIF(tep.VALOR_AB,0),0),2) ELSE 0 END AS 'Valor AB',
+        CASE WHEN tcep.DESCRICAO='Outros' THEN ROUND(COALESCE(tep.VALOR_TAXA_SERVICO,0) * (tpep.VALOR_PARCELA / NULLIF(t.Valor_Outros_Total,0)),2) ELSE 0 END AS 'Valor Taxa Serviço',
+        CASE WHEN tcep.DESCRICAO='Outros' THEN ROUND(COALESCE(tep.VALOR_CONTRATACAO_ARTISTICO,0) * (tpep.VALOR_PARCELA / NULLIF(t.Valor_Outros_Total,0)),2) ELSE 0 END AS 'Valor Contratação Artístico',
+        CASE WHEN tcep.DESCRICAO='Outros' THEN ROUND(COALESCE(tep.VALOR_CONTRATACAO_TECNICO_SOM,0) * (tpep.VALOR_PARCELA / NULLIF(t.Valor_Outros_Total,0)),2) ELSE 0 END AS 'Valor Contratação Técnico de Som',
+        CASE WHEN tcep.DESCRICAO='Outros' THEN ROUND(COALESCE(tep.VALOR_LOCACAO_GERADOR,0) * (tpep.VALOR_PARCELA / NULLIF(t.Valor_Outros_Total,0)),2) ELSE 0 END AS 'Valor Locação Gerador',
+        CASE WHEN tcep.DESCRICAO='Outros' THEN ROUND(COALESCE(tep.VALOR_LOCACAO_DECORACAO_MOBILIARIO,0) * (tpep.VALOR_PARCELA / NULLIF(t.Valor_Outros_Total,0)),2) ELSE 0 END AS 'Valor Locação Decoração/Mobiliário',
+        CASE WHEN tcep.DESCRICAO='Outros' THEN ROUND(COALESCE(tep.VALOR_LOCACAO_UTENSILIOS,0) * (tpep.VALOR_PARCELA / NULLIF(t.Valor_Outros_Total,0)),2) ELSE 0 END AS 'Valor Locação Utensílios',
+        CASE WHEN tcep.DESCRICAO='Outros' THEN ROUND(COALESCE(tep.VALOR_MAO_DE_OBRA_EXTRA,0) * (tpep.VALOR_PARCELA / NULLIF(t.Valor_Outros_Total,0)),2) ELSE 0 END AS 'Valor Mão de Obra Extra',
+        CASE WHEN tcep.DESCRICAO='Outros' THEN ROUND(COALESCE(tep.VALOR_TAXA_ADMINISTRATIVA,0) * (tpep.VALOR_PARCELA / NULLIF(t.Valor_Outros_Total,0)),2) ELSE 0 END AS 'Valor Taxa Administrativa',
+        CASE WHEN tcep.DESCRICAO='Outros' THEN ROUND(COALESCE(tep.VALOR_EXTRAS_GERAIS,0) * (tpep.VALOR_PARCELA / NULLIF(t.Valor_Outros_Total,0)),2) ELSE 0 END AS 'Valor Extras Gerais',
+        CASE WHEN tcep.DESCRICAO='Outros' THEN ROUND(COALESCE(tep.VALOR_IMPOSTO,0) * (tpep.VALOR_PARCELA / NULLIF(t.Valor_Outros_Total,0)),2) ELSE 0 END AS 'Valor_Imposto',
+        CASE WHEN tcep.DESCRICAO='Outros' THEN ROUND(COALESCE(tep.VALOR_ACRESCIMO_FORMA_PAGAMENTO,0) * (tpep.VALOR_PARCELA / NULLIF(t.Valor_Outros_Total,0)),2) ELSE 0 END AS 'Valor Acréscimo Forma de Pagamento',
+        CASE WHEN tcep.DESCRICAO='Locação' THEN ROUND(COALESCE(tep.VALOR_LOCACAO_AROO_1,0) * (tpep.VALOR_PARCELA / NULLIF(t.Valor_Locacao_Total,0)),2) ELSE 0 END AS 'Valor Locação Aroo 1',
+        CASE WHEN tcep.DESCRICAO='Locação' THEN ROUND(COALESCE(tep.VALOR_LOCACAO_AROO_2,0) * (tpep.VALOR_PARCELA / NULLIF(t.Valor_Locacao_Total,0)),2) ELSE 0 END AS 'Valor Locação Aroo 2',
+        CASE WHEN tcep.DESCRICAO='Locação' THEN ROUND(COALESCE(tep.VALOR_LOCACAO_AROO_3,0) * (tpep.VALOR_PARCELA / NULLIF(t.Valor_Locacao_Total,0)),2) ELSE 0 END AS 'Valor Locação Aroo 3',
+        CASE WHEN tcep.DESCRICAO='Locação' THEN ROUND(COALESCE(tep.VALOR_LOCACAO_ANEXO,0) * (tpep.VALOR_PARCELA / NULLIF(t.Valor_Locacao_Total,0)),2) ELSE 0 END AS 'Valor Locação Anexo',
+        CASE WHEN tcep.DESCRICAO='Locação' THEN ROUND(COALESCE(tep.VALOR_LOCACAO_NOTIE,0) * (tpep.VALOR_PARCELA / NULLIF(t.Valor_Locacao_Total,0)),2) ELSE 0 END AS 'Valor Locação Notie',
+        CASE WHEN tcep.DESCRICAO='Locação' THEN ROUND(COALESCE(tep.VALOR_LOCACAO_MIRANTE,0) * (tpep.VALOR_PARCELA / NULLIF(t.Valor_Locacao_Total,0)),2) ELSE 0 END AS 'Valor Locação Mirante',
+        CASE WHEN tcep.DESCRICAO='Locação' THEN ROUND(COALESCE(tep.VALOR_LOCACAO_BAR,0) * (tpep.VALOR_PARCELA / NULLIF(t.Valor_Locacao_Total,0)),2) ELSE 0 END AS 'Valor Locação Bar',
+        tpep.DATA_VENCIMENTO_PARCELA AS 'Data_Vencimento',
+        tsp.DESCRICAO AS 'Status_Pagamento',
+        tpep.DATA_RECEBIMENTO_PARCELA AS 'Data_Recebimento'
+        FROM T_PARCELAS_EVENTOS_CONCIERGE tpep
+        JOIN T_EVENTOS_CONCIERGE tep ON tpep.FK_EVENTO_CONCIERGE = tep.ID
+        LEFT JOIN TOTALS t ON t.ID = tep.ID
+        LEFT JOIN T_EMPRESAS te ON tep.FK_EMPRESA = te.ID
+        LEFT JOIN T_STATUS_PAGAMENTO tsp ON tpep.FK_STATUS_PAGAMENTO = tsp.ID
+        LEFT JOIN T_CATEGORIA_EVENTO_PRICELESS tcep ON tpep.FK_CATEGORIA_PARCELA = tcep.ID
+        WHERE te.ID IN (149, 161, 162, 179)
+        AND tep.FK_STATUS_EVENTO = 101
+        ORDER BY tep.DATA_EVENTO DESC;
+    ''')
 
 # Concatena todos os tipos de faturamento (Zig, Eventos e Receitas Extraordinárias)
 @st.cache_data
@@ -581,8 +650,14 @@ def GET_TODOS_FATURAMENTOS_DIA(id_casa):
         faturamento_eventos_inicial, faturamento_eventos_tratado = GET_FATURAMENTO_EVENTOS()
     
     # Faturamento - Receitas Extraordinárias
-    parc_receitas_extr = GET_PARCELAS_RECEIT_EXTR() # 'Gifts' (Lojinha) e 'Outras Receitas' (Coleta de Óleo)
-   
+    parc_receitas_extr = GET_PARCELAS_RECEIT_EXTR(id_casa) # 'Gifts' (Lojinha) e 'Outras Receitas' (Coleta de Óleo) e 'Aluguel' (Love Cabaret)
+    if id_casa == 149: # Priceless inclui Eventos Concierge
+        eventos_concierge = GET_EVENTOS_CONCIERGE_PRICELESS()
+        eventos_concierge = eventos_concierge.groupby(['ID_Casa', 'Casa', 'Data Evento'], as_index=False)['Valor AB'].sum()
+        eventos_concierge['Categoria'] = 'Outras Receitas'
+        eventos_concierge = eventos_concierge.rename(columns={'Valor AB': 'Valor Bruto'})
+        parc_receitas_extr = pd.concat([parc_receitas_extr, eventos_concierge])
+       
     # Concatena todos os tipos de faturamento
     todos_faturamentos = pd.concat([faturamento_agregado_diario, faturamento_eventos_tratado, parc_receitas_extr])
 
@@ -784,6 +859,9 @@ def GET_FATURAMENTO_CATEGORIA_MENSAL(df_faturamento_categoria, df_descontos, df_
     df_faturamento_categoria_mensal = df_faturamento_categoria_mensal[df_faturamento_categoria_mensal['Ano'] > 2024]
     
     # Agrupa para ter os valores por mês
+    df_faturamento_categoria_mensal['Valor Bruto'] = pd.to_numeric(df_faturamento_categoria_mensal['Valor Bruto'], errors='coerce')
+    df_faturamento_categoria_mensal['Desconto'] = pd.to_numeric(df_faturamento_categoria_mensal['Desconto'], errors='coerce')
+    df_faturamento_categoria_mensal['Valor Liquido'] = pd.to_numeric(df_faturamento_categoria_mensal['Valor Liquido'], errors='coerce')
     df_faturamento_categoria_mensal = df_faturamento_categoria_mensal.groupby(['ID_Casa', 'Casa', 'Categoria', 'Ano', 'Mês'], as_index=False)[['Valor Bruto', 'Desconto', 'Valor Liquido']].sum()
 
     # Calcula FATURAMENTO_MENSAL_AB 
@@ -872,12 +950,12 @@ def GET_AUT_BLUE_ME_SEM_PEDIDO():
         tdr.ID,                   
         CASE
             WHEN te.ID = 131 THEN 110
-            WHEN te.ID IN (161, 162) THEN 149              
+            WHEN te.ID IN (161, 162, 179) THEN 149              
             ELSE te.ID    
         END AS 'ID_Casa', 
         CASE
             WHEN te.ID = 131 THEN 'Blue Note - São Paulo'
-            WHEN te.ID IN (161, 162) THEN 'Priceless'               
+            WHEN te.ID IN (161, 162, 179) THEN 'Priceless'               
             ELSE te.NOME_FANTASIA    
         END AS 'Casa', 
         STR_TO_DATE(tdr.COMPETENCIA, '%Y-%m-%d') AS 'Data_Competencia',
@@ -1168,54 +1246,16 @@ def GET_AUT_FOLHA_PAGAMENTO():
     ''')
 
 
-# @st.cache_data
-# def GET_AUT_ENDIVIDAMENTOS():
-#     return dataframe_query(f'''
-#     SELECT DISTINCT
-#         te.ID as 'ID_Casa',
-#         te.NOME_FANTASIA as 'Casa',
-#         CASE
-#             WHEN tdp.FK_DESPESA IS NOT NULL THEN DATE(tc2.`Data`)
-#             ELSE DATE(tc.`Data`)
-#         END AS 'Data_Competencia',
-#         CASE
-#             WHEN tdp.FK_DESPESA IS NOT NULL THEN date(tdp.`DATA`)
-#             ELSE date(STR_TO_DATE(tdr.VENCIMENTO, '%Y-%m-%d %H:%i:%s'))
-#         END as 'Data_Vencimento',                   
-#         tf.CORPORATE_NAME as 'Fornecedor',
-#         tdr.OBSERVACAO as 'Descricao',
-#         CASE
-#             WHEN tdp.FK_DESPESA IS NOT NULL THEN tdp.VALOR
-#             ELSE IF(tdr.VALOR_LIQUIDO IS NULL, tdr.VALOR_PAGAMENTO, tdr.VALOR_LIQUIDO)
-#         END as 'Valor_Pagamento',
-#         tdr.VALOR_PAGAMENTO as 'Valor_Liquido',                   
-#         tccg.DESCRICAO as 'Classificacao_Contabil_1',
-#         tccg2.DESCRICAO as 'Classificacao_Contabil_2'
-#     FROM T_DESPESA_RAPIDA tdr
-#     INNER JOIN T_EMPRESAS te ON (tdr.FK_LOJA = te.ID)
-#     LEFT JOIN T_LOJAS tl ON (te.FK_LOJA = tl.ID)
-#     LEFT JOIN T_FORNECEDOR tf ON (tdr.FK_FORNECEDOR = tf.ID)
-#     LEFT JOIN T_CLASSIFICACAO_CONTABIL_GRUPO_1 tccg ON (tdr.FK_CLASSIFICACAO_CONTABIL_GRUPO_1 = tccg.ID)
-#     LEFT JOIN T_CLASSIFICACAO_CONTABIL_GRUPO_2 tccg2 ON (tdr.FK_CLASSIFICACAO_CONTABIL_GRUPO_2 = tccg2.ID)
-#     LEFT JOIN T_DEPESA_PARCELAS tdp ON (tdp.FK_DESPESA = tdr.ID)
-#     LEFT JOIN T_CALENDARIO tc ON (tdr.FK_DATA_REALIZACAO_PGTO = tc.ID)
-#     LEFT JOIN T_CALENDARIO tc2 ON (tdp.FK_DATA_REALIZACAO_PGTO = tc2.ID)
-#     LEFT JOIN T_STATUS_PAGAMENTO tsp ON (tdr.FK_STATUS_PGTO = tsp.ID)
-#     WHERE tccg.ID IN (165,206,244)
-#     ORDER BY tdr.ID desc, tdp.ID desc;
-#     ''')
-
-
 @st.cache_data
 def GET_AJUSTES_MANUAIS_DRE():
     return dataframe_query(f'''
     SELECT                        
         CASE
-            WHEN te.ID IN (161, 162) THEN 149
+            WHEN te.ID IN (161, 162, 179) THEN 149
             ELSE te.ID    
         END AS 'ID_Casa', 
         CASE
-            WHEN te.ID IN (161, 162) THEN 'Priceless'
+            WHEN te.ID IN (161, 162, 179) THEN 'Priceless'
             ELSE te.NOME_FANTASIA    
         END AS 'Casa',                  
         tam.MES_COMPETENCIA AS 'Mês',
@@ -1255,11 +1295,11 @@ def GET_CONSUMO_CARTAO_BLACK():
         tccb.NOME,
         tccb.CENTRO_CUSTO,                                                                                
         CASE
-            WHEN te.ID IN (161, 162) THEN 149
+            WHEN te.ID IN (161, 162, 179) THEN 149
             ELSE te.ID    
         END AS 'ID_Casa', 
         CASE
-            WHEN te.ID IN (161, 162) THEN 'Priceless'
+            WHEN te.ID IN (161, 162, 179) THEN 'Priceless'
             ELSE te.NOME_FANTASIA    
         END AS 'Casa',                  
         tccb.MES AS 'Mês',
@@ -1275,8 +1315,14 @@ def GET_CONSUMO_CARTAO_BLACK():
 def GET_PARAMETROS_IMPOSTOS():
     return dataframe_query(f'''
     SELECT 
-        te.ID AS 'ID_Casa',
-        te.NOME_FANTASIA AS 'Casa',                   
+        CASE 
+            WHEN te.ID IN (161, 162, 179) THEN 149
+            ELSE te.ID                 
+        END AS 'ID_Casa',
+        CASE
+            WHEN te.ID IN (161, 162, 179) THEN 'Priceless'     
+            ELSE te.NOME_FANTASIA                                                 
+        END AS 'Casa',                   
         DATE(tpci.DATA_INICIO_VIGENCIA) AS 'Data Inicio',
         DATE(tpci.DATA_FIM_VIGENCIA) AS 'Data Fim',
         tccg1.DESCRICAO AS 'Classificacao_Contabil_1',

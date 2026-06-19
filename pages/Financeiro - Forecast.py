@@ -389,7 +389,7 @@ st.dataframe(df_layout_dre_styled, hide_index=True, width='stretch', height=heig
 
 # # Casas com mais de um place
 # if casa == 'Blue Note - São Paulo': ids_casa_query = [110, 131]
-# elif casa == 'Terraço Notie': ids_casa_query = [149, 161, 162, 179]
+# elif casa == 'Priceless': ids_casa_query = [149, 161, 162, 179]
 # elif casa == 'Girondino': ids_casa_query = [156, 160]
 # else: ids_casa_query = [id_casa]
 # # Casas com delivery

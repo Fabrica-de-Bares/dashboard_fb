@@ -69,7 +69,7 @@ with col3:
 
 st.divider()
 
-if casa == 'Notiê - Priceless' or casa == 'Terraço Notiê':
+if casa == 'Notiê - Priceless' or casa == 'Terraço Notiê' or casa == 'Terraço Notie Novo':
     regras_categoria = {
         'funcionario|funcionário|funcionaria|funcionária': "COLABORADORES (30%)",
         'gerência|gerencia|coord': 'CONSUMO GERENCIAL',
