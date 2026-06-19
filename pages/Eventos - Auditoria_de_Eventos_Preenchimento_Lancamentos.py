@@ -81,7 +81,7 @@ def main():
 	st.divider()
 
 	# Filtro de casa:
-	lista_retirar_casas = ['Bar Léo - Vila Madalena', 'Blue Note SP (Novo)', 'Edificio Rolim', 'Terraço Notie', 'Blue Note SP (Sala 2)', 'Escritório Fabrica de Bares', 'The Cavern - Almoço']
+	lista_retirar_casas = ['Bar Léo - Vila Madalena', 'Blue Note SP (Novo)', 'Edificio Rolim', 'Terraço Notie', 'Blue Note SP (Sala 2)', 'Escritório Fabrica de Bares', 'The Cavern - Almoço', 'Terraço Notie Novo']
 	df_casas_selecionadas = input_multiselecao_casas(lista_retirar_casas, key='seletor_casas_auditoria')
 	lista_ids_casas = df_casas_selecionadas['ID_Casa'].unique().tolist()
 	df_eventos = df_eventos[df_eventos['ID Casa'].isin(lista_ids_casas)]

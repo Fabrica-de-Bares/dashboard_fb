@@ -744,6 +744,10 @@ def GET_INSUMOS_AGRUPADOS_BLUE_ME_POR_CATEG_COM_PEDIDO_PERIODO_LOJA(data_inicio,
           WHEN q.Loja = 'Blue Note SP (Novo)' THEN 'Blue Note - Agregado'
           WHEN q.Loja = 'The Cavern' THEN 'The Cavern - Agregado'
           WHEN q.Loja = 'The Cavern - Almoço' THEN 'The Cavern - Agregado'
+          WHEN q.Loja = 'Terraco Notie' THEN 'Terraco Notie - Agregado'
+          WHEN q.Loja = 'Terraço Notie Novo' THEN 'Terraço Notie - Agregado'
+          WHEN q.Loja = 'Notiê - Priceless' THEN 'Terraço Notie - Agregado'
+          WHEN q.Loja = 'Priceless' THEN 'Terraço Notie - Agregado'
           ELSE q.Loja
         END
 		) = '{loja}'
@@ -946,6 +950,10 @@ def GET_INSUMOS_BLUE_ME_COM_PEDIDO(data_inicio, data_fim, loja):
       	WHEN te.NOME_FANTASIA = 'Blue Note SP (Novo)' THEN 'Blue Note - Agregado'
         WHEN te.NOME_FANTASIA = 'The Cavern' THEN 'The Cavern - Agregado'
         WHEN te.NOME_FANTASIA = 'The Cavern - Almoço' THEN 'The Cavern - Agregado'
+        WHEN te.NOME_FANTASIA = 'Terraco Notie' THEN 'Terraco Notie - Agregado'
+        WHEN te.NOME_FANTASIA = 'Terraço Notie Novo' THEN 'Terraço Notie - Agregado'
+        WHEN te.NOME_FANTASIA = 'Notiê - Priceless' THEN 'Terraço Notie - Agregado'
+        WHEN te.NOME_FANTASIA = 'Priceless' THEN 'Terraço Notie - Agregado'
       	ELSE te.NOME_FANTASIA
       END AS `Loja`,
       tf.CORPORATE_NAME AS Fornecedor,
@@ -1033,6 +1041,10 @@ def GET_INSUMOS_BLUE_ME_COM_PEDIDO(data_inicio, data_fim, loja):
           WHEN te.NOME_FANTASIA = 'Blue Note SP (Novo)' THEN 'Blue Note - Agregado'
           WHEN te.NOME_FANTASIA = 'The Cavern' THEN 'The Cavern - Agregado'
           WHEN te.NOME_FANTASIA = 'The Cavern - Almoço' THEN 'The Cavern - Agregado'
+          WHEN te.NOME_FANTASIA = 'Terraco Notie' THEN 'Terraco Notie - Agregado'
+          WHEN te.NOME_FANTASIA = 'Terraço Notie Novo' THEN 'Terraço Notie - Agregado'
+          WHEN te.NOME_FANTASIA = 'Notiê - Priceless' THEN 'Terraço Notie - Agregado'
+          WHEN te.NOME_FANTASIA = 'Priceless' THEN 'Terraço Notie - Agregado'
           ELSE te.NOME_FANTASIA
         END
 		  ) = '{loja}'

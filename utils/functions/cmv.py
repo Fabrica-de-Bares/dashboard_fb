@@ -18,6 +18,7 @@ def substituicao_ids(df, colNome, colID):
     139: 105,
     161: 149,
     162: 149,
+    179: 149,
     110: 131,
     178: 131,
     160: 156,
@@ -32,8 +33,10 @@ def substituicao_ids(df, colNome, colID):
     'Delivery Brahma Granja Viana': 'Bar Brahma - Granja',
     'Delivery Orfeu': 'Orfeu',
     'Delivery Jacaré': 'Jacaré',
-    'Notiê - Priceless': 'Priceless',
-    'Terraço Notie': 'Priceless',
+    'Notiê - Priceless': 'Terraço Notie - Agregado',
+    'Terraço Notie': 'Terraço Notie - Agregado',
+    'Terraço Notie Novo': 'Terraço Notie - Agregado',
+    'Priceless': 'Terraço Notie - Agregado',
     'Blue Note - São Paulo': 'Blue Note - Agregado',
     'Blue Note SP (Novo)': 'Blue Note - Agregado',
     'Blue Note SP (Sala 2)': 'Blue Note - Agregado',
@@ -328,6 +331,8 @@ def config_valoracao_estoque(data_inicio, data_fim, loja):
     loja = 'Blue Note - São Paulo'
   elif loja == 'The Cavern - Agregado':
     loja = 'The Cavern'
+  elif loja == 'Terraço Notie - Agregado':
+    loja = 'Priceless'
 
   df_valoracao_estoque = GET_VALORACAO_ESTOQUE(loja, data_inicio_nova)
 

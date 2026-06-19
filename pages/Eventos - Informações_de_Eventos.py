@@ -89,7 +89,7 @@ def main():
 	# Seletores de eventos
 	col1, col2 = st.columns([1, 3])
 	with col1:
-		lista_retirar_casas = ['Bar Léo - Vila Madalena', 'Blue Note SP (Novo)', 'Edificio Rolim', 'Terraço Notie', 'Escritório Fabrica de Bares', 'Blue Note SP (Sala)', 'The Cavern - Almoço']
+		lista_retirar_casas = ['Bar Léo - Vila Madalena', 'Blue Note SP (Novo)', 'Edificio Rolim', 'Terraço Notie', 'Escritório Fabrica de Bares', 'Blue Note SP (Sala)', 'The Cavern - Almoço', 'Terraço Notie Novo']
 		df_casas_selecionadas = input_multiselecao_casas(lista_retirar_casas, key='casas_informacoes_eventos')
 
 	lista_ids_casas = df_casas_selecionadas['ID_Casa'].tolist()

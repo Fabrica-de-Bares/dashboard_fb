@@ -5,7 +5,6 @@ from utils.functions.general_functions import *
 from utils.user import *
 from utils.functions.cmv_teorico_fichas_tecnicas import *
 from utils.queries_compras import *
-from datetime import date, datetime, timedelta
 
 st.set_page_config(
     page_icon="🛒",
