@@ -14,7 +14,7 @@ def get_casas_validas():
 		"""
 	)
     df_casas = pd.DataFrame(result, columns=column_names)
-    lista_casas_validas = ['Priceless', 'Arcos', 'Bar Brahma - Centro', 'Bar Brahma - Granja', 'Bar Léo - Centro', 'Bar Léo - Vila Madalena', 'Blue Note - São Paulo', 'Blue Note SP (Novo)', 'Edificio Rolim', 'Escritório Fabrica de Bares', 'Girondino', 'Girondino - CCBB', 'Jacaré', 'Love Cabaret', 'Orfeu', 'Riviera Bar', 'Sanduiche comunicação LTDA ', 'Tempus Fugit  Ltda ', 'The Cavern', 'The Cavern - Almoço', 'Ultra Evil Premium Ltda ', 'Blue Note SP (Sala 2)', 'Terraço Notie', 'Delivery Jacaré', 'Delivery Brahma Centro', 'Hotel Maraba', 'Delivery Orfeu', 'Delivery Brahma Granja Viana', 'Delivery Bar Leo Centro']
+    lista_casas_validas = ['Priceless', 'Arcos', 'Bar Brahma - Centro', 'Bar Brahma - Granja', 'Bar Léo - Centro', 'Bar Léo - Vila Madalena', 'Blue Note - São Paulo', 'Blue Note SP (Novo)', 'Edificio Rolim', 'Escritório Fabrica de Bares', 'Girondino', 'Girondino - CCBB', 'Jacaré', 'Love Cabaret', 'Orfeu', 'Riviera Bar', 'Sanduiche comunicação LTDA ', 'Tempus Fugit  Ltda ', 'The Cavern', 'The Cavern - Almoço', 'Ultra Evil Premium Ltda ', 'Blue Note SP (Sala 2)', 'Terraço Notie', 'Delivery Jacaré', 'Delivery Brahma Centro', 'Hotel Maraba', 'Delivery Orfeu', 'Delivery Brahma Granja Viana', 'Delivery Bar Leo Centro', 'Terraço Notie Novo']
     df_validas = pd.DataFrame(lista_casas_validas, columns=["Casa"])
     df = df_casas.merge(df_validas, on="Casa", how="inner")
     return df
