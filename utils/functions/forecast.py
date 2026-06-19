@@ -300,12 +300,12 @@ def prepara_dados_faturamento_orcamentos_mensais(id_casa, df_orcamentos, df_fatu
         df_faturamento_mes_casa = pd.concat([df_faturamento_mes_casa, df_ajustes_categoria])
         df_faturamento_mes_casa['Valor Bruto'] = pd.to_numeric(df_faturamento_mes_casa['Valor Bruto'], errors='coerce')
         df_faturamento_mes_casa = df_faturamento_mes_casa.groupby(['ID_Casa', 'Casa', 'Categoria', 'Mês', 'Ano'], as_index=False)['Valor Bruto'].sum()
-        if id_casa == 128: # Love Cabaret
-            df_faturamento_mes_casa.loc[
-                (df_faturamento_mes_casa['Categoria'] == 'Outras Receitas') & 
-                (df_faturamento_mes_casa['Casa'] == 'Love Cabaret') &
-                (df_faturamento_mes_casa['Ano'] == 2026), 
-                'Valor Bruto'] = 35000
+        # if id_casa == 128: # Love Cabaret
+        #     df_faturamento_mes_casa.loc[
+        #         (df_faturamento_mes_casa['Categoria'] == 'Outras Receitas') & 
+        #         (df_faturamento_mes_casa['Casa'] == 'Love Cabaret') &
+        #         (df_faturamento_mes_casa['Ano'] == 2026), 
+        #         'Valor Bruto'] = 35000
 
     if id_casa in [149, 110]:
         if id_casa == 149: # Priceless - Eventos Rebate Fornecedores
@@ -1676,10 +1676,10 @@ def padroes_calculo_mdo_encargos_provisoes(df_mdo, df_gorjeta, df_salarios, cate
         df_categoria = df_categoria[['Classificacao_Contabil_2', 'Mês', 'Ano', 'Custo Real']]
         df_categoria = df_categoria.rename(columns={'Custo Real': categoria})
         df_categoria['Classificacao_Contabil_2'] = categoria
-        # st.write(df_mdo)
+        
         df_mdo = pd.merge(df_mdo, df_categoria, on=['Mês', 'Ano', 'Classificacao_Contabil_2'], how='left')
         df_mdo.loc[df_mdo['Classificacao_Contabil_2'] == categoria, 'Custo Real'] = df_mdo[categoria] * (df_mdo['Taxa'] / 100)
-        # st.write(df_categoria, df_mdo)
+        
     return df_mdo
         
 
@@ -2022,8 +2022,8 @@ def define_linhas_calculadas(df_dre, colunas_valores, lista_categorias_despesas,
     lista_categorias_despesas.append('Resultado Líquido')
 
     # Total - Variações s/ Resultado Líquido
-    total_variacoes = soma_categorias(df_final, ['Investimento - CAPEX', '(+/-) Outras variações no fluxo de caixa'], colunas_valores)
-    df_final = insere_nova_linha(df_final, colunas_valores, total_variacoes, 'Remuneração Variável', 'Categoria', 'Total - Variações s/ Resultado Líquido')
+    total_variacoes = soma_categorias(df_final, ['(-) CAPEX (Investimentos)', '(+/-) Outras variações no fluxo de caixa'], colunas_valores)
+    df_final = insere_nova_linha(df_final, colunas_valores, total_variacoes, mapa_insercao['Dividendos e Remunerações Variáveis'], 'Categoria', 'Total - Variações s/ Resultado Líquido')
 
     # FCF
     fcf = soma_categorias(df_final, ['Resultado Líquido', 'Total - Variações s/ Resultado Líquido'], colunas_valores)

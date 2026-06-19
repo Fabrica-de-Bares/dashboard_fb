@@ -5,7 +5,7 @@ from utils.functions.general_functions import config_sidebar
 from utils.functions.cmv_teorico_fichas_tecnicas import function_format_number_columns
 from utils.functions.controladoria_planejamento_anual import highlight_secoes_dre
 from utils.queries_forecast import *
-from utils.queries_dre_download import *
+# from utils.queries_dre_download import *
 import os
 import openpyxl
 import traceback
@@ -331,7 +331,7 @@ for df in lista_df_projecao_despesas:
     if lista_class_cont_1:
         class_cont_1 = lista_class_cont_1[0] # Nome da class. cont. 1
         
-        if class_cont_1 not in ['Mão de Obra - PJ', 'Mão de Obra - Salários', 'Mão de Obra - Extra', 'Mão de Obra - Encargos e Provisões', 'Mão de Obra - Benefícios', 'Patrocínio', 'Despesas Financeiras', 'Investimento - CAPEX', 'Dividendos e Remunerações Variáveis']:
+        if class_cont_1 not in ['Mão de Obra - PJ', 'Mão de Obra - Salários', 'Mão de Obra - Extra', 'Mão de Obra - Encargos e Provisões', 'Mão de Obra - Benefícios', 'Patrocínio', 'Despesas Financeiras', 'Investimento - CAPEX']:
             ordem_class_cont_2 = df['Classificacao_Contabil_2'].unique().tolist()
             ordem_class_cont_2 = [class_cont_2 for class_cont_2 in ordem_class_cont_2 if class_cont_2 != class_cont_1]
             ordem_class_cont_2.sort() # Ordena lista de class. cont. 2
@@ -389,7 +389,7 @@ st.dataframe(df_layout_dre_styled, hide_index=True, width='stretch', height=heig
 
 # # Casas com mais de um place
 # if casa == 'Blue Note - São Paulo': ids_casa_query = [110, 131]
-# elif casa == 'Priceless': ids_casa_query = [149, 161, 162, 179]
+# elif casa == 'Terraço Notie': ids_casa_query = [149, 161, 162, 179]
 # elif casa == 'Girondino': ids_casa_query = [156, 160]
 # else: ids_casa_query = [id_casa]
 # # Casas com delivery
