@@ -27,7 +27,7 @@ with col2:
     
 st.write("")
 seletor_status_despesa = st.segmented_control(
-    label="Selecione o Status das Despesas:",
+    label="Selecione o Status das Despesas (BlueMe):",
     options=["Apenas Aprovadas", "Todas Previstas"],
     selection_mode="single",
     default="Apenas Aprovadas",
