@@ -64,7 +64,9 @@ if 'Arcos' in lojasComDados: # Para não ficar 'All bar' como default nos seleto
 # Recuperando dados
 df_saldos_bancarios = GET_SALDOS_BANCARIOS()                    # saldo inicio do dia atual de cada casa
 df_valor_liquido = GET_VALOR_LIQUIDO_RECEBIDO()                 # valor liquido de receitas do dia atual de cada casa
-df_projecao_zig = GET_PROJECAO_ZIG()                            # projecao faturamento da zig de cada casa para a semana
+df_historico_zig = GET_FATURAMENTO_HISTORICO_ZIG()              # historico zig 8 semanas com tipo de pagamento
+df_antecipacao   = GET_ANTECIPACAO_CREDITO_ZIG()                # status antecipacao credito por empresa
+df_projecao_zig, df_projecao_zig_detalhado = calcular_projecao_zig_caixa(df_historico_zig, df_antecipacao)  # projecao por data de liquidacao, liquido de taxas
 df_receitas_extraord_proj = GET_RECEITAS_EXTRAORD_FLUXO_CAIXA() # receit. extr. lançadas de cada casa para duas semanas
 df_receitas_eventos_proj = GET_EVENTOS_FLUXO_CAIXA()            # eventos lançados de cada casa para duas semanas
 
@@ -394,3 +396,64 @@ with st.container(border=True):
         st.write(f"Valor total das receitas de eventos selecionadas = **R$ {valorTotal}**")
     with col2:
         button_download(df, f"Receitas Eventos do dia", f"Receitas Eventos do dia")
+
+st.divider()
+
+with st.container(border=True):
+    st.subheader("Auditoria da Projeção Zig")
+
+    col1, col2, col3 = st.columns([2, 2, 3])
+    with col1:
+        datas_disponiveis = sorted(df_projecao_zig_detalhado['Data Liquidação'].dt.date.unique())
+        data_auditoria = st.selectbox(
+            "Selecione a data de liquidação",
+            options=datas_disponiveis,
+            format_func=lambda d: d.strftime('%d/%m/%Y'),
+            key="data_auditoria_select"
+        )
+    with col2:
+        apenas_agrupados = st.checkbox(
+            "Apenas bares agrupados",
+            value=True,
+            key="audit_apenas_agrupados",
+            help="Quando marcado, exibe apenas as casas consideradas na 'Projeção de bares agrupados' acima"
+        )
+
+    df_audit = df_projecao_zig_detalhado[
+        df_projecao_zig_detalhado['Data Liquidação'].dt.date == data_auditoria
+    ].copy()
+
+    # Marca quais empresas estão no agrupado
+    df_audit['No Agrupado'] = df_audit['Empresa'].isin(lista_bares_agrupados).map({True: 'Sim', False: 'Não'})
+
+    if apenas_agrupados:
+        df_audit_filtrado = df_audit[df_audit['No Agrupado'] == 'Sim']
+    else:
+        df_audit_filtrado = df_audit
+
+    total_liquido = df_audit_filtrado['Valor Líquido'].sum()
+    total_todos   = df_audit['Valor Líquido'].sum()
+
+    df_audit_display = df_audit_filtrado.copy()
+    df_audit_display['Data Liquidação'] = pd.to_datetime(df_audit_display['Data Liquidação']).dt.strftime('%d/%m/%Y')
+    df_audit_display['Data Venda'] = pd.to_datetime(df_audit_display['Data Venda']).dt.strftime('%d/%m/%Y')
+    df_audit_display['Taxa'] = df_audit_display['Taxa'].apply(lambda x: f"{x * 100:.2f}%".replace('.', ','))
+    df_audit_display = format_columns_brazilian(df_audit_display, ['Valor Bruto', 'Valor Líquido'])
+    df_audit_display = df_audit_display.sort_values(['No Agrupado', 'Empresa', 'Tipo Pagamento']).reset_index(drop=True)
+
+    st.dataframe(df_audit_display, width='stretch', hide_index=True)
+
+    col1, col2 = st.columns([5, 2], vertical_alignment='center')
+    with col1:
+        st.write(f"Total exibido ({data_auditoria.strftime('%d/%m/%Y')}) = **R$ {format_brazilian(total_liquido)}**")
+        if not apenas_agrupados:
+            casas_fora = df_audit[df_audit['No Agrupado'] == 'Não']['Empresa'].unique().tolist()
+            if casas_fora:
+                st.caption(f"Casas fora do agrupado: {', '.join(sorted(casas_fora))}")
+        else:
+            diff = total_todos - total_liquido
+            casas_fora = df_audit[df_audit['No Agrupado'] == 'Não']['Empresa'].unique().tolist()
+            if casas_fora:
+                st.caption(f"Excluídas do agrupado (+R$ {format_brazilian(diff)}): {', '.join(sorted(casas_fora))}")
+    with col2:
+        button_download(df_audit_display, "Auditoria Projeção Zig", "Auditoria Projeção Zig")

@@ -50,15 +50,52 @@ def GET_VALOR_LIQUIDO_RECEBIDO():
 ''')
 
 
+# DEPRECIADO — substituído por GET_FATURAMENTO_HISTORICO_ZIG + calcular_projecao_zig_caixa
+# @st.cache_data
+# def GET_PROJECAO_ZIG():
+#   return dataframe_query(f'''
+#     SELECT * FROM View_Projecao_Zig_Agrupadas
+#     WHERE Data >= CURDATE()
+#     AND Data < DATE_ADD(CURDATE(), INTERVAL 365 DAY)
+#     AND Empresa IS NOT NULL
+#     ORDER BY Data ASC
+# ''')
+
+
 @st.cache_data
-def GET_PROJECAO_ZIG():
-  return dataframe_query(f'''
-    SELECT * FROM View_Projecao_Zig_Agrupadas
-    WHERE Data >= CURDATE() 
-    AND Data < DATE_ADD(CURDATE(), INTERVAL 365 DAY)
-    AND Empresa IS NOT NULL
-    ORDER BY Data ASC
-''')
+def GET_FATURAMENTO_HISTORICO_ZIG():
+  return dataframe_query('''
+    SELECT
+      te.NOME_FANTASIA  AS Empresa,
+      tzf.DATA          AS Data,
+      tzf.TIPO_PAGAMENTO,
+      SUM(tzf.VALOR)    AS Valor
+    FROM T_ZIG_FATURAMENTO tzf
+    INNER JOIN T_EMPRESAS te ON tzf.FK_LOJA = te.ID
+    WHERE tzf.DATA >= CURDATE() - INTERVAL 56 DAY
+      AND tzf.DATA <  CURDATE()
+      AND tzf.VALOR > 0
+      AND tzf.TIPO_PAGAMENTO NOT IN ('BÔNUS', 'OUTROS')
+    GROUP BY te.NOME_FANTASIA, tzf.DATA, tzf.TIPO_PAGAMENTO
+    ORDER BY tzf.DATA, te.NOME_FANTASIA
+  ''')
+
+
+@st.cache_data
+def GET_ANTECIPACAO_CREDITO_ZIG():
+  return dataframe_query('''
+    SELECT
+      t1.FK_EMPRESA,
+      te.NOME_FANTASIA                 AS Empresa,
+      t1.BIT_ANTECIPACAO_CREDITO_ATIVA
+    FROM T_STATUS_ANTECIPACAO_CREDITO_ZIG t1
+    INNER JOIN T_EMPRESAS te ON t1.FK_EMPRESA = te.ID
+    WHERE t1.ID = (
+      SELECT MAX(t2.ID)
+      FROM T_STATUS_ANTECIPACAO_CREDITO_ZIG t2
+      WHERE t2.FK_EMPRESA = t1.FK_EMPRESA
+    )
+  ''')
 
 
 @st.cache_data

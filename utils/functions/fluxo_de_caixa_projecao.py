@@ -63,9 +63,195 @@ def prolongar_projecao(df_projecao_zig, dias_prolongados=7):
 
 
 
+# ---------------------------------------------------------------------------
+# Projeção Zig por tipo de pagamento, liquidação e taxa
+# ---------------------------------------------------------------------------
+
+_TAXAS_ZIG = {
+    'PIX':               0.0074,
+    'APP':               0.0074,
+    'DÉBITO':            0.0095,
+    'DINHEIRO':          0.0,
+    'CRÉDITO_ANTECIPADO': 0.0265,
+    'CRÉDITO':           0.016,
+    'VOUCHER':           0.0365,
+    'IFOOD':             0.22,
+    'DELIVERY ONLINE':   0.22,
+}
+_LIQUIDACAO_CURTA = {'PIX', 'APP', 'DÉBITO', 'DINHEIRO'}
+_LIQUIDACAO_LONGA = {'VOUCHER', 'IFOOD', 'DELIVERY ONLINE'}
+
+
+def _proximo_dia_util(data, feriados_set):
+    d = data + pd.Timedelta(days=1)
+    while d.dayofweek >= 5 or d in feriados_set:
+        d += pd.Timedelta(days=1)
+    return d
+
+
+def _trinta_dias_corridos_util(data, feriados_set):
+    """30 dias corridos a partir de data, ajustado para o próximo dia útil se necessário."""
+    d = data + pd.Timedelta(days=30)
+    while d.dayofweek >= 5 or d in feriados_set:
+        d += pd.Timedelta(days=1)
+    return d
+
+
+def _data_liquidacao(sale_date, tipo, antecipacao, feriados_set):
+    if tipo in _LIQUIDACAO_CURTA:
+        return _proximo_dia_util(sale_date, feriados_set)
+    elif tipo in _LIQUIDACAO_LONGA:
+        return _trinta_dias_corridos_util(sale_date, feriados_set)
+    elif tipo == 'CRÉDITO':
+        if antecipacao:
+            return _proximo_dia_util(sale_date, feriados_set)
+        else:
+            return _trinta_dias_corridos_util(sale_date, feriados_set)
+    else:
+        return _proximo_dia_util(sale_date, feriados_set)
+
+
+def _taxa_zig(tipo, antecipacao):
+    if tipo == 'CRÉDITO':
+        return _TAXAS_ZIG['CRÉDITO_ANTECIPADO'] if antecipacao else _TAXAS_ZIG['CRÉDITO']
+    return _TAXAS_ZIG.get(tipo, 0.0)
+
+
+def _compute_payment_mix(df_historico):
+    df = df_historico.copy()
+    df['Valor'] = df['Valor'].astype(float)
+    total = df.groupby('Empresa')['Valor'].sum()
+    by_tipo = df.groupby(['Empresa', 'TIPO_PAGAMENTO'])['Valor'].sum()
+    mix = {}
+    for empresa in total.index:
+        if total[empresa] == 0:
+            continue
+        mix[empresa] = {
+            tipo: float(val) / float(total[empresa])
+            for tipo, val in by_tipo[empresa].items()
+        }
+    return mix
+
+
+def _compute_weekday_avg(df_historico):
+    df = df_historico.copy()
+    df['Valor'] = df['Valor'].astype(float)
+    daily = df.groupby(['Empresa', 'Data'])['Valor'].sum().reset_index()
+    daily['Data'] = pd.to_datetime(daily['Data'])
+    daily['weekday'] = daily['Data'].dt.dayofweek
+    result = {}
+    for empresa, grupo in daily.groupby('Empresa'):
+        result[empresa] = {}
+        for wd in range(7):
+            ultimas4 = (
+                grupo[grupo['weekday'] == wd]
+                .sort_values('Data', ascending=False)
+                .head(4)
+            )
+            if not ultimas4.empty:
+                result[empresa][wd] = ultimas4['Valor'].mean()
+    return result
+
+
+def calcular_projecao_zig_caixa(df_historico, df_antecipacao, horizonte_dias=60):
+    """
+    Retorna DataFrame [Data, Empresa, Valor_Projetado] onde Data = data de liquidação
+    e Valor_Projetado = valor líquido (taxa descontada). Sem multiplicador — aplicado depois.
+
+    Fase 1: vendas reais passadas (incl. hoje) cujo recebimento ainda não ocorreu.
+    Fase 2: vendas projetadas futuras (média 4 semanas) convertidas em data de recebimento.
+    """
+    feriados_set = set(config_feriados())
+    hoje = pd.Timestamp.today().normalize()
+
+    antecipacao_map = {}
+    if not df_antecipacao.empty:
+        antecipacao_map = dict(zip(
+            df_antecipacao['Empresa'],
+            df_antecipacao['BIT_ANTECIPACAO_CREDITO_ATIVA'].astype(bool)
+        ))
+
+    df_historico = df_historico.copy()
+    df_historico['Data'] = pd.to_datetime(df_historico['Data'])
+    df_historico['Valor'] = df_historico['Valor'].astype(float)
+
+    # Dados de dias completos anteriores a hoje para média, mix e vendas reais
+    df_passado = df_historico[df_historico['Data'] < hoje]
+    mix = _compute_payment_mix(df_passado)
+    weekday_avg = _compute_weekday_avg(df_passado)
+
+    rows = []
+    detail_rows = []
+
+    # --- Fase 1: vendas reais de dias anteriores com liquidação ainda pendente ---
+    for _, row in df_passado.iterrows():
+        antecipacao = antecipacao_map.get(row['Empresa'], False)
+        taxa = _taxa_zig(row['TIPO_PAGAMENTO'], antecipacao)
+        net = row['Valor'] * (1 - taxa)
+        settle = _data_liquidacao(row['Data'], row['TIPO_PAGAMENTO'], antecipacao, feriados_set)
+        if settle > hoje:  # exclui liquidações já ocorridas (capturadas em Valor_Liquido_Recebido)
+            rows.append({'Data': settle, 'Empresa': row['Empresa'], 'Valor_Projetado': net})
+            detail_rows.append({
+                'Data Liquidação': settle,
+                'Data Venda':      row['Data'],
+                'Fase':            'Real',
+                'Empresa':         row['Empresa'],
+                'Tipo Pagamento':  row['TIPO_PAGAMENTO'],
+                'Valor Bruto':     round(row['Valor'], 2),
+                'Taxa':            taxa,
+                'Valor Líquido':   round(net, 2),
+            })
+
+    # --- Fase 2: vendas projetadas a partir de hoje (média 4 semanas) ---
+    # days_ahead=0 = hoje: cobre D+1 de hoje (PIX/DÉBITO/APP/CRÉDITO antecipado → amanhã)
+    # days_ahead=1..N: cobre liquidações de vendas futuras projetadas
+    for days_ahead in range(0, horizonte_dias + 1):
+        sale_date = hoje + pd.Timedelta(days=days_ahead)
+        weekday = sale_date.dayofweek
+
+        for empresa, avg_by_wd in weekday_avg.items():
+            avg_venda = avg_by_wd.get(weekday, 0.0)
+            if avg_venda <= 0:
+                continue
+
+            antecipacao = antecipacao_map.get(empresa, False)
+            for tipo, pct in mix.get(empresa, {}).items():
+                gross = avg_venda * pct
+                taxa = _taxa_zig(tipo, antecipacao)
+                net = gross * (1 - taxa)
+                settle = _data_liquidacao(sale_date, tipo, antecipacao, feriados_set)
+                rows.append({'Data': settle, 'Empresa': empresa, 'Valor_Projetado': net})
+                detail_rows.append({
+                    'Data Liquidação': settle,
+                    'Data Venda':      sale_date,
+                    'Fase':            'Projetado',
+                    'Empresa':         empresa,
+                    'Tipo Pagamento':  tipo,
+                    'Valor Bruto':     round(gross, 2),
+                    'Taxa':            taxa,
+                    'Valor Líquido':   round(net, 2),
+                })
+
+    if not rows:
+        df_vazio = pd.DataFrame(columns=['Data', 'Empresa', 'Valor_Projetado'])
+        df_det_vazio = pd.DataFrame(columns=['Data Liquidação', 'Data Venda', 'Fase', 'Empresa', 'Tipo Pagamento', 'Valor Bruto', 'Taxa', 'Valor Líquido'])
+        return df_vazio, df_det_vazio
+
+    df = pd.DataFrame(rows)
+    df = df.groupby(['Data', 'Empresa'], as_index=False)['Valor_Projetado'].sum()
+    df['Valor_Projetado'] = df['Valor_Projetado'].round(2)
+
+    df_det = pd.DataFrame(detail_rows)
+    df_det['Data Liquidação'] = pd.to_datetime(df_det['Data Liquidação'])
+    df_det['Data Venda'] = pd.to_datetime(df_det['Data Venda'])
+
+    return df, df_det
+
+
+# ---------------------------------------------------------------------------
+
 def config_projecao_bares(seletor_status_despesa, df_saldos_bancarios, df_valor_liquido, df_projecao_zig, df_receitas_extraord_proj, df_receitas_eventos_proj, df_despesas_aprovadas, df_despesas_pagas, df_despesas_provisionadas):
-  # Acresenta mais uma semana de dados
-  df_projecao_zig = prolongar_projecao(df_projecao_zig, dias_prolongados=7)
+  # prolongar_projecao removido: calcular_projecao_zig_caixa já cobre 60 dias à frente
   
   # Converter colunas de data
   dfs = [df_saldos_bancarios, 
