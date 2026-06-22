@@ -1307,7 +1307,7 @@ def GET_CONSUMO_CARTAO_BLACK():
         tccb.VALOR AS 'Valor Cartão Black'
     FROM T_CONSUMO_CARTAO_BLACK AS tccb
     LEFT JOIN T_EMPRESAS AS te ON (tccb.FK_EMPRESA = te.ID)
-    WHERE te.ID IN (127, 114, 148, 116, 156, 105, 104, 115, 162);                                                                                  
+    # WHERE te.ID IN (127, 114, 148, 116, 156, 105, 104, 115, 162);                                                                                  
     ''')
 
 

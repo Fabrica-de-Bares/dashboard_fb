@@ -658,7 +658,7 @@ def projecao_imposto_simples(df_gorjeta, df_salarios, df_faturamento, df_aliquot
         df_faturamento['Valor'] *= 0.25
         df_base_imposto = df_faturamento[['Data', 'Valor']]
 
-    elif casa in ['Bar Brahma - Centro', 'Bar Brahma - Granja', 'Jacaré', 'Orfeu', 'Priceless', 'Riviera Bar']: # Calcula imposto com base em Gorjeta + Salários
+    elif casa in ['Bar Brahma - Centro', 'Bar Brahma - Granja', 'Girondino', 'Jacaré', 'Orfeu', 'Priceless', 'Riviera Bar']: # Calcula imposto com base em Gorjeta + Salários
         df_gorjeta['Valor'] = np.where(
             df_gorjeta['Data'] >= data_atual,
             df_gorjeta['Custo Projetado'],
@@ -1194,7 +1194,7 @@ def merge_despesas_complexas(df_tabela_primaria, df_tabela_secundaria, df_tabela
                 df_tabela_resultante = df_tabela_resultante.groupby(['Casa', 'Mês', 'Ano', 'Classificacao_Contabil_2'], as_index=False)['Custo Real'].sum()
 
             # Consumo - Cartão Black
-            if casa not in ['Arcos', 'Blue Note - São Paulo', 'Love Cabaret', 'Ultra Evil Premium Ltda ']:
+            if casa not in ['Arcos', 'Blue Note - São Paulo', 'Love Cabaret']: # Era pra adicionar 'Ultra Evil Premium Ltda '
                 df_tabela_quaternaria_filtrada = df_tabela_quaternaria[df_tabela_quaternaria['Casa'] == casa].copy()
                 df_tabela_quaternaria_filtrada = df_tabela_quaternaria_filtrada.groupby(['Casa', 'Mês', 'Ano'], as_index=False)['Valor Cartão Black'].sum()
                 df_tabela_resultante = pd.merge(
@@ -1322,6 +1322,13 @@ def prepara_dados_custos_mensais(df_custos_gerais, df_faturamento_meses_futuros,
                 (df_custos_filtrado['Classificacao_Contabil_1'] == class_cont) &
                 (~df_custos_filtrado['Cargo_DRE'].isin(['MDO Terceirizada - Eventos', '  - Administrativa']) &
                 (~df_custos_filtrado['Cargo_DRE'].isna()))
+            ].copy()
+        if casa == 'Ultra Evil Premium Ltda ':
+            df_custos_filtrado = df_custos_filtrado[
+                (df_custos_filtrado['Classificacao_Contabil_1'] == class_cont) &
+                (~df_custos_filtrado['Cargo_DRE'].isin(['MDO Terceirizada - Eventos', '  - Diretoria', '  - Assistente']) &
+                (~df_custos_filtrado['Cargo_DRE'].isna()) |
+                (df_custos_filtrado['Cargo_DRE'].isin(['  - Manutenção'])))
             ].copy()
         else:
             df_custos_filtrado = df_custos_filtrado[
