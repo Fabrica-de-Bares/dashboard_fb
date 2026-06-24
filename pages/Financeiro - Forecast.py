@@ -34,7 +34,7 @@ st.divider()
 # Seletores de casa e data
 col1, col2, col3 = st.columns(3)
 with col1: # Casas sem DRE
-    lista_retirar_casas = ['Todas as Casas', 'Bar Brahma Paulista', 'Bar Léo - Vila Madalena', 'Blue Note SP (Novo)', 'Blue Note SP (Sala 2)', 'Bar Brahma - Paulista', 'Brahminha', 'Edificio Rolim', 'Sanduiche comunicação LTDA ', 'Terraço Notie', 'Tempus Fugit  Ltda ', 'The Cavern - Almoço']
+    lista_retirar_casas = ['Todas as Casas', 'Bar Brahma - Paulista', 'Bar Léo - Vila Madalena', 'Blue Note SP (Novo)', 'Blue Note SP (Sala 2)', 'Bar Brahma - Paulista', 'Brahminha', 'Edificio Rolim', 'Sanduiche comunicação LTDA ', 'Terraço Notie', 'Tempus Fugit  Ltda ', 'The Cavern - Almoço']
     id_casa, casa, id_zigpay = input_selecao_casas(lista_retirar_casas, key='faturamento_bruto')
 with col2:
     mes_selecionado = int(seletor_mes('Selecione um mês', 'mes_forecast'))

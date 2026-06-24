@@ -46,7 +46,7 @@ else:
 with col1:
     df_casas = GET_CASAS()
     casas = df_casas['Casa'].tolist()
-    casas = [casa for casa in casas if casa not in ['Bar Brahma Paulista', 'Blue Note SP (Novo)', 'Edificio Rolim', 'Sanduiche comunicação LTDA ', 'Tempus Fugit  Ltda ']]
+    casas = [casa for casa in casas if casa not in ['Bar Brahma - Paulista', 'Blue Note SP (Novo)', 'Edificio Rolim', 'Sanduiche comunicação LTDA ', 'Tempus Fugit  Ltda ']]
     casa = st.selectbox("Selecione a casa referente ao arquivo:", casas)
     if casa == 'Blue Note - São Paulo':
         nome_casa = 'Blue Note SP'

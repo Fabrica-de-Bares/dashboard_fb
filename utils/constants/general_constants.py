@@ -15,7 +15,7 @@ lojasAgrupadas = [
     'Tundra',
     "Bar Brahma - Centro",
     "Bar Brahma - Granja",
-    "Bar Brahma Paulista",
+    "Bar Brahma - Paulista",
     "Brahma - Ribeirão",
     "Bar Léo - Centro",
     "Bar Brasilia - Aeroporto",
@@ -42,7 +42,7 @@ casas_validas = [
     'Arcos', 
     'Bar Brahma - Centro', 
     'Bar Brahma - Granja', 
-    'Bar Brahma Paulista', 
+    'Bar Brahma - Paulista', 
     'Bar Léo - Centro', 
     'Blue Note - São Paulo', 
     'Blue Note SP (Novo)', 
@@ -68,7 +68,7 @@ cores_casas = [
     "#582310", # Arcos
     "#DF2526", # Bar Brahma - Centro
     "#84161f", # Bar Brahma - Granja
-    "#1C6EBA", # Bar Brahma Paulista
+    "#1C6EBA", # Bar Brahma - Paulista
     "#E9A700", # Bar Leo - Centro
     "#081F5C", # Blue Note São Paulo
     "#004080", # Blue Note (Novo)
