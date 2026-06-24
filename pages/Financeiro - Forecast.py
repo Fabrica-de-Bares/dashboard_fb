@@ -5,9 +5,8 @@ from utils.functions.general_functions import config_sidebar
 from utils.functions.cmv_teorico_fichas_tecnicas import function_format_number_columns
 from utils.functions.controladoria_planejamento_anual import highlight_secoes_dre
 from utils.queries_forecast import *
-# from utils.queries_dre_download import *
+from utils.queries_dre_download import *
 import os
-import openpyxl
 import traceback
 
 
@@ -297,8 +296,7 @@ df_impostos_renda_dre = df_impostos_renda_dre.sort_values(by=['Categoria'], asce
 df_impostos_renda_dre = calcula_linha_total(df_impostos_renda_dre, 'Categoria', 'Imposto de Renda', 'Valor Projetado', 'Valor Real')
 
 
-# Exibe layout DRE
-st.subheader('Real vs Tendência do mês - Faturamento e Despesas')
+# Prepara layout DRE
 df_despesas_concatenadas = pd.concat(lista_df_projecao_despesas, ignore_index=True)
 
 df_layout_dre = aplica_layout_dre(
@@ -345,7 +343,7 @@ colunas_moeda_variavel = ['Orçamento', 'Valor Projetado', 'Valor Real']
 colunas_percentuais = ['Percentual Projetado', 'Percentual Real (do Orçamento)']
 linhas_percentual = df_layout_dre['Categoria'].str.contains('%', na=False) & (df_layout_dre['Categoria'] != 'IRPJ 10%')
 
-df_layout_dre_styled = (
+df_layout_dre_styled = ( # Aplica formatações e estilos
     df_layout_dre.style
     .format(formatar_colunas_porcentagem, subset=colunas_percentuais)
     .format(formatar_linhas_porcentagem, subset=pd.IndexSlice[linhas_percentual, colunas_moeda_variavel])
@@ -353,7 +351,52 @@ df_layout_dre_styled = (
     .apply(highlight_secoes_dre, axis=1) # Destaca linhas de título
 )
 
-height = (len(df_layout_dre) + 1) * 35 # Define altura sem rolagem
+height = (len(df_layout_dre) + 1) * 35 # Define altura do df sem rolagem
+
+with st.container(border=True): # Expprtando em Excel
+    st.subheader(f'Fazer download - Excel DRE {casa}')
+    excel_filename = f'assets/sheets/Base_DRE - {id_casa}.xlsx'
+
+    # st.write("Arquivo:", excel_filename) # Verificação do arquivo
+    # st.write("Existe:", os.path.exists(excel_filename))
+    # st.write("Tamanho:", os.path.getsize(excel_filename))
+
+    # try:
+    #     wb = openpyxl.load_workbook(excel_filename)
+    # except Exception:
+    #     st.code(traceback.format_exc())
+
+    # Casas com mais de um place
+    if casa == 'Blue Note - São Paulo': ids_casa_query = [110, 131]
+    elif casa == 'Priceless': ids_casa_query = [149, 161, 162, 179]
+    elif casa == 'Girondino': ids_casa_query = [156, 160]
+    else: ids_casa_query = [id_casa]
+
+    ids_casa_query = ",".join(map(str, ids_casa_query)) # Formata para utilizar na query
+
+    # Casas com delivery
+    if casa == 'Bar Brahma - Centro': ids_casa_delivery = [117, 118]
+    elif casa == 'Bar Léo - Centro': ids_casa_delivery = [103]
+    elif casa == 'Bar Brahma - Granja': ids_casa_delivery = [169]
+    elif casa == 'Jacaré': ids_casa_delivery = [139]
+    elif casa == 'Orfeu': ids_casa_delivery = [112]
+    else: ids_casa_delivery = None
+
+    arquivo_pronto = prepara_download_excel(casa, ids_casa_query, excel_filename, ids_casa_delivery=ids_casa_delivery)
+    if arquivo_pronto and os.path.exists(excel_filename):
+        st.success('Arquivo atualizado com sucesso!')
+        with open(excel_filename, "rb") as file:
+            file_content = file.read()
+            st.download_button( # Botão de Download 
+            label="Baixar Excel",
+            data=file_content,
+            file_name=f"DRE - {casa}.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
+
+# Exibe df de Forecast no layout DRE            
+st.divider()
+st.subheader('Real vs Tendência do mês - Faturamento e Despesas')
 st.dataframe(df_layout_dre_styled, hide_index=True, width='stretch', height=height)
 
 # Premissas
@@ -374,135 +417,3 @@ st.dataframe(df_layout_dre_styled, hide_index=True, width='stretch', height=heig
 #     </div>
 # ''', unsafe_allow_html=True)
 
-
-# # Exportando em Excel
-# excel_filename = f'assets/sheets/Base_DRE - {id_casa}.xlsx'
-
-# # st.write("Arquivo:", excel_filename) # Verificação do arquivo
-# # st.write("Existe:", os.path.exists(excel_filename))
-# # st.write("Tamanho:", os.path.getsize(excel_filename))
-
-# # try:
-# #     wb = openpyxl.load_workbook(excel_filename)
-# # except Exception:
-# #     st.code(traceback.format_exc())
-
-# # Casas com mais de um place
-# if casa == 'Blue Note - São Paulo': ids_casa_query = [110, 131]
-# elif casa == 'Priceless': ids_casa_query = [149, 161, 162, 179]
-# elif casa == 'Girondino': ids_casa_query = [156, 160]
-# else: ids_casa_query = [id_casa]
-# # Casas com delivery
-# if casa == 'Bar Brahma - Centro': ids_casa_delivery = [117, 118]
-# elif casa == 'Bar Léo - Centro': ids_casa_delivery = [103]
-# elif casa == 'Bar Brahma - Granja': ids_casa_delivery = [169]
-# elif casa == 'Jacaré': ids_casa_delivery = [139]
-# elif casa == 'Orfeu': ids_casa_delivery = [112]
-
-# # Formata para utilizar na query
-# ids_casa_query = ",".join(map(str, ids_casa_query))
-
-
-# if casa != 'Girondino - CCBB':
-#     # Carrega dados das abas
-#     df_aut_blue_me_sem_pedido = DRE_AUT_BLUE_ME_SEM_PEDIDO(ids_casa_query)
-#     df_aut_blue_me_com_pedido = DRE_AUT_BLUE_ME_COM_PEDIDO(ids_casa_query)
-#     df_aut_faturamento_zig = DRE_AUT_FATURAMENTO_ZIG(ids_casa_query)
-#     df_aut_receitas_extraord = DRE_AUT_RECEITAS_EXTRAORD(ids_casa_query)
-#     if casa == 'Priceless': df_bd_eventos_novo = DRE_BD_EVENTOS_NOVO_PRICELESS(ids_casa_query)
-#     else: df_bd_eventos_novo = DRE_BD_EVENTOS_NOVO(ids_casa_query)
-#     df_aut_folha = DRE_AUT_FOLHA(ids_casa_query)
-#     df_aut_descontos = DRE_AUT_DESCONTOS(ids_casa_query)
-#     df_aut_promocoes = DRE_AUT_PROMOCOES_UTILIZADAS(ids_casa_query)
-#     df_aut_endividamentos = DRE_AUT_ENDIVIDAMENTOS(ids_casa_query)
-#     df_aut_contagem = DRE_AUT_CONTAGEM(ids_casa_query)
-#     df_aut_precos_insumos = DRE_AUT_PRECOS_INSUMOS(ids_casa_query)
-#     df_aut_valor_estoque = DRE_AUT_VALOR_ESTOQUE(ids_casa_query)
-#     df_aut_precos_consolidados = DRE_AUT_PRECOS_CONSOLIDADOS(ids_casa_query)
-#     df_aut_eventos_aeb = DRE_AUT_EVENTOS_AEB(ids_casa_query)
-#     df_aut_transferencias = DRE_AUT_TRANSFERENCIAS(ids_casa_query)
-#     df_aut_consumo_func = DRE_AUT_CONSUMO_FUNCIONARIOS(ids_casa_query)
-#     df_aut_insumos_prod = DRE_AUT_INSUMOS_PRODUCAO(ids_casa_query)
-#     df_aut_ajustes_manuais = DRE_AJUSTES_MANUAIS(ids_casa_query)
-#     st.write(df_aut_ajustes_manuais)
-
-#     if st.button('Atualizar Dados DRE'):
-#         wb = openpyxl.load_workbook(excel_filename)
-
-#         sheet_name = 'Aut_BlueMe_Sem_Pedido'
-#         export_to_excel(wb, df_aut_blue_me_sem_pedido, sheet_name)
-
-#         sheet_name = 'Aut_BlueMe_Com_Pedido'
-#         export_to_excel(wb, df_aut_blue_me_com_pedido, sheet_name)
-
-#         sheet_name = 'Aut_Faturamento_Zig'
-#         export_to_excel(wb, df_aut_faturamento_zig, sheet_name)
-
-#         if casa in ['Bar Brahma - Centro', 'Bar Brahma - Granja', 'Bar Léo - Centro', 'Jacaré', 'Orfeu']:
-#             ids_casa_delivery = ",".join(map(str, ids_casa_delivery)) 
-#             df_aut_faturamento_zig_delivery = DRE_AUT_FATURAMENTO_ZIG_DELIVERY(ids_casa_delivery)
-#             sheet_name = 'Aut_Faturamento_Zig_Delivery'
-#             export_to_excel(wb, df_aut_faturamento_zig_delivery, sheet_name)
-        
-#         if casa == 'Priceless':
-#             df_bd_eventos_concierge = DRE_EVENTOS_CONCIERGE(ids_casa_query)
-#             sheet_name = 'BD_Eventos_Concierge'
-#             export_to_excel(wb, df_bd_eventos_concierge, sheet_name)
-
-#         sheet_name = 'Aut_Receitas_Extraord'
-#         export_to_excel(wb, df_aut_receitas_extraord, sheet_name)
-        
-#         sheet_name = 'BD_Eventos_Novo'
-#         export_to_excel(wb, df_bd_eventos_novo, sheet_name)
-        
-#         sheet_name = 'Aut_Folha'
-#         export_to_excel(wb, df_aut_folha, sheet_name)
-        
-#         sheet_name = 'Aut_Descontos'
-#         export_to_excel(wb, df_aut_descontos, sheet_name)
-        
-#         sheet_name = 'Aut_Promocoes_Utilizadas'
-#         export_to_excel(wb, df_aut_promocoes, sheet_name)  
-        
-#         sheet_name = 'Aut_Endividamentos'
-#         export_to_excel(wb, df_aut_endividamentos, sheet_name)    
-        
-#         sheet_name = 'Aut_Contagem'
-#         export_to_excel(wb, df_aut_contagem, sheet_name)    
-        
-#         sheet_name = 'Aut_Precos_Insumos'
-#         export_to_excel(wb, df_aut_precos_insumos, sheet_name)    
-        
-#         sheet_name = 'Aut_Valor_Estoque'
-#         export_to_excel(wb, df_aut_valor_estoque, sheet_name)   
-        
-#         sheet_name = 'Aut_Precos_Consolidados_Mes'
-#         export_to_excel(wb, df_aut_precos_consolidados, sheet_name)    
-        
-#         sheet_name = 'Aut_Eventos_AeB'
-#         export_to_excel(wb, df_aut_eventos_aeb, sheet_name) 
-        
-#         sheet_name = 'Aut_Transferencias'
-#         export_to_excel(wb, df_aut_transferencias, sheet_name)    
-        
-#         sheet_name = 'Aut_Consumo_Funcionarios'
-#         export_to_excel(wb, df_aut_consumo_func, sheet_name)    
-        
-#         sheet_name = 'Aut_Insumos_Producao'
-#         export_to_excel(wb, df_aut_insumos_prod, sheet_name) 
-
-#         sheet_name = 'Aut_Ajustes_Manuais'
-#         export_to_excel(wb, df_aut_ajustes_manuais, sheet_name)    
-
-#         wb.save(excel_filename)
-#         st.success('Dados atualizados com sucesso!')
-
-#     if os.path.exists(excel_filename): # Botão de Download 
-#         with open(excel_filename, "rb") as file:
-#             file_content = file.read()
-#             st.download_button(
-#             label="Baixar Excel",
-#             data=file_content,
-#             file_name=f"DRE - {casa}.xlsx",
-#             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-#         )

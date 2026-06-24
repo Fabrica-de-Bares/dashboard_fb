@@ -7,6 +7,9 @@ from utils.functions.general_functions_conciliacao import traduz_semana_mes, cal
 from utils.functions.controladoria_planejamento_anual import insere_nova_linha
 from utils.queries_cmv import *
 from utils.queries_forecast import *
+from utils.queries_dre_download import *
+import openpyxl
+# import os
 
 
 pd.set_option('future.no_silent_downcasting', True)
@@ -2092,3 +2095,71 @@ def export_to_excel(wb, df, sheet_name):
     for row_idx, row in enumerate(df.itertuples(index=False, name=None), start=2):
         for col_idx, value in enumerate(row, start=1):
             ws.cell(row=row_idx, column=col_idx, value=value)
+
+
+def prepara_download_excel(casa, ids_casa_query, excel_filename, ids_casa_delivery=None):
+    if casa != 'Girondino - CCBB': # Incluso na DRE do Girondino
+        if st.button('Atualizar e baixar arquivo'):
+            # Carrega dados das abas
+            df_aut_blue_me_sem_pedido = DRE_AUT_BLUE_ME_SEM_PEDIDO(ids_casa_query)
+            df_aut_blue_me_com_pedido = DRE_AUT_BLUE_ME_COM_PEDIDO(ids_casa_query)
+            df_aut_faturamento_zig = DRE_AUT_FATURAMENTO_ZIG(ids_casa_query)
+            df_aut_receitas_extraord = DRE_AUT_RECEITAS_EXTRAORD(ids_casa_query)
+            if casa == 'Priceless': df_bd_eventos_novo = DRE_BD_EVENTOS_NOVO_PRICELESS(ids_casa_query)
+            else: df_bd_eventos_novo = DRE_BD_EVENTOS_NOVO(ids_casa_query)
+            df_aut_folha = DRE_AUT_FOLHA(ids_casa_query)
+            df_aut_descontos = DRE_AUT_DESCONTOS(ids_casa_query)
+            df_aut_promocoes = DRE_AUT_PROMOCOES_UTILIZADAS(ids_casa_query)
+            df_aut_endividamentos = DRE_AUT_ENDIVIDAMENTOS(ids_casa_query)
+            df_aut_contagem = DRE_AUT_CONTAGEM(ids_casa_query)
+            df_aut_precos_insumos = DRE_AUT_PRECOS_INSUMOS(ids_casa_query)
+            if casa == 'Love Cabaret': df_aut_valor_estoque = DRE_AUT_VALOR_ESTOQUE_LOVE(ids_casa_query)
+            else: df_aut_valor_estoque = DRE_AUT_VALOR_ESTOQUE(ids_casa_query)
+            df_aut_precos_consolidados = DRE_AUT_PRECOS_CONSOLIDADOS(ids_casa_query)
+            df_aut_eventos_aeb = DRE_AUT_EVENTOS_AEB(ids_casa_query)
+            df_aut_transferencias = DRE_AUT_TRANSFERENCIAS(ids_casa_query)
+            df_aut_consumo_func = DRE_AUT_CONSUMO_FUNCIONARIOS(ids_casa_query)
+            df_aut_insumos_prod = DRE_AUT_INSUMOS_PRODUCAO(ids_casa_query)
+            df_aut_ajustes_manuais = DRE_AJUSTES_MANUAIS(ids_casa_query)
+
+            abas = {
+                'Aut_BlueMe_Sem_Pedido': df_aut_blue_me_sem_pedido,
+                'Aut_BlueMe_Com_Pedido': df_aut_blue_me_com_pedido,
+                'Aut_Faturamento_Zig': df_aut_faturamento_zig,
+                'Aut_Receitas_Extraord': df_aut_receitas_extraord,
+                'BD_Eventos_Novo': df_bd_eventos_novo,
+                'Aut_Folha': df_aut_folha,
+                'Aut_Descontos': df_aut_descontos,
+                'Aut_Promocoes_Utilizadas': df_aut_promocoes,
+                'Aut_Endividamentos': df_aut_endividamentos,
+                'Aut_Contagem': df_aut_contagem,
+                'Aut_Precos_Insumos': df_aut_precos_insumos,
+                'Aut_Valor_Estoque': df_aut_valor_estoque,
+                'Aut_Precos_Consolidados_Mes': df_aut_precos_consolidados,
+                'Aut_Eventos_AeB': df_aut_eventos_aeb,
+                'Aut_Transferencias': df_aut_transferencias,
+                'Aut_Consumo_Funcionarios': df_aut_consumo_func,
+                'Aut_Insumos_Producao': df_aut_insumos_prod,
+                'Aut_Ajustes_Manuais': df_aut_ajustes_manuais,
+            }
+            # Casos específicos
+            if casa in ['Bar Brahma - Centro', 'Bar Brahma - Granja', 'Bar Léo - Centro', 'Jacaré', 'Orfeu']: # Delivery
+                ids_casa_delivery = ",".join(map(str, ids_casa_delivery))
+                abas['Aut_Faturamento_Zig_Delivery'] = DRE_AUT_FATURAMENTO_ZIG_DELIVERY(ids_casa_delivery)
+
+            if casa == 'Priceless': # Eventos Concierge
+                abas['BD_Eventos_Concierge'] = DRE_EVENTOS_CONCIERGE(ids_casa_query)
+                abas['BD_Eventos Geral'] = DRE_BD_EVENTOS_GERAL_PRICELESS()
+
+            if casa not in ['Arcos', 'Blue Note - São Paulo', 'Love Cabaret']: # Cartão Black - Adicionar 'Ultra Evil Premium Ltda '
+                abas['Aut_Consumo_Cartao_Black'] = DRE_CONSUMO_CARTAO_BLACK(ids_casa_query)
+
+            wb = openpyxl.load_workbook(excel_filename) # Carrega Excel da casa
+            for sheet_name, df in abas.items(): # Cria abas
+                export_to_excel(wb, df, sheet_name)
+
+            wb.save(excel_filename) # Salva configurações do Excel
+            return True
+    return False
+            
+
