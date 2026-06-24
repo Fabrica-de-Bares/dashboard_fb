@@ -62,7 +62,6 @@ df_conciliacao_farol['Data'] = datas_completas
 
 # Lista: tabela de conciliação (2024 -- atual) de cada casa usando list comprehension
 lista_conciliacao_casas = [conciliacao_casa(df_conciliacao_farol, casa, datas_completas) for casa in casas_validas]
-st.write(lista_conciliacao_casas[3])
 
 meses = list(range(1, 13))
 qtd_dias = []
