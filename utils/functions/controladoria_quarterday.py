@@ -107,7 +107,7 @@ def prepara_dados_faturamento_orcamento(df_historico_real_dre, df_orcamento_oper
         df_orcamento_categoria = df_orcamento_ano_atual[df_orcamento_ano_atual['Classificação Contábil 1'].isin(cats_ebitda)].copy()
         df_orcamento_categoria.loc[df_orcamento_categoria['Classificação Contábil 1'] != 'Faturamento Bruto', 'Orçamento'] *= -1
         # df_acumulado_categoria = df_orcamento_categoria[df_orcamento_categoria['Mês'] <= datas['mes_atual'] - 1].groupby(['Ano', 'Classificação Contábil 1'], as_index=False)['Orçamento'].sum()
-        # st.write(df_acumulado_categoria)
+        
     else:
         df_orcamento_categoria = df_orcamento_ano_atual[df_orcamento_ano_atual['Classificação Contábil 2'].isin(class_cont)].copy()
 
@@ -164,6 +164,41 @@ def prepara_dados_faturamento_orcamento(df_historico_real_dre, df_orcamento_oper
     return df_categoria
 
 
+def prepara_dados_ticket_clientes(df_ticket, casa, datas, coluna_valor):
+    df = df_ticket[df_ticket['Casa'] == casa].copy()
+    df['Ano'] = pd.to_datetime(df['MES']).dt.year
+    df['Mes'] = pd.to_datetime(df['MES']).dt.month
+
+    df = df.pivot_table(
+        index='Ano',
+        columns='Mes',
+        values=coluna_valor,
+        aggfunc='sum'
+    ).reset_index()
+    
+    # garante meses 1-12
+    for mes in range(1, 13):
+        if mes not in df.columns:
+            df[mes] = np.nan
+
+    if coluna_valor == 'TICKET_MEDIO':
+        df['Acumulado'] = df[list(range(1, datas['mes_atual']))].mean(axis=1)
+        df['ANO']       = df[list(range(1, 13))].mean(axis=1)
+        df['1 TRI']     = df[list(range(1, 4))].mean(axis=1)
+        df['2 TRI']     = df[list(range(4, 7))].mean(axis=1)
+        df['3 TRI']     = df[list(range(7, 10))].mean(axis=1)
+        df['4 TRI']     = df[list(range(10, 13))].mean(axis=1)
+    elif coluna_valor == 'NUM_CLIENTES':
+        df['Acumulado'] = df[list(range(1, datas['mes_atual']))].sum(axis=1)
+        df['ANO']       = df[list(range(1, 13))].sum(axis=1)
+        df['1 TRI']     = df[list(range(1, 4))].sum(axis=1)
+        df['2 TRI']     = df[list(range(4, 7))].sum(axis=1)
+        df['3 TRI']     = df[list(range(7, 10))].sum(axis=1)
+        df['4 TRI']     = df[list(range(10, 13))].sum(axis=1)
+    
+    return df 
+
+
 def calcula_crescimento_ano(ano_base, df_faturamento_bruto):
     df_real = df_faturamento_bruto[~df_faturamento_bruto['Ano'].astype(str).str.contains('Orçamento')].copy() # Faturamento anos anteriores
     df_base = df_real[df_real['Ano'] == ano_base].copy() # Faturamento ano base
@@ -193,11 +228,15 @@ def formatar_moeda_br(valor):
 def formatar_porcentagem(valor):
     if pd.isna(valor) or valor == 0 or valor == -1:
         return "-"
-    elif valor == '-':
-        return valor
     else:
         return f"{valor * 100:,.2f}%".replace(",", "X").replace(".", ",").replace("X", ".")
-    
+
+
+def formatar_ticket_medio(valor):
+    if pd.isna(valor) or valor == 0:
+        return "-"
+    return f"{valor:.2f}".replace(",", "X").replace(".", ",").replace("X", ".") # Sem casas decimais e sem 'R$'
+
 
 def formata_colunas(df, kpi, categoria):
     df = df.rename(columns={
@@ -205,7 +244,7 @@ def formata_colunas(df, kpi, categoria):
         5: 'Mai', 6: 'Jun', 7: 'Jul', 8: 'Ago',
         9: 'Set', 10: 'Out', 11: 'Nov', 12: 'Dez'
     })
-    df = df.fillna('-')
+    df = df.fillna(0)
     colunas_valores = df.columns[1:]
     df = df.reset_index(drop=True)
 
@@ -215,8 +254,10 @@ def formata_colunas(df, kpi, categoria):
         if kpi != 'Faturamento Total':
             df_styled = df_styled.applymap(highlight_taxas, subset=colunas_valores) # Aplica estilos
     else:
-        if kpi == 'Faturamento Total':
+        if kpi == 'Faturamento Total' or kpi == 'Nº de Clientes':
             df_styled = df.style.format(formatar_moeda_br, subset=colunas_valores)
+        elif kpi == 'Ticket Médio - A&B':
+            df_styled = df.style.format(formatar_ticket_medio, subset=colunas_valores)
         else:
             df_styled = df.style.applymap(highlight_taxas, subset=colunas_valores) # Aplica estilos
             df_styled = df_styled.format(formatar_porcentagem, subset=colunas_valores)

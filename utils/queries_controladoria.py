@@ -388,4 +388,26 @@ def GET_HEADCOUNT_PESSOAS():
       thp.TIPO_DADO AS 'Tipo Dado'                                                                                                               
     FROM T_HEADCOUNT_PESSOAS AS thp
     LEFT JOIN T_EMPRESAS AS te ON (thp.FK_EMPRESA = te.ID);       
-  ''')            
+  ''')       
+
+
+# KPI's - QuarterDay
+@st.cache_data
+def GET_TICKET_MEDIO_CLIENTES():
+  return dataframe_query(f'''
+    SELECT 
+      CASE
+        WHEN te.ID = 149 THEN 162
+        ELSE te.ID                                    
+      END AS 'ID Casa',
+      CASE
+        WHEN te.ID = 149 THEN 'Terraço Notie'
+        ELSE te.NOME_FANTASIA                                                                                 
+      END AS 'Casa',
+      ttcm.MES,
+      ttcm.NUM_CLIENTES,
+      ttcm.TICKET_MEDIO                                                         
+      FROM T_TICKET_CLIENTES_MENSAL AS ttcm
+      LEFT JOIN T_EMPRESAS AS te ON (ttcm.FK_EMPRESA = te.ID)
+      ORDER BY MES DESC;                         
+  ''')       
