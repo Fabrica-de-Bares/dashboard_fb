@@ -31,9 +31,9 @@ def GET_CASAS():
       GROUP BY te.ID_Casa_Normalizada, te2.NOME_FANTASIA
       ORDER BY te2.NOME_FANTASIA
       ''')
-    df_casas_validas = pd.DataFrame(casas_validas, columns=['Casa']) 
-    df_casas_validas = df_casas.merge(df_casas_validas, on="Casa", how="inner")
-    return df_casas_validas
+    # df_casas_validas = pd.DataFrame(casas_validas, columns=['Casa']) 
+    # df_casas_validas = df_casas.merge(df_casas_validas, on="Casa", how="inner")
+    return df_casas
 
 
 @st.cache_data

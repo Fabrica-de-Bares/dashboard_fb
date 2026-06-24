@@ -134,8 +134,8 @@ if mes_farol == 'Todos os meses': # Exibe o farol
     st.divider()
     st.subheader(":material/arrow_downward: Visualização - Dias não conciliados")
     
-    casas = df_casas['Casa'].tolist()
-    casa_selecionada = st.selectbox("Selecione uma casa", casas, index=None, placeholder='Selecione uma casa', label_visibility='hidden', key='casa_visualizacao_dias')
+    # casas = df_casas['Casa'].tolist()
+    casa_selecionada = st.selectbox("Selecione uma casa", casas_validas, index=None, placeholder='Selecione uma casa', label_visibility='hidden', key='casa_visualizacao_dias')
 
     # Definindo um dicionário para mapear nomes de casas a IDs de casas
     mapeamento_casas = dict(zip(df_casas["Casa"], df_casas["ID_Casa"]))
