@@ -404,8 +404,8 @@ def DRE_BD_EVENTOS_GERAL_PRICELESS():
   tep.VALOR_TAXA_SERVICO AS 'Valor Taxa Servico',
   tep.VALOR_LOCACAO_ESPACO AS 'Valor Locação Espaço',
   tep.VALOR_LOCACAO_AROO_1 AS 'Valor Locação Aroo 1',
-  tep.VALOR_LOCACAO_AROO_2 AS 'Valor Locação Aroo 1',
-  tep.VALOR_LOCACAO_AROO_3 AS 'Valor Locação Aroo 1',
+  tep.VALOR_LOCACAO_AROO_2 AS 'Valor Locação Aroo 2',
+  tep.VALOR_LOCACAO_AROO_3 AS 'Valor Locação Aroo 3',
   tep.VALOR_LOCACAO_ANEXO AS 'Valor Locação Anexo',
   tep.VALOR_LOCACAO_NOTIE AS 'Valor Locação Notiê',
   tep.VALOR_LOCACAO_MIRANTE AS 'Valor Locação Mirante',
@@ -424,7 +424,8 @@ def DRE_BD_EVENTOS_GERAL_PRICELESS():
   tep.VALOR_ACRESCIMO_FORMA_PAGAMENTO AS 'Valor Acréscimo Forma de Pagamento',
   temd.DESCRICAO AS 'Motivo Declínio',
   tep.OBSERVACAO_MOTIVO_DECLINIO AS 'Observacoes Declínio',
-  tep.OBSERVACOES AS 'Observações Gerais'
+  tep.OBSERVACOES AS 'Observações Gerais',
+  DATE_FORMAT(tep.DATA_EVENTO, '%m/%Y') AS 'Mes_Texto'                     
 FROM T_EVENTOS_PRICELESS tep
 LEFT JOIN T_EMPRESAS te ON (tep.FK_EMPRESA = te.ID)
 LEFT JOIN T_RECEITAS_EXTRAORDINARIAS_CLIENTE trec ON (tep.FK_CLIENTE = trec.ID)
