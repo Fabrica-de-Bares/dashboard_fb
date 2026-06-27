@@ -346,7 +346,10 @@ def prepara_secoes_headcount(df_inicial, colunas_meses, casa):
     df_operacao = insere_apos_header(df_operacao, colunas_meses, total_meses, 'CARGO', 'Operação')
 
     # Quadro/Função
-    df_quadro_funcao = fatia_por_categoria(df_inicial, 'CARGO', '-  Maitre', '-  Operador de Delivery') # Segunda ocorrência
+    if casa == 'Riviera Bar':
+        df_quadro_funcao = fatia_por_categoria(df_inicial, 'CARGO', '-  Maitre', '-  Aprendiz') # Segunda ocorrência
+    else:
+        df_quadro_funcao = fatia_por_categoria(df_inicial, 'CARGO', '-  Maitre', '-  Operador de Delivery') # Segunda ocorrência
     total_meses = df_quadro_funcao[colunas_meses].sum()
     df_quadro_funcao = insere_apos_header(df_quadro_funcao, colunas_meses, total_meses, 'CARGO', 'Quadro/Função')
 
