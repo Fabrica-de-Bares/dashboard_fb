@@ -99,16 +99,9 @@ def prepare_monthly_data(
     # receitas_zig['Valor'] = converte_string_float(receitas_zig, 'Valor') # transforma valores em float
     receitas_zig['Valor'] = pd.to_numeric(receitas_zig['Valor'], errors='coerce')
 
-    mask_extrato_zig = (
-        receitas_zig['Descricao'].str.contains('Cartão de Débito integrado Zig', na=False) |
-        receitas_zig['Descricao'].str.contains('Cartão de Crédito integrado Zig', na=False) |
-        receitas_zig['Descricao'].str.contains('Transações via Pix', na=False) |
-        receitas_zig['Descricao'].str.contains('Transações via App', na=False) |
-        receitas_zig['Descricao'].str.contains('Venda Avulsa Crédito', na=False) |
-        receitas_zig['Descricao'].str.contains('Venda Avulsa Débito', na=False) |
-        receitas_zig['Descricao'].str.contains('Venda Avulsa PIX', na=False)
-    )
+    mask_extrato_zig = receitas_zig['Descricao'].isin(["Saque", "Antecipação"])
     receitas_zig = receitas_zig[mask_extrato_zig]
+    receitas_zig['Valor'] = receitas_zig['Valor'] * (-1)  # Saques são negativos no Zig → positivo = caixa recebido
     receitas_zig['Mes_Ano'] = receitas_zig['Data_Liquidacao'].dt.to_period('M')
     receitas_zig['Tipo'] = 'Extrato Zig'
     receitas_zig_monthly = receitas_zig.groupby(['Mes_Ano', 'Tipo'])['Valor'].sum().reset_index()
