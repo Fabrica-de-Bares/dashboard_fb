@@ -115,6 +115,7 @@ def calcula_variacao_ano_anterior(pivot_faturamento):
         if len(linha_ano_anterior) and len(linha_ano_atual):
             variacao_valor = linha_ano_atual.iloc[0][dias_semana] - linha_ano_anterior.iloc[0][dias_semana]
             variacao_pct = linha_ano_atual.iloc[0][dias_semana] / linha_ano_anterior.iloc[0][dias_semana] - 1
+            variacao_pct = variacao_pct.fillna(0) # Para porcentagem 0 não aparecer como nan
 
             linha_var = variacao_valor.to_frame().T
             for col in dias_semana:
