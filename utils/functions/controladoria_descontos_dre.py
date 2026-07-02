@@ -62,7 +62,7 @@ def mapeamento_descontos_dre(df):
         'EVENTO': 'Faturamento - Eventos',
         'COTA|OPERAÇÕES|REUNIÃO|MÚSICOS|REUNIÃO - ARTÍSTICO|REUNIÃO - TI|OUTROS|CLIENTE - DUO GOURMET|ASSINADA SÓCIOS E DIRETOR|ASSINADA SÓCIO FACUNDO|CORTESIA|CONVÊNIO|REUNIÃO - SUPRIMENTOS|RETIRADA / REDUÇÃO DE SERVIÇO|TREINAMENTO|LUCIANO PERES - SOCIO|LUCIANO PERES - SÓCIO|REUNIÃO - FABLAB|TESTE|TÉCNICO DE SOM|POLÍCIA|REUNIÃO - OPERAÇÕES|SEM JUSTIFICATIVA|PROMOÇÕES|OPERACIONAL|SERVIÇO|PERMUTA|OUTRO|REUNIÃO - OPERACIONAL|CONTA ASSINADA|10% LOJISTAS - CPF|10% CONVENIADOS - CPF|PROMOO': 'Descontos - Operação',
         'CONSUMO GERÊNCIA|CONSUMO GERENCIAL|DESCONTO FUNCIONÁRIO|CONSUMO COLABORADOR|COLABORADOR 30%|COLABORADORES \(30%\)|COLABORADOR \(30%\)|REUNIÃO - EVENTOS|COLABORADORES 30%|REUNIÃO - COMPRAS|30% FÁBRICA DE BARES|CARTÃO BLACK - ESHOWS, ESTAFF, FABLAB|CARTÃO BLACK - FB|30% FUNCIONÁRIOS FB|30% ESHOWS - CPF|30% ESHOWS - RG|30% DIVERTI - CPF|DIVERT 30%|30% FB - ORFEU|CONTA ASSINADA - FDB|CONTA ASSINADA - FACUNDO|REUNIÃO - EVENTOS|REUNIÃO - COMPRAS|30% FB - ORFEU': 'Desconto - Alimentação Escritório',
-        'REUNIÃO - MKT|REUNIÃO - MARKETING|MARKETING|PROMOÇÃO|FOTOS E VIDEOS MKT|INFLUENCER|\[Ação de Marketing\]': 'Descontos - Marketing',
+        'REUNIÃO - MKT|REUNIÃO - MARKETING|MARKETING|PROMOÇÃO|FOTOS E VIDEOS MKT|INFLUENCER|\[Ação de Marketing\]|10% CONVENIADOS GRUPO ENJOEI|\[Convidados\] - Imprensa': 'Descontos - Marketing',
         '\[Event\]|\[Evento\]|\[Evento \]|PACOTE': 'Faturamento de Eventos - Promoções Utilizadas',
         '\[Evento\] - Confraternização FB': 'Descontos - Promoções Utilizadas' # Bar Léo
     }
@@ -107,7 +107,7 @@ def mapeamento_descontos_dre(df):
         },
 
         (162,): {  # Terraço Notiê
-            'CONVÊNIO|CLIENTE MASTERCARD|CARTAO MASTER 10%|COTA|Descontos - Marketing|\[Reunião\] - Eventos|\[Reunião\] - Marketing|10% CONVENIADOS GRUPO ENJOEI': 'Descontos - Marketing',
+            'CONVÊNIO|CLIENTE MASTERCARD|CARTAO MASTER 10%|COTA|Descontos - Marketing|\[Reunião\] - Eventos|\[Reunião\] - Marketing': 'Descontos - Marketing',
             'CLIENTE MASTERCARD - COTA|CLIENTE - BEM SP|FUNCIONÁRIOS MASTERCARD|30% TERRAÇO NOTIÊ|\[Convênio\] - 50% BEM SP|\[Convênio\] - 30% BEM SP|CLIENTE - MASTECARD|COTA - MASTERCARD|\[Cota\] - MASTERCARD|Descontos - Operação|\[Convidados\] - Karina Mota|CONTA ASSINADA|\[BemSP\]': 'Descontos - Operação',
             'REUNIÃO - AUDITORIA|REUNIÃO - T.I.': 'Desconto - Alimentação Escritório',
             'EVENTO|\[Evento\]|PRO_240874 Bem SP-Itau 100 anos': 'Faturamento Eventos - Promoções Utilizadas'
