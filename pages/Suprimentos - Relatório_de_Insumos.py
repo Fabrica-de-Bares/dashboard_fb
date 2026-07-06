@@ -199,11 +199,14 @@ def main():
 		categoryN2_inputs['Percentual Repres'] = (categoryN2_inputs['Valor Insumo'] / categoryN2_inputs['Valor Insumo'].sum() * 100).round(1)
 		categoryN2_inputs = categoryN2_inputs.sort_values(by='Valor Insumo', ascending=False)
 
-		# Calcula preço médio mês anterior
-		last_day_last_month = (datetime.today().replace(day=1) - pd.Timedelta(days=1)).date()
+		# Calcula preço médio mês anterior (relativo ao período filtrado, não à data real do sistema)
+		first_day_this_period_month = data_inicio.replace(day=1)
+		last_day_last_month = first_day_this_period_month - pd.Timedelta(days=1)
 		first_day_last_month = last_day_last_month.replace(day=1)
 
 		inputsExpenses2 = inputs_expenses_base.copy()
+		inputsExpenses2 = inputsExpenses2[inputsExpenses2['Casa'].isin(companies_filtered)]
+		inputsExpenses2 = inputsExpenses2[inputsExpenses2['Nivel 2'].isin(categoryN2_selected)]
 		categoryN2_inputs_last_month = inputsExpenses2[inputsExpenses2['Data Competencia'].between(first_day_last_month, last_day_last_month)]
 		categoryN2_inputs_last_month = (
 			categoryN2_inputs_last_month.groupby('Insumo')[['Valor Insumo', 'Quantidade Insumo']]
