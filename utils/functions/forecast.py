@@ -661,7 +661,7 @@ def projecao_imposto_simples(df_gorjeta, df_salarios, df_faturamento, df_aliquot
         df_faturamento['Valor'] *= 0.25
         df_base_imposto = df_faturamento[['Data', 'Valor']]
 
-    elif casa in ['Bar Brahma - Centro', 'Bar Brahma - Granja', 'Girondino', 'Jacaré', 'Orfeu', 'Priceless', 'Riviera Bar']: # Calcula imposto com base em Gorjeta + Salários
+    elif casa in ['Bar Brahma - Centro', 'Bar Brahma - Granja', 'Bar Brahma - Paulista', 'Girondino', 'Jacaré', 'Orfeu', 'Priceless', 'Riviera Bar']: # Calcula imposto com base em Gorjeta + Salários
         df_gorjeta['Valor'] = np.where(
             df_gorjeta['Data'] >= data_atual,
             df_gorjeta['Custo Projetado'],
@@ -1723,7 +1723,7 @@ def calculo_mdo_encargos_provisoes(df_despesas_mdo, df_gorjeta, df_salarios, df_
 
     # Aplica a lógica de cada casa
     # Se aplicam a todas as casas
-    if casa in ['Arcos', 'Bar Brahma - Centro', 'Bar Brahma - Granja', 'Bar Léo - Centro', 'Blue Note - São Paulo', 'Jacaré', 'Love Cabaret', 'Orfeu', 'Riviera Bar', 'Priceless', 'Ultra Evil Premium Ltda ']: 
+    if casa in ['Arcos', 'Bar Brahma - Centro', 'Bar Brahma - Granja', 'Bar Brahma - Paulista', 'Bar Léo - Centro', 'Blue Note - São Paulo', 'Jacaré', 'Love Cabaret', 'Orfeu', 'Riviera Bar', 'Priceless', 'Ultra Evil Premium Ltda ']: 
         df_mdo = padroes_calculo_mdo_encargos_provisoes(df_mdo, df_gorjeta, df_salarios, '  -  13º Salário')
         df_mdo = padroes_calculo_mdo_encargos_provisoes(df_mdo, df_gorjeta, df_salarios, '  -  FGTS sobre 13º Salários')
         df_mdo = padroes_calculo_mdo_encargos_provisoes(df_mdo, df_gorjeta, df_salarios, '  -  INSS sobre 13º Salários')
@@ -2142,7 +2142,7 @@ def prepara_download_excel(casa, ids_casa_query, excel_filename, ids_casa_delive
             'Aut_Ajustes_Manuais': df_aut_ajustes_manuais,
         }
         # Casos específicos
-        if casa in ['Bar Brahma - Centro', 'Bar Brahma - Granja', 'Bar Léo - Centro', 'Jacaré', 'Orfeu']: # Delivery
+        if casa in ['Bar Brahma - Centro', 'Bar Brahma - Granja', 'Bar Léo - Centro', 'Jacaré', 'Orfeu']: # Delivery - Incluir 'Bar Brahma - Paulista'
             ids_casa_delivery = ",".join(map(str, ids_casa_delivery))
             abas['Aut_Faturamento_Zig_Delivery'] = DRE_AUT_FATURAMENTO_ZIG_DELIVERY(ids_casa_delivery)
 
