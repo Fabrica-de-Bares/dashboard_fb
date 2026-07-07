@@ -34,7 +34,7 @@ st.divider()
 # Seletores de casa e data
 col1, col2, col3 = st.columns(3)
 with col1: # Casas sem DRE
-    lista_retirar_casas = ['Todas as Casas', 'Bar Brahma - Paulista', 'Bar Léo - Vila Madalena', 'Blue Note SP (Novo)', 'Blue Note SP (Sala 2)', 'Bar Brahma - Paulista', 'Brahminha', 'Edificio Rolim', 'Sanduiche comunicação LTDA ', 'Terraço Notie', 'Tempus Fugit  Ltda ', 'The Cavern - Almoço']
+    lista_retirar_casas = ['Todas as Casas', 'Bar Brahma - Paulista', 'Bar Léo - Vila Madalena', 'Blue Note SP (Novo)', 'Blue Note SP (Sala 2)', 'Bar Brahma - Paulista', 'Brahminha', 'Edificio Rolim', 'Sanduiche comunicação LTDA ', 'Terraço Notie', 'Terraço Notie Novo', 'Tempus Fugit  Ltda ', 'The Cavern - Almoço']
     id_casa, casa, id_zigpay = input_selecao_casas(lista_retirar_casas, key='faturamento_bruto')
 with col2:
     mes_selecionado = int(seletor_mes('Selecione um mês', 'mes_forecast'))
@@ -126,46 +126,47 @@ PORC_FEE_GESTAO = 0.05
 
 ###################### EXPORTANDO DRE EM EXCEL ###################### 
 
-with st.container(border=True): # Expprtando em Excel
-    st.subheader(f'Fazer download - Excel DRE {casa}')
-    excel_filename = f'assets/sheets/Base_DRE - {id_casa}.xlsx'
+if casa != 'Girondino - CCBB': # Incluso na DRE do Girondino
+    with st.container(border=True): # Expprtando em Excel
+        st.subheader(f'Fazer download - Excel DRE {casa}')
+        excel_filename = f'assets/sheets/Base_DRE - {id_casa}.xlsx'
 
-    # st.write("Arquivo:", excel_filename) # Verificação do arquivo
-    # st.write("Existe:", os.path.exists(excel_filename))
-    # st.write("Tamanho:", os.path.getsize(excel_filename))
+        # st.write("Arquivo:", excel_filename) # Verificação do arquivo
+        # st.write("Existe:", os.path.exists(excel_filename))
+        # st.write("Tamanho:", os.path.getsize(excel_filename))
 
-    # try:
-    #     wb = openpyxl.load_workbook(excel_filename)
-    # except Exception:
-    #     st.code(traceback.format_exc())
+        # try:
+        #     wb = openpyxl.load_workbook(excel_filename)
+        # except Exception:
+        #     st.code(traceback.format_exc())
 
-    # Casas com mais de um place
-    if casa == 'Blue Note - São Paulo': ids_casa_query = [110, 131]
-    elif casa == 'Priceless': ids_casa_query = [149, 161, 162, 179]
-    elif casa == 'Girondino': ids_casa_query = [156, 160]
-    else: ids_casa_query = [id_casa]
+        # Casas com mais de um place
+        if casa == 'Blue Note - São Paulo': ids_casa_query = [110, 131]
+        elif casa == 'Priceless': ids_casa_query = [149, 161, 162, 179]
+        elif casa == 'Girondino': ids_casa_query = [156, 160]
+        else: ids_casa_query = [id_casa]
 
-    ids_casa_query = ",".join(map(str, ids_casa_query)) # Formata para utilizar na query
+        ids_casa_query = ",".join(map(str, ids_casa_query)) # Formata para utilizar na query
 
-    # Casas com delivery
-    if casa == 'Bar Brahma - Centro': ids_casa_delivery = [117, 118]
-    elif casa == 'Bar Léo - Centro': ids_casa_delivery = [103]
-    elif casa == 'Bar Brahma - Granja': ids_casa_delivery = [169]
-    elif casa == 'Jacaré': ids_casa_delivery = [139]
-    elif casa == 'Orfeu': ids_casa_delivery = [112]
-    else: ids_casa_delivery = None
+        # Casas com delivery
+        if casa == 'Bar Brahma - Centro': ids_casa_delivery = [117, 118]
+        elif casa == 'Bar Léo - Centro': ids_casa_delivery = [103]
+        elif casa == 'Bar Brahma - Granja': ids_casa_delivery = [169]
+        elif casa == 'Jacaré': ids_casa_delivery = [139]
+        elif casa == 'Orfeu': ids_casa_delivery = [112]
+        else: ids_casa_delivery = None
 
-    arquivo_pronto = prepara_download_excel(casa, ids_casa_query, excel_filename, ids_casa_delivery=ids_casa_delivery)
-    if arquivo_pronto and os.path.exists(excel_filename):
-        st.success('Arquivo atualizado com sucesso!')
-        with open(excel_filename, "rb") as file:
-            file_content = file.read()
-            st.download_button( # Botão de Download 
-            label="Baixar Excel",
-            data=file_content,
-            file_name=f"DRE - {casa}.xlsx",
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        )
+        arquivo_pronto = prepara_download_excel(casa, ids_casa_query, excel_filename, ids_casa_delivery=ids_casa_delivery)
+        if arquivo_pronto and os.path.exists(excel_filename):
+            st.success('Arquivo atualizado com sucesso!')
+            with open(excel_filename, "rb") as file:
+                file_content = file.read()
+                st.download_button( # Botão de Download 
+                label="Baixar Excel",
+                data=file_content,
+                file_name=f"DRE - {casa}.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )
 
 
 ###################### PROJEÇÃO DE FATURAMENTO - DRE ###################### 
