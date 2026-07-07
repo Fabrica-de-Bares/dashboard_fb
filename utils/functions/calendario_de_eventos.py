@@ -29,31 +29,31 @@ def dataframe_to_json_calendar(df_eventos, event_color_type=None):
                 cor = '#EF4444'  # Vermelho
         elif event_color_type == 'casa':
             if row['ID Casa'] == 149: # Priceless
-                cor = '#000000'
+                cor = '#E35336'
             elif row['ID Casa'] == 122: # Arcos
-                cor = "#582310"
+                cor = "#6F4E37"
             elif row['ID Casa'] == 114: # Bar Brahma - Centro
-                cor = '#DF2526'
+                cor = '#FFA500'
             elif row['ID Casa'] == 148: # Bar Brahma - Granja
                 cor = '#84161f'
             elif row['ID Casa'] == 116: # Bar Leo Centro
-                cor = "#E9A700"
+                cor = "#FF2C2C"
             elif row['ID Casa'] == 110: # Blue Note São Paulo
-                cor = '#081F5C'
+                cor = '#000080'
             elif row['ID Casa'] == 156: # Girondino
-                cor = '#4A5129'
+                cor = '#FFB5C0'
             elif row['ID Casa'] == 160: # Girondino CCBB
-                cor = "#8CA706"
+                cor = "#88E788"
             elif row['ID Casa'] == 105: # Jacaré
-                cor = '#0CA22E'
+                cor = '#7E8C54'
             elif row['ID Casa'] == 104: # Love Cabaret
-                cor = '#E799BB'
+                cor = '#9D00FF'
             elif row['ID Casa'] == 104: # Orfeu
-                cor = '#006E77'
+                cor = '#898989'
             elif row['ID Casa'] == 115: # Riviera
-                cor = "#C2185B"
+                cor = "#722F37"
             elif row['ID Casa'] == 145: # Ultra Evil (Rolim)
-                cor = "#2C3E50"
+                cor = "#000000"
         else:
             cor = '#4150F7'  # Azul
 

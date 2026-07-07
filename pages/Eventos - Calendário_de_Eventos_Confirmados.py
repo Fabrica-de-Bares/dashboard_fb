@@ -75,15 +75,15 @@ def main():
             <h6 style="padding: 0; margin: 0;">Legenda:</h6>
             <div style="display: flex; flex-wrap: wrap; gap: 12px;">
                 <div style="display: flex; align-items: center;">
-                    <div style="width: 16px; height: 16px; background-color: #000000; border-radius: 4px; margin-right: 8px;"></div>
+                    <div style="width: 16px; height: 16px; background-color: #E35336; border-radius: 4px; margin-right: 8px;"></div>
                     <span>Priceless</span>
                 </div>
                 <div style="display: flex; align-items: center;">
-                    <div style="width: 16px; height: 16px; background-color: #582310; border-radius: 4px; margin-right: 8px;"></div>
+                    <div style="width: 16px; height: 16px; background-color: #6F4E37; border-radius: 4px; margin-right: 8px;"></div>
                     <span>Arcos</span>
                 </div>
                 <div style="display: flex; align-items: center;">
-                    <div style="width: 16px; height: 16px; background-color: #DF2526; border-radius: 4px; margin-right: 8px;"></div>
+                    <div style="width: 16px; height: 16px; background-color: #FFA500; border-radius: 4px; margin-right: 8px;"></div>
                     <span>Bar Brahma - Centro</span>
                 </div>
                 <div style="display: flex; align-items: center;">
@@ -91,39 +91,39 @@ def main():
                     <span>Bar Brahma - Granja</span>
                 </div>
                 <div style="display: flex; align-items: center;">
-                    <div style="width: 16px; height: 16px; background-color: #E9A700; border-radius: 4px; margin-right: 8px;"></div>
+                    <div style="width: 16px; height: 16px; background-color: #FF2C2C; border-radius: 4px; margin-right: 8px;"></div>
                     <span>Bar Leo Centro</span>
                 </div>
                 <div style="display: flex; align-items: center;">
-                    <div style="width: 16px; height: 16px; background-color: #081F5C; border-radius: 4px; margin-right: 8px;"></div>
+                    <div style="width: 16px; height: 16px; background-color: #000080; border-radius: 4px; margin-right: 8px;"></div>
                     <span>Blue Note São Paulo</span>
                 </div>
                 <div style="display: flex; align-items: center;">
-                    <div style="width: 16px; height: 16px; background-color: #4A5129; border-radius: 4px; margin-right: 8px;"></div>
+                    <div style="width: 16px; height: 16px; background-color: #FFB5C0; border-radius: 4px; margin-right: 8px;"></div>
                     <span>Girondino</span>
                 </div>
                 <div style="display: flex; align-items: center;">
-                    <div style="width: 16px; height: 16px; background-color: #8CA706; border-radius: 4px; margin-right: 8px;"></div>
+                    <div style="width: 16px; height: 16px; background-color: #88E788; border-radius: 4px; margin-right: 8px;"></div>
                     <span>Girondino CCBB</span>
                 </div>
                 <div style="display: flex; align-items: center;">
-                    <div style="width: 16px; height: 16px; background-color: #0CA22E; border-radius: 4px; margin-right: 8px;"></div>
+                    <div style="width: 16px; height: 16px; background-color: #7E8C54; border-radius: 4px; margin-right: 8px;"></div>
                     <span>Jacaré</span>
                 </div>
                 <div style="display: flex; align-items: center;">
-                    <div style="width: 16px; height: 16px; background-color: #E799BB; border-radius: 4px; margin-right: 8px;"></div>
+                    <div style="width: 16px; height: 16px; background-color: #9D00FF; border-radius: 4px; margin-right: 8px;"></div>
                     <span>Love Cabaret</span>
                 </div>
                 <div style="display: flex; align-items: center;">
-                    <div style="width: 16px; height: 16px; background-color: #006E77; border-radius: 4px; margin-right: 8px;"></div>
+                    <div style="width: 16px; height: 16px; background-color: #898989; border-radius: 4px; margin-right: 8px;"></div>
                     <span>Orfeu</span>
                 </div>
                 <div style="display: flex; align-items: center;">
-                    <div style="width: 16px; height: 16px; background-color: #C2185B; border-radius: 4px; margin-right: 8px;"></div>
+                    <div style="width: 16px; height: 16px; background-color: #722F37; border-radius: 4px; margin-right: 8px;"></div>
                     <span>Riviera</span>
                 </div>
                 <div style="display: flex; align-items: center;">
-                    <div style="width: 16px; height: 16px; background-color: #2C3E50; border-radius: 4px; margin-right: 8px;"></div>
+                    <div style="width: 16px; height: 16px; background-color: #000000; border-radius: 4px; margin-right: 8px;"></div>
                     <span>Ultra Evil (Rolim)</span>
                 </div>
             </div>
