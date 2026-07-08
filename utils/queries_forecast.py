@@ -1268,22 +1268,7 @@ def GET_AJUSTES_MANUAIS_DRE():
     LEFT JOIN T_EMPRESAS AS te ON (tam.FK_EMPRESA = te.ID)   
     LEFT JOIN T_CLASSIFICACAO_CONTABIL_GRUPO_1 tccg1 ON (tam.FK_CLASSIFICACAO_CONTABIL_1 = tccg1.ID)
     LEFT JOIN T_CLASSIFICACAO_CONTABIL_GRUPO_2 tccg2 ON (tam.FK_CLASSIFICACAO_CONTABIL_2 = tccg2.ID)
-    # UNION ALL 
-    # SELECT                         
-    #     te.ID 'ID_Casa', 
-    #     te.NOME_FANTASIA AS 'Casa',                  
-    #     tam.MES_COMPETENCIA AS 'Mês',
-    #     tam.ANO_COMPETENCIA AS 'Ano',          
-    #     'Dividendos e Remunerações Variáveis' AS 'Classificacao_Contabil_1',
-    #     'Processo Judicial' AS 'Classificacao_Contabil_2',
-    #     tam.VALOR AS 'Valor Ajuste',
-    #     tam.DESCRICAO AS 'Descrição Ajuste'
-    # FROM T_AJUSTES_MANUAIS_DRE AS tam
-    # LEFT JOIN T_EMPRESAS AS te ON (tam.FK_EMPRESA = te.ID)   
-    # LEFT JOIN T_CLASSIFICACAO_CONTABIL_GRUPO_1 tccg1 ON (tam.FK_CLASSIFICACAO_CONTABIL_1 = tccg1.ID)
-    # LEFT JOIN T_CLASSIFICACAO_CONTABIL_GRUPO_2 tccg2 ON (tam.FK_CLASSIFICACAO_CONTABIL_2 = tccg2.ID)
-    # WHERE te.NOME_FANTASIA IN ('Bar Brahma - Centro')
-    # AND tccg2.DESCRICAO = '  -  Ações trabalhistas';                                                                                                                                                       
+    WHERE tam.BIT_CANCELADO = 0;                                                                                                                                                       
     ''')
 
 
