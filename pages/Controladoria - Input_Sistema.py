@@ -5,6 +5,7 @@ from utils.functions.controladoria_descontos_dre import limpeza_linhas
 from utils.functions.controladoria_input_sistema import prepara_partes_headcount, prepara_colunas_real_dre
 from utils.queries_conciliacao import GET_CASAS
 from utils.components import button_download, seletor_ano
+from utils.constants.general_constants import casas_validas
 
 pd.set_option('future.no_silent_downcasting', True)
 
@@ -46,7 +47,7 @@ else:
 with col1:
     df_casas = GET_CASAS()
     casas = df_casas['Casa'].tolist()
-    casas = [casa for casa in casas if casa not in ['Bar Brahma - Paulista', 'Blue Note SP (Novo)', 'Edificio Rolim', 'Sanduiche comunicação LTDA ', 'Tempus Fugit  Ltda ']]
+    casas = [casa for casa in casas if casa in casas_validas and casa not in ['Blue Note SP (Novo)', 'Edificio Rolim', 'Sanduiche comunicação LTDA ', 'Tempus Fugit  Ltda ']]
     casa = st.selectbox("Selecione a casa referente ao arquivo:", casas)
     if casa == 'Blue Note - São Paulo':
         nome_casa = 'Blue Note SP'
@@ -64,7 +65,7 @@ with col2:
 if tipo_formatacao == 'Inputar - Real DRE':
     with col3:
         lista_meses = [
-                    'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro',
+                    'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro',
                     '1º Trimestre', '2º Trimestre', '3º Trimestre', '4º Trimestre'
                 ]
         mes = st.selectbox('Selecione o mês/período que deseja inputar:', lista_meses, help='1º Trimestre é para inputar os meses de Jan, Fev e Mar. E assim por diante.')
