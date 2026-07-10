@@ -569,10 +569,34 @@ def GET_VALORACAO_ESTOQUE(loja, data_contagem):
   LEFT JOIN T_INSUMOS_NIVEL_2 tin2 ON tin3.FK_INSUMOS_NIVEL_2 = tin2.ID
   LEFT JOIN T_INSUMOS_NIVEL_1 tin ON tin2.FK_INSUMOS_NIVEL_1 = tin.ID
   LEFT JOIN T_UNIDADES_DE_MEDIDAS tudm ON tin5.FK_UNIDADE_MEDIDA = tudm.ID
+  LEFT JOIN T_AGRUPAMENTO_CONTAGENS tac ON tci.FK_AGRUPAMENTO_CONTAGENS = tac.ID
   WHERE tci.QUANTIDADE_INSUMO != 0
-    AND tci.DATA_CONTAGEM = '{data_contagem}'
+    AND (tci.FK_AGRUPAMENTO_CONTAGENS IS NULL OR tac.FK_ESTOQUE_TIPO_CONTAGEM = 103)
+    AND (CASE WHEN tci.FK_AGRUPAMENTO_CONTAGENS IS NOT NULL THEN tac.DATA_AGRUPAMENTO ELSE tci.DATA_CONTAGEM END) = '{data_contagem}'
     AND {where_loja}
   ORDER BY DATA_CONTAGEM DESC
+  ''')
+
+
+@st.cache_data
+def GET_AGRUPAMENTOS_DIVERGENTES(loja, data_contagem):
+  # Contagens agrupadas tipo INVENTARIO (103) próximas da data-alvo (±5 dias) que não
+  # bateram exatamente com ela — usado para alertar quando o match exato de
+  # GET_VALORACAO_ESTOQUE pode estar deixando uma contagem agrupada de fora.
+  if loja == 'Girondino - Agregado':
+    where_loja = "te.ID IN (156, 160)"
+  else:
+    where_loja = f"te.NOME_FANTASIA = '{loja}'"
+  return dataframe_query(f'''
+  SELECT
+    te.NOME_FANTASIA AS 'Loja',
+    tac.DATA_AGRUPAMENTO AS 'Data_Agrupamento'
+  FROM T_AGRUPAMENTO_CONTAGENS tac
+  LEFT JOIN T_EMPRESAS te ON tac.FK_EMPRESA = te.ID
+  WHERE tac.FK_ESTOQUE_TIPO_CONTAGEM = 103
+    AND tac.DATA_AGRUPAMENTO BETWEEN DATE_SUB('{data_contagem}', INTERVAL 5 DAY) AND DATE_ADD('{data_contagem}', INTERVAL 5 DAY)
+    AND tac.DATA_AGRUPAMENTO <> '{data_contagem}'
+    AND {where_loja}
   ''')
 
 
