@@ -16,44 +16,36 @@ def dataframe_to_json_calendar(df_eventos, event_color_type=None):
     # Formata Data Evento para o formato YYYY-MM-DD (preparar para inserir no JSON)
     df_eventos = df_formata_datas_sem_horario_YYYY_MM_DD(df_eventos, ['Data Evento'])
 
+    cores_status = {
+        'Confirmado': '#22C55E',
+        'Em negociação': '#EAB308',
+    }
+
+    cores_casa = {
+        149: '#E35336',  # Priceless
+        162: '#2323FF',  # Concierge Notiê
+        122: '#FF13F0',  # Arcos
+        114: '#FFA500',  # Bar Brahma - Centro
+        148: '#84161f',  # Bar Brahma - Granja
+        116: '#FF2C2C',  # Bar Leo Centro
+        110: '#000080',  # Blue Note São Paulo
+        156: '#FFB5C0',  # Girondino
+        160: '#88E788',  # Girondino CCBB
+        105: '#7E8C54',  # Jacaré
+        128: '#9D00FF',  # Love Cabaret
+        104: '#898989',  # Orfeu
+        115: '#00CCC8',  # Riviera
+        145: '#000000',  # Ultra Evil (Rolim)
+    }
+
 
     eventos_json = []
     for _, row in df_eventos.iterrows():
         # Define a cor baseada no event_color_type
         if event_color_type == 'status':
-            if row['Status Evento'] == 'Confirmado':
-                cor = '#22C55E'  # Verde
-            elif row['Status Evento'] == 'Em negociação':
-                cor = '#EAB308'  # Amarelo
-            else:
-                cor = '#EF4444'  # Vermelho
+            cor = cores_status.get(row['Status Evento'], '#EF4444')
         elif event_color_type == 'casa':
-            if row['ID Casa'] == 149: # Priceless
-                cor = '#E35336'
-            elif row['ID Casa'] == 122: # Arcos
-                cor = "#6F4E37"
-            elif row['ID Casa'] == 114: # Bar Brahma - Centro
-                cor = '#FFA500'
-            elif row['ID Casa'] == 148: # Bar Brahma - Granja
-                cor = '#84161f'
-            elif row['ID Casa'] == 116: # Bar Leo Centro
-                cor = "#FF2C2C"
-            elif row['ID Casa'] == 110: # Blue Note São Paulo
-                cor = '#000080'
-            elif row['ID Casa'] == 156: # Girondino
-                cor = '#FFB5C0'
-            elif row['ID Casa'] == 160: # Girondino CCBB
-                cor = "#88E788"
-            elif row['ID Casa'] == 105: # Jacaré
-                cor = '#7E8C54'
-            elif row['ID Casa'] == 104: # Love Cabaret
-                cor = '#9D00FF'
-            elif row['ID Casa'] == 104: # Orfeu
-                cor = '#898989'
-            elif row['ID Casa'] == 115: # Riviera
-                cor = "#722F37"
-            elif row['ID Casa'] == 145: # Ultra Evil (Rolim)
-                cor = "#000000"
+            cor = cores_casa.get(row['ID Casa'], '#4150F7')
         else:
             cor = '#4150F7'  # Azul
 

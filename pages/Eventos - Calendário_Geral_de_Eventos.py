@@ -25,9 +25,6 @@ def main():
     # Recupera dados dos eventos
     df_eventos = GET_EVENTOS()
     df_eventos_concierge = GET_EVENTOS_CONCIERGE()
-    df_eventos_concierge['Casa'] = df_eventos_concierge['Casa'].apply(lambda x: 'Concierge Priceless' if x == 'Terraço Notie' else x)
-    df_eventos_concierge['ID Casa'] = df_eventos_concierge['ID Casa'].apply(lambda x: 149 if x == 162 else x)
-    df_eventos_concierge['Valor Comissão BV'] = 0
     dfs_e = [df for df in [df_eventos, df_eventos_concierge] if not df.empty]
     df_eventos = pd.concat(dfs_e, ignore_index=True) if dfs_e else pd.DataFrame()
 
