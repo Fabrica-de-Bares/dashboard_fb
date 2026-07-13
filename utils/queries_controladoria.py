@@ -410,4 +410,17 @@ def GET_TICKET_MEDIO_CLIENTES():
       FROM T_TICKET_CLIENTES_MENSAL AS ttcm
       LEFT JOIN T_EMPRESAS AS te ON (ttcm.FK_EMPRESA = te.ID)
       ORDER BY MES DESC;                         
-  ''')       
+  ''')  
+
+
+@st.cache_data
+def GET_PLATAFORMAS_BILHETERIA():
+  return dataframe_query(f'''
+  SELECT 
+    tpb.ID AS 'FK_PLATAFORMA_VENDA',                      
+    tpb.NOME_PLATAFORMA,
+    te.ID AS 'ID_Casa',
+    te.NOME_FANTASIA AS 'Casa'
+  FROM T_PLATAFORMAS_BILHETERIA AS tpb
+  LEFT JOIN T_EMPRESAS AS te ON (te.ID = tpb.FK_EMPRESA);                                                                                     
+''')

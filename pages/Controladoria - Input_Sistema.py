@@ -4,7 +4,8 @@ from utils.functions.general_functions import config_sidebar, mysql_connection_f
 from utils.functions.controladoria_descontos_dre import limpeza_linhas
 from utils.functions.controladoria_input_sistema import prepara_partes_headcount, prepara_colunas_real_dre
 from utils.queries_conciliacao import GET_CASAS
-from utils.components import button_download, seletor_ano
+from utils.queries_controladoria import GET_PLATAFORMAS_BILHETERIA
+from utils.components import button_download, seletor_ano, seletor_mes
 from utils.constants.general_constants import casas_validas
 
 pd.set_option('future.no_silent_downcasting', True)
@@ -16,7 +17,7 @@ c = conn.cursor(buffered=True)
 
 
 st.set_page_config(
-    page_title="DRE e Planejamento - Input no Sistema",
+    page_title="Conversão de Arquivos - Input no Sistema",
     page_icon="⬆️",
     layout="wide",
     initial_sidebar_state="collapsed"
@@ -29,46 +30,54 @@ if 'loggedIn' not in st.session_state or not st.session_state['loggedIn']:
 # Personaliza menu lateral
 config_sidebar()
 
-st.title("⬆️ DRE e Planejamento - Input no Sistema")
-st.write("Aba para formatar e inputar no EPM dados dos valores Reais de DRE, de Orçamento Operacional e Headcount de Pessoas.")
+st.title("⬆️ Conversão de Arquivos - Input no Sistema")
+st.markdown("""
+    Aba para formatar e inputar no EPM os seguintes arquivos:        
+    - Orçamentos definidos para o ano
+    - Real DRE (arquivo finalizado pós fechamento)
+    - Headcount de Pessoas definido para o ano
+    - Bilheterias
+    """)
 st.divider()
 
 # Seletor do tipo de formatação
-lista_formatacoes = ['Inputar - Orçamentos', 'Inputar - Real DRE', 'Inputar - Headcount de Pessoas']
-tipo_formatacao = st.selectbox("Selecione o tipo de formatação:", lista_formatacoes)
+lista_formatacoes = ['Orçamentos', 'Real DRE', 'Headcount de Pessoas', 'Bilheteria']
+tipo_formatacao = st.selectbox("Selecione o tipo de formatação", lista_formatacoes)
 st.divider()
 
-# Seletor de casa e ano
-if tipo_formatacao == 'Inputar - Real DRE':
+if tipo_formatacao in ['Real DRE', 'Bilheteria']:
     col1, col2, col3 = st.columns(3)
 else: 
     col1, col2 = st.columns(2)
 
-with col1:
+with col1: # Seletor de casa
     df_casas = GET_CASAS()
     casas = df_casas['Casa'].tolist()
-    casas = [casa for casa in casas if casa in casas_validas and casa not in ['Blue Note SP (Novo)', 'Edificio Rolim', 'Sanduiche comunicação LTDA ', 'Tempus Fugit  Ltda ']]
-    casa = st.selectbox("Selecione a casa referente ao arquivo:", casas)
-    if casa == 'Blue Note - São Paulo':
-        nome_casa = 'Blue Note SP'
-    elif casa == 'Ultra Evil Premium Ltda ':
-        nome_casa = 'Ultra Evil'
+
+    if tipo_formatacao == 'Bilheteria':
+        casas = [casa for casa in casas_validas if casa in ['Bar Brahma - Centro', 'Bar Brahma - Granja', 'Ultra Evil Premium Ltda ']] # Revisar
     else:
-        nome_casa = casa
+        casas = [casa for casa in casas_validas if casa not in ['Blue Note SP (Novo)', 'Edificio Rolim', 'Sanduiche comunicação LTDA ', 'Tempus Fugit  Ltda ']]
+    
+    casa = st.selectbox("Selecione a casa referente ao arquivo", casas)
+
+    if casa == 'Blue Note - São Paulo': nome_casa = 'Blue Note SP'
+    elif casa == 'Ultra Evil Premium Ltda ': nome_casa = 'Ultra Evil'
+    else: nome_casa = casa
 
     mapeamento_casas = dict(zip(df_casas["Casa"], df_casas["ID_Casa"])) # Recupera id da casa
     id_casa = mapeamento_casas[casa] 
 
-with col2:
-    ano = seletor_ano(2026, 2026, 'ano', 'Selecione o ano refente ao arquivo:')
+with col2: # Seletor de ano
+    ano = seletor_ano(2026, 2026, 'ano', 'Selecione o ano refente ao arquivo')
 
-if tipo_formatacao == 'Inputar - Real DRE':
+if tipo_formatacao == 'Real DRE': # Terceira coluna de mês/trimestre
     with col3:
         lista_meses = [
-                    'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro',
-                    '1º Trimestre', '2º Trimestre', '3º Trimestre', '4º Trimestre'
-                ]
-        mes = st.selectbox('Selecione o mês/período que deseja inputar:', lista_meses, help='1º Trimestre é para inputar os meses de Jan, Fev e Mar. E assim por diante.')
+            'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro',
+            '1º Trimestre', '2º Trimestre', '3º Trimestre', '4º Trimestre'
+        ]
+        mes = st.selectbox('Selecione o mês/período que deseja inputar', lista_meses, help='1º Trimestre é para inputar os meses de Jan, Fev e Mar. E assim por diante.')
         meses = {
             "Janeiro": 1,
             "Fevereiro": 2,
@@ -88,14 +97,18 @@ if tipo_formatacao == 'Inputar - Real DRE':
         else:
             mes_selecionado = mes
 
+if tipo_formatacao == 'Bilheteria': # Terceira coluna de mês simples
+    with col3:
+        mes_selecionado = seletor_mes('Selecione o mês referente ao arquivo', 'mes_bilheteria')
+
 st.divider()
 
-# Dar upload em arquivo de orçamento ou planilha DRE
-uploaded_file = st.file_uploader("Selecione um arquivo .xlsx do seu computador:", type="xlsx")
+# Dar upload em arquivo
+uploaded_file = st.file_uploader("Selecione um arquivo XLSX ou CSV do seu computador", type=["xlsx", "csv"])
 
-if tipo_formatacao == 'Inputar - Orçamentos':
+if tipo_formatacao == 'Orçamentos':
     if not uploaded_file:
-        st.write("Adicione um arquivo .xlsx de Orçamento para transformá-lo")
+        st.write("Adicione um arquivo XLSX de Orçamento para transformá-lo")
 
     # Se arquivo adicionado, prossegue
     else:
@@ -210,9 +223,10 @@ if tipo_formatacao == 'Inputar - Orçamentos':
 
         st.dataframe(df_layout_final_ids, hide_index=True)
     
-elif tipo_formatacao == 'Inputar - Real DRE':
+
+elif tipo_formatacao == 'Real DRE':
     if not uploaded_file:
-        st.write("Adicione um arquivo .xlsx para formatá-lo")
+        st.write("Adicione um arquivo XLSX para formatá-lo")
 
     # Se arquivo adicionado, prossegue
     else:
@@ -259,19 +273,11 @@ elif tipo_formatacao == 'Inputar - Real DRE':
         df_layout_final['Mes_datetime'] = pd.to_datetime(df_layout_final['Mes'], errors='coerce')
         mask_mes = df_layout_final['Mes_datetime'].notna()
 
-        df_layout_final.loc[mask_mes, 'Mes_atualizado'] = pd.to_datetime(
-            {
-                'year': int(ano),
-                'month': df_layout_final.loc[mask_mes, 'Mes_datetime'].dt.month,
-                'day': df_layout_final.loc[mask_mes, 'Mes_datetime'].dt.day
-            }
-        )
-        # mes_junho = pd.Timestamp( # Bug 2025
-        #     year=ano,
-        #     month=6,
-        #     day=1
-        # )
-        # df_layout_final['Mes_atualizado'] = df_layout_final['Mes_atualizado'].fillna(mes_junho)
+        df_layout_final.loc[mask_mes, 'Mes_atualizado'] = pd.to_datetime({
+            'year': int(ano),
+            'month': df_layout_final.loc[mask_mes, 'Mes_datetime'].dt.month,
+            'day': df_layout_final.loc[mask_mes, 'Mes_datetime'].dt.day
+        })
 
         # Organiza e renomeia colunas
         df_layout_final['FK_EMPRESA'] = id_casa
@@ -294,9 +300,10 @@ elif tipo_formatacao == 'Inputar - Real DRE':
 
         st.dataframe(df_download, hide_index=True)
         
-elif tipo_formatacao == 'Inputar - Headcount de Pessoas':
+
+elif tipo_formatacao == 'Headcount de Pessoas':
     if not uploaded_file:
-        st.write("Adicione um arquivo .xlsx para formatá-lo")
+        st.write("Adicione um arquivo XLSX para formatá-lo")
 
     # Se arquivo adicionado, prossegue
     else:
@@ -340,5 +347,67 @@ elif tipo_formatacao == 'Inputar - Headcount de Pessoas':
             st.write('Adaptada para inserção no EPM.')
         with col2:
             button_download(df_download, f"Input Headcount_{nome_casa}", f"Input Headcount_{nome_casa}")
+
+        st.dataframe(df_download, hide_index=True)
+
+
+elif tipo_formatacao == 'Bilheteria':
+    if not uploaded_file:
+        st.write("Adicione um arquivo CSV para formatá-lo")
+
+    # Se arquivo adicionado, prossegue
+    else:
+        df_plataformas_bilheteria = GET_PLATAFORMAS_BILHETERIA() 
+
+        uploaded_file.seek(0) 
+        linhas = uploaded_file.readlines() # Lê todas as linhas do arquivo
+
+        # Procura a linha que contém "Detalhe por sessao"
+        linha_inicio = next(
+            i for i, linha in enumerate(linhas)
+            if "Detalhe por sessao" in linha.decode("latin1")
+        )
+        uploaded_file.seek(0) # Volta o ponteiro do arquivo para o início
+
+        # Lê o CSV a partir dessa linha
+        df = pd.read_csv(uploaded_file, skiprows=linha_inicio+1, sep=";", encoding="latin1" ) # Pula uma linha para excluir a de 'Detalhe por sessao' 
+        df_transformado = df.copy()
+        st.divider()
+
+        # Mantém apenas colunas necessárias
+        df_transformado = df_transformado[['Data', 'Experiencia/Evento', 'Pessoas pagas', 'Valor unitario', 'Bruto', 'Taxas', 'Liquido']]
+        
+        df_transformado['FK_EMPRESA'] = id_casa
+        df_transformado['DATA_COMPETENCIA'] = pd.to_datetime(df_transformado['Data'], errors='coerce', dayfirst=True)
+        df_transformado['Valor unitario'] = pd.to_numeric(df_transformado['Valor unitario'].str.replace(",", ".", regex=False), errors="coerce")        
+        df_transformado['Bruto'] = pd.to_numeric(df_transformado['Bruto'].str.replace(",", ".", regex=False), errors="coerce")        
+        df_transformado['Taxas'] = pd.to_numeric(df_transformado['Taxas'].str.replace(",", ".", regex=False), errors="coerce")        
+
+        df_transformado = df_transformado.rename(columns={
+            'Experiencia/Evento': 'DESCRICAO',
+            'Pessoas pagas': 'QUANTIDADE',
+            'Valor unitario': 'VALOR_INGRESSO',
+            'Bruto': 'VALOR_BRUTO',
+            'Taxas': 'VALOR_DESCONTOS',
+        })
+        
+        df_transformado = pd.merge( # Cria coluna com FK da plataforma de venda da casa
+            df_transformado,
+            df_plataformas_bilheteria[['FK_PLATAFORMA_VENDA', 'ID_Casa']], 
+            left_on=['FK_EMPRESA'],
+            right_on=['ID_Casa'],
+            how='left'
+        )
+        df_transformado = df_transformado[['FK_EMPRESA', 'FK_PLATAFORMA_VENDA', 'DATA_COMPETENCIA', 'QUANTIDADE', 'VALOR_INGRESSO', 'DESCRICAO', 'VALOR_DESCONTOS', 'VALOR_BRUTO']]
+        df_download = df_transformado.copy()
+        # As colunas de DATA_COMPRA e REBATE são tratadas na UDF - Revisar
+
+        # Mostra o resultado
+        col1, col2 = st.columns([4, 1])
+        with col1:
+            st.subheader('Tabela formatada') 
+            st.write('Adaptada para inserção no EPM.')
+        with col2:
+            button_download(df_download, f"Input Bilheteria_{nome_casa}", f"Input Bilheteria_{nome_casa}")
 
         st.dataframe(df_download, hide_index=True)
