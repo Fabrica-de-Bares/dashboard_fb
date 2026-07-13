@@ -1337,3 +1337,29 @@ def GET_IMPOSTO_SIMPLES():
         tais.DATA_FIM_VIGENCIA AS 'Data Fim'                                                                                               
     FROM T_ALIQUOTAS_IMPOSTO_SIMPLES AS tais;                                                                                                                                                
     ''')
+
+
+@st.cache_data
+def GET_BILHETERIAS():
+    return dataframe_query(f'''
+    SELECT
+        te.ID AS 'ID_Casa',
+        te.NOME_FANTASIA AS 'Casa',
+        # 'Bilheteria' AS 'Categoria',
+        tpb.NOME_PLATAFORMA AS 'Plataforma',
+        DATE(tfb.DATA_COMPETENCIA) AS 'Data Competência',
+        DATE(tfb.DATA_COMPRA) AS 'Data Compra',
+        tfb.DESCRICAO AS 'Descrição',
+        tfb.REBATE AS 'Rebate',
+        tfb.QUANTIDADE AS 'Qtde',
+        tfb.VALOR_INGRESSO AS 'Valor Ingresso',
+        (tfb.VALOR_INGRESSO * tfb.QUANTIDADE) AS 'Valor Bruto',
+        tfb.VALOR_DESCONTOS AS 'Desconto',
+        (tfb.VALOR_INGRESSO * tfb.QUANTIDADE - tfb.VALOR_DESCONTOS) AS 'Valor Liquido'
+	FROM T_FATURAMENTO_BILHETERIA tfb
+	INNER JOIN T_EMPRESAS te ON te.ID = tfb.FK_EMPRESA
+	INNER JOIN T_PLATAFORMAS_BILHETERIA tpb ON tpb.ID = tfb.FK_PLATAFORMA_VENDA
+	WHERE tfb.FK_EMPRESA IN (128) # Adicionar outras casas depois
+	AND STR_TO_DATE(tfb.DATA_COMPETENCIA, '%Y-%m-%d') >= '2026-06-01 00:00:00'
+	ORDER BY tfb.DATA_COMPETENCIA;
+    ''')

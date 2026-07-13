@@ -253,7 +253,7 @@ def destaca_dias_futuros_mes_corrente(row):
 ############################################ PROJEÇÕES - PRÓXIMOS MESES ############################################
 
 # Une faturamentos e orçamentos mensais para calcular histórico de atingimento (%)
-def prepara_dados_faturamento_orcamentos_mensais(id_casa, df_orcamentos, df_faturamento_agregado_mes, df_demais_receitas_extr, df_ajustes_manuais, ano_passado, ano_atual, ano_selecionado):
+def prepara_dados_faturamento_orcamentos_mensais(id_casa, df_orcamentos, df_faturamento_agregado_mes, df_demais_receitas_extr, df_bilheterias, df_ajustes_manuais, ano_passado, ano_atual, ano_selecionado):
     # Filtra por casa e período (ano passado e atual)
     df_orcamentos_casa = df_orcamentos[
         (df_orcamentos['ID_Casa'] == id_casa) &
@@ -268,19 +268,22 @@ def prepara_dados_faturamento_orcamentos_mensais(id_casa, df_orcamentos, df_fatu
         (df_faturamento_agregado_mes['Ano'] <= ano_atual)
     ].copy()
 
-    if id_casa == 110: 
+    if id_casa == 110: # Bilheteria  - Blue Note
         # Caso: Abril - Blue Note SP
         df_faturamento_mes_casa = df_faturamento_mes_casa.drop_duplicates(subset=['ID_Casa', 'Casa', 'Categoria', 'Ano', 'Mês'], keep='first')
-        # Bilheteria  - Blue Note
-        df_bilheteria_blue_note = df_demais_receitas_extr[(df_demais_receitas_extr['Casa'] == 'Blue Note - São Paulo') & (df_demais_receitas_extr['Classificacao'] == 'Bilheteria')].copy()
-        df_bilheteria_blue_note['Mês'] = df_bilheteria_blue_note['Data_Ocorrencia'].dt.month
-        df_bilheteria_blue_note['Ano'] = df_bilheteria_blue_note['Data_Ocorrencia'].dt.year
-        df_bilheteria_blue_note = df_bilheteria_blue_note.groupby(['Casa', 'Ano', 'Mês'], as_index=False)['Valor Bruto'].sum()
-        df_bilheteria_blue_note['Categoria'] = 'Couvert'
-        df_bilheteria_blue_note = df_bilheteria_blue_note.rename(columns={'Valor Bruto': 'Valor Bilheteria'})
-        df_faturamento_mes_casa = pd.merge(df_faturamento_mes_casa, df_bilheteria_blue_note, on=['Casa', 'Categoria', 'Mês', 'Ano'], how='left').fillna(0)
-        df_faturamento_mes_casa['Valor Bilheteria'] = pd.to_numeric(df_faturamento_mes_casa['Valor Bilheteria'], errors='coerce')
-        df_faturamento_mes_casa['Valor Bruto'] += df_faturamento_mes_casa['Valor Bilheteria']
+        df_bilheteria = df_demais_receitas_extr[(df_demais_receitas_extr['Casa'] == 'Blue Note - São Paulo') & (df_demais_receitas_extr['Classificacao'] == 'Bilheteria')].copy()
+        df_bilheteria['Mês'] = df_bilheteria['Data_Ocorrencia'].dt.month
+        df_bilheteria['Ano'] = df_bilheteria['Data_Ocorrencia'].dt.year
+        
+    elif id_casa == 128: # Bilheteria - Love Cabaret
+        df_bilheteria = df_bilheterias[df_bilheterias['ID_Casa'] == 128].copy()
+    
+    df_bilheteria = df_bilheteria.groupby(['Casa', 'Ano', 'Mês'], as_index=False)['Valor Bruto'].sum()
+    df_bilheteria['Categoria'] = 'Couvert'
+    df_bilheteria = df_bilheteria.rename(columns={'Valor Bruto': 'Valor Bilheteria'})
+    df_faturamento_mes_casa = pd.merge(df_faturamento_mes_casa, df_bilheteria, on=['Casa', 'Categoria', 'Mês', 'Ano'], how='left').fillna(0)
+    df_faturamento_mes_casa['Valor Bilheteria'] = pd.to_numeric(df_faturamento_mes_casa['Valor Bilheteria'], errors='coerce')
+    df_faturamento_mes_casa['Valor Bruto'] += df_faturamento_mes_casa['Valor Bilheteria']
 
     df_faturamento_mes_casa = df_faturamento_mes_casa.groupby(['ID_Casa', 'Casa', 'Categoria', 'Ano', 'Mês'], as_index=False)['Valor Bruto'].sum()
 

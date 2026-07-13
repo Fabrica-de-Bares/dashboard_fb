@@ -179,6 +179,9 @@ else:
     # Dados - Receitas Extraordinárias (apenas Patrocínios)
     df_demais_receitas_extr = GET_DEMAIS_RECEITAS_EXTR() # Patrocínio, Eventos Rebate Fornecedores (Priceless) e itens (Blue Note) 
 
+    # Dados - Bilheteria
+    df_bilheterias = GET_BILHETERIAS()
+
     # Dados - Descontos e Promoções
     df_descontos = GET_DESCONTOS()
     df_promocoes = GET_PROMOCOES()
@@ -194,9 +197,24 @@ else:
     df_parametros_impostos = GET_PARAMETROS_IMPOSTOS() # Parâmetros e taxas - Impostos e Encargos e Provisões
     df_aliquotas_imp_simples = GET_IMPOSTO_SIMPLES() # Faixas e alíquotas - Simples Nacional
 
+    # Organiza colunas do df de bilheteria para merge com faturamento
+    df_bilheterias['Data Competência'] = pd.to_datetime(df_bilheterias['Data Competência'], errors='coerce')
+    df_bilheterias['Ano'] = df_bilheterias['Data Competência'].dt.year
+    df_bilheterias['Mês'] = df_bilheterias['Data Competência'].dt.month
+    df_bilheterias = df_bilheterias[['ID_Casa', 'Casa', 'Ano', 'Mês', 'Valor Bruto', 'Desconto', 'Valor Liquido']]
 
     # Prepara df de faturamento agregado mensal para a casa selecionada
-    df_faturamento_mes_casa, df_faturamento_orcamento = prepara_dados_faturamento_orcamentos_mensais(id_casa, df_orcamentos, df_faturamento_agregado_mes, df_demais_receitas_extr, df_ajustes_manuais, datas['ano_passado'], datas['ano_atual'], ano_selecionado)
+    df_faturamento_mes_casa, df_faturamento_orcamento = prepara_dados_faturamento_orcamentos_mensais(
+        id_casa, 
+        df_orcamentos, 
+        df_faturamento_agregado_mes, 
+        df_demais_receitas_extr, 
+        df_bilheterias, 
+        df_ajustes_manuais, 
+        datas['ano_passado'], 
+        datas['ano_atual'], 
+        ano_selecionado
+    )
     lista_itens_faturamento = df_faturamento_orcamento['Categoria'].unique().tolist() # Para exibir todos os itens de faturamento, mesmo que não haja valor para a casa
 
     # Faturamento Bruto do mês e Fee Gestão
