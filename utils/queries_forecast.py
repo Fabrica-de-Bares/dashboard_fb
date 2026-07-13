@@ -1361,13 +1361,19 @@ def GET_BILHETERIAS():
         tfb.REBATE AS 'Rebate',
         tfb.QUANTIDADE AS 'Qtde',
         tfb.VALOR_INGRESSO AS 'Valor Ingresso',
-        (tfb.VALOR_INGRESSO * tfb.QUANTIDADE) AS 'Valor Bruto',
+        CASE
+           WHEN te.ID = 128 THEN (tfb.VALOR_INGRESSO * tfb.QUANTIDADE) 
+           WHEN te.ID = 145 THEN tfb.VALOR_BRUTO             
+        END AS 'Valor Bruto',
         tfb.VALOR_DESCONTOS AS 'Desconto',
-        (tfb.VALOR_INGRESSO * tfb.QUANTIDADE - tfb.VALOR_DESCONTOS) AS 'Valor Liquido'
+        CASE
+           WHEN te.ID = 128 THEN (tfb.VALOR_INGRESSO * tfb.QUANTIDADE - tfb.VALOR_DESCONTOS) 
+           WHEN te.ID = 145 THEN (tfb.VALOR_BRUTO - tfb.VALOR_DESCONTOS)            
+        END AS 'Valor Liquido'
 	FROM T_FATURAMENTO_BILHETERIA tfb
 	INNER JOIN T_EMPRESAS te ON te.ID = tfb.FK_EMPRESA
 	INNER JOIN T_PLATAFORMAS_BILHETERIA tpb ON tpb.ID = tfb.FK_PLATAFORMA_VENDA
-	WHERE tfb.FK_EMPRESA IN (128) # Adicionar outras casas depois
+	WHERE tfb.FK_EMPRESA IN (128, 145) # Adicionar outras casas depois
 	AND STR_TO_DATE(tfb.DATA_COMPETENCIA, '%Y-%m-%d') >= '2026-06-01 00:00:00'
 	ORDER BY tfb.DATA_COMPETENCIA;
     ''')

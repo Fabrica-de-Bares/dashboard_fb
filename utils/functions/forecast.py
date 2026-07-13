@@ -268,23 +268,28 @@ def prepara_dados_faturamento_orcamentos_mensais(id_casa, df_orcamentos, df_fatu
         (df_faturamento_agregado_mes['Ano'] <= ano_atual)
     ].copy()
 
-    if id_casa == 110: # Bilheteria  - Blue Note
-        # Caso: Abril - Blue Note SP
-        df_faturamento_mes_casa = df_faturamento_mes_casa.drop_duplicates(subset=['ID_Casa', 'Casa', 'Categoria', 'Ano', 'Mês'], keep='first')
-        df_bilheteria = df_demais_receitas_extr[(df_demais_receitas_extr['Casa'] == 'Blue Note - São Paulo') & (df_demais_receitas_extr['Classificacao'] == 'Bilheteria')].copy()
-        df_bilheteria['Mês'] = df_bilheteria['Data_Ocorrencia'].dt.month
-        df_bilheteria['Ano'] = df_bilheteria['Data_Ocorrencia'].dt.year
-        
-    elif id_casa == 128: # Bilheteria - Love Cabaret
-        df_bilheteria = df_bilheterias[df_bilheterias['ID_Casa'] == 128].copy()
+    if id_casa in [110, 128, 145]: # Apenas casas que tem Bilheteria
+        if id_casa == 110: # Blue Note
+            # Caso - Abril
+            df_faturamento_mes_casa = df_faturamento_mes_casa.drop_duplicates(subset=['ID_Casa', 'Casa', 'Categoria', 'Ano', 'Mês'], keep='first')
+            # Bilheteria vem das Receitas Extraordinárias
+            df_bilheteria = df_demais_receitas_extr[(df_demais_receitas_extr['Casa'] == 'Blue Note - São Paulo') & (df_demais_receitas_extr['Classificacao'] == 'Bilheteria')].copy()
+            df_bilheteria['Mês'] = df_bilheteria['Data_Ocorrencia'].dt.month
+            df_bilheteria['Ano'] = df_bilheteria['Data_Ocorrencia'].dt.year
+            df_bilheteria = df_bilheteria.groupby(['Casa', 'Ano', 'Mês'], as_index=False)['Valor Bruto'].sum()
+            df_bilheteria['Categoria'] = 'Couvert'
+            df_bilheteria = df_bilheteria.rename(columns={'Valor Bruto': 'Valor Bilheteria'})
+            df_faturamento_mes_casa = pd.merge(df_faturamento_mes_casa, df_bilheteria, on=['Casa', 'Categoria', 'Mês', 'Ano'], how='left').fillna(0)
+            df_faturamento_mes_casa['Valor Bilheteria'] = pd.to_numeric(df_faturamento_mes_casa['Valor Bilheteria'], errors='coerce')
+            df_faturamento_mes_casa['Valor Bruto'] += df_faturamento_mes_casa['Valor Bilheteria']
+            
+        else: # Love Cabaret, Ultra Evil
+            df_bilheteria = df_bilheterias[df_bilheterias['ID_Casa'] == id_casa].copy()
+            df_bilheteria['Categoria'] = 'Couvert'
+            df_bilheteria = df_bilheteria.groupby(['ID_Casa', 'Casa', 'Categoria', 'Ano', 'Mês'], as_index=False)[['Valor Bruto', 'Desconto', 'Valor Liquido']].sum()
+            df_faturamento_mes_casa = pd.concat([df_faturamento_mes_casa, df_bilheteria])
     
-    df_bilheteria = df_bilheteria.groupby(['Casa', 'Ano', 'Mês'], as_index=False)['Valor Bruto'].sum()
-    df_bilheteria['Categoria'] = 'Couvert'
-    df_bilheteria = df_bilheteria.rename(columns={'Valor Bruto': 'Valor Bilheteria'})
-    df_faturamento_mes_casa = pd.merge(df_faturamento_mes_casa, df_bilheteria, on=['Casa', 'Categoria', 'Mês', 'Ano'], how='left').fillna(0)
-    df_faturamento_mes_casa['Valor Bilheteria'] = pd.to_numeric(df_faturamento_mes_casa['Valor Bilheteria'], errors='coerce')
-    df_faturamento_mes_casa['Valor Bruto'] += df_faturamento_mes_casa['Valor Bilheteria']
-
+    df_faturamento_mes_casa['Valor Bruto'] = pd.to_numeric(df_faturamento_mes_casa['Valor Bruto'], errors='coerce')
     df_faturamento_mes_casa = df_faturamento_mes_casa.groupby(['ID_Casa', 'Casa', 'Categoria', 'Ano', 'Mês'], as_index=False)['Valor Bruto'].sum()
 
     # Inclui ajustes manuais para itens de faturamento que tem lançamento de ajuste
@@ -306,13 +311,7 @@ def prepara_dados_faturamento_orcamentos_mensais(id_casa, df_orcamentos, df_fatu
         df_faturamento_mes_casa = pd.concat([df_faturamento_mes_casa, df_ajustes_categoria])
         df_faturamento_mes_casa['Valor Bruto'] = pd.to_numeric(df_faturamento_mes_casa['Valor Bruto'], errors='coerce')
         df_faturamento_mes_casa = df_faturamento_mes_casa.groupby(['ID_Casa', 'Casa', 'Categoria', 'Mês', 'Ano'], as_index=False)['Valor Bruto'].sum()
-        # if id_casa == 128: # Love Cabaret
-        #     df_faturamento_mes_casa.loc[
-        #         (df_faturamento_mes_casa['Categoria'] == 'Outras Receitas') & 
-        #         (df_faturamento_mes_casa['Casa'] == 'Love Cabaret') &
-        #         (df_faturamento_mes_casa['Ano'] == 2026), 
-        #         'Valor Bruto'] = 35000
-
+        
     if id_casa in [149, 110]:
         if id_casa == 149: # Priceless - Eventos Rebate Fornecedores
             df_receitas_extr = df_demais_receitas_extr[(df_demais_receitas_extr['Casa'] == 'Priceless') & (df_demais_receitas_extr['Cliente'] == 'TORANJA ')].copy()
