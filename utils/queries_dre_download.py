@@ -274,8 +274,14 @@ def DRE_BILHETERIA_AUTOMATIZADA(ids_casa):
     tfb.QUANTIDADE AS 'Qtde',
     tfb.VALOR_INGRESSO AS 'Valor Ingresso',
     tfb.VALOR_DESCONTOS AS 'Valor Descontos',
-    (tfb.VALOR_INGRESSO * tfb.QUANTIDADE) AS 'Valor Bruto',
-    (tfb.VALOR_INGRESSO * tfb.QUANTIDADE - tfb.VALOR_DESCONTOS) AS 'Valor Líquido'
+    CASE
+      WHEN te.ID = 128 THEN (tfb.VALOR_INGRESSO * tfb.QUANTIDADE) 
+      WHEN te.ID = 145 THEN tfb.VALOR_BRUTO             
+    END AS 'Valor Bruto',
+    CASE
+      WHEN te.ID = 128 THEN (tfb.VALOR_INGRESSO * tfb.QUANTIDADE - tfb.VALOR_DESCONTOS) 
+      WHEN te.ID = 145 THEN (tfb.VALOR_BRUTO - tfb.VALOR_DESCONTOS)            
+    END AS 'Valor Liquido'
 	FROM T_FATURAMENTO_BILHETERIA tfb
 	INNER JOIN T_EMPRESAS te ON te.ID = tfb.FK_EMPRESA
 	INNER JOIN T_PLATAFORMAS_BILHETERIA tpb ON tpb.ID = tfb.FK_PLATAFORMA_VENDA
@@ -762,6 +768,42 @@ def DRE_AUT_VALOR_ESTOQUE(ids_casa):
   ORDER BY tci.DATA_CONTAGEM DESC, tve.VALOR_EM_ESTOQUE DESC;
   ''')
 
+
+@st.cache_data
+def DRE_AUT_VALOR_ESTOQUE_LOVE(ids_casa):
+  return dataframe_query(f'''
+  SELECT
+    tve.FK_CONTAGEM as 'ID_Contagem',
+    te.ID as 'ID_Loja',
+    te.NOME_FANTASIA as 'Loja',
+    tci.DATA_CONTAGEM as 'Data_Contagem',
+    tci.FK_INSUMO as 'ID_Insumo',
+    tin5.DESCRICAO as 'Insumo',
+    tin4.ID as 'ID_Nivel_4',
+    tci.QUANTIDADE_INSUMO as 'Quantidade',
+    tudm.UNIDADE_MEDIDA as 'Unidade_Medida',
+    tin1.DESCRICAO as 'Categoria_Insumo',
+    DATE_FORMAT(DATE_SUB(tci.DATA_CONTAGEM, INTERVAL 1 MONTH), '%m/%Y') as 'Mes_Texto',
+    tve.PRECO_MEDIO_PAGO_NO_MES as 'Preco_Medio_Pago_no_Mes',
+    tve.DATA_ULTIMA_COMPRA_LOCAL as 'Data_Ultima_Compra',
+    tve.VALOR_ULTIMA_COMPRA_LOCAL as 'Valor_Ultima_Compra',
+    tve.VALOR_ULTIMA_COMPRA_GLOBAL as 'Valor_Ultima_Compra_Global',
+    tve.VALOR_EM_ESTOQUE as 'Valor_em_Estoque',
+    tci.OBSERVACAO as 'Observacao'
+  FROM T_VALORACAO_ESTOQUE tve
+  INNER JOIN T_CONTAGEM_INSUMOS tci ON (tve.FK_CONTAGEM = tci.ID)
+  INNER JOIN T_EMPRESAS te ON (tci.FK_EMPRESA = te.ID)
+  INNER JOIN T_INSUMOS_NIVEL_5 tin5 ON (tci.FK_INSUMO = tin5.ID)
+  INNER JOIN T_INSUMOS_NIVEL_4 tin4 ON (tin5.FK_INSUMOS_NIVEL_4 = tin4.ID)
+  INNER JOIN T_INSUMOS_NIVEL_3 tin3 ON (tin4.FK_INSUMOS_NIVEL_3 = tin3.ID)
+  INNER JOIN T_INSUMOS_NIVEL_2 tin2 ON (tin3.FK_INSUMOS_NIVEL_2 = tin2.ID)
+  INNER JOIN T_INSUMOS_NIVEL_1 tin1 ON (tin2.FK_INSUMOS_NIVEL_1 = tin1.ID)
+  LEFT JOIN T_UNIDADES_DE_MEDIDAS tudm ON (tin5.FK_UNIDADE_MEDIDA = tudm.ID)
+  LEFT JOIN T_AGRUPAMENTO_CONTAGENS tac ON (tci.FK_AGRUPAMENTO_CONTAGENS = tac.ID)
+  WHERE te.ID IN ({ids_casa})
+  AND (tac.FK_ESTOQUE_TIPO_CONTAGEM IS NULL OR tac.FK_ESTOQUE_TIPO_CONTAGEM = 103)
+  ORDER BY tci.DATA_CONTAGEM DESC, tve.VALOR_EM_ESTOQUE DESC;
+''')
 
 @st.cache_data
 def DRE_AUT_PRECOS_CONSOLIDADOS(ids_casa):

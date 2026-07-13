@@ -247,6 +247,7 @@ def config_sidebar():
         139: "Controladoria",
         143: "Controladoria",
         144: "Controladoria",
+        148: "Controladoria",
         141: "Planejamento Anual",
         142: "Planejamento Anual",
         145: "Planejamento Anual",
@@ -283,7 +284,7 @@ def config_sidebar():
             "KPI's de Resultado Operacional - Suprimentos": [131, 130, 132],
             "Conciliação": [122, 121, 123],
             "Fluxo de Caixa": [118, 120, 119],
-            "Controladoria": [135, 136, 138, 139, 143, 144],
+            "Controladoria": [135, 136, 138, 139, 143, 144, 148],
             "Auditoria": [133, 134],
             "Planejamento Anual": [141, 142, 145, 146],
         }

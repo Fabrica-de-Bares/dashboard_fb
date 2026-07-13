@@ -52,10 +52,11 @@ ABAS = {
     137: {'nome_aba': '🪙 Cálculo de Gorjeta', 'page_link': 'pages/Operacional - Cálculo_Gorjeta.py'},
     138: {'nome_aba': '🔎 Auditoria - Alteração de Despesas em Sistema', 'page_link': 'pages/Controladoria - Alteração de Despesas.py'},
     139: {'nome_aba': '✅ Validação de Faturamento Zigpay', 'page_link': 'pages/Controladoria - Validacao_Faturamento_Zigpay.py'},
-    141: {'nome_aba': '📜 Análises e Objetivos', 'page_link': 'pages/Planejamento - Analises_Objetivos.py'},
-    142: {'nome_aba': '💰 Orçamento Operacional', 'page_link': 'pages/Planejamento - Orçamento_Operacional.py'},
     143: {'nome_aba': '👥 Acessos Usuários - Dashboard', 'page_link': 'pages/Controladoria - Acessos_Dashboard.py'},
     144: {'nome_aba': "📈 KPI's Quarter Day", 'page_link': 'pages/Controladoria - Quarter_Day.py'},
+    148: {'nome_aba': '📥 Download - DRE', 'page_link': 'pages/Controladoria - Download_DRE.py'},
+    141: {'nome_aba': '📜 Análises e Objetivos', 'page_link': 'pages/Planejamento - Analises_Objetivos.py'},
+    142: {'nome_aba': '💰 Orçamento Operacional', 'page_link': 'pages/Planejamento - Orçamento_Operacional.py'},
     145: {'nome_aba': "👥 Headcount de Pessoas", 'page_link': 'pages/Planejamento - Headcount_Pessoas.py'},
     146: {'nome_aba': "👥 Headcount de Pessoas e Remuneração", 'page_link': 'pages/Planejamento - Headcount_Pessoas_Remuneracao.py'},
 }
