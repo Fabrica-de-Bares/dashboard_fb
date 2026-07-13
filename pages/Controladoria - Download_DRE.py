@@ -26,37 +26,31 @@ config_sidebar()
 col1, col2 = st.columns([5, 1], vertical_alignment='center')
 with col1:
     st.title("📥 Download - DRE")
-    st.write("Baixe a planilha de DRE já configurada para a casa selecionada.")
+    st.write("Baixe a planilha de DRE já configurada e preenchida para a casa selecionada.")
 with col2:
     st.button(label='Atualizar dados', key='atualizar_dre', on_click=st.cache_data.clear)
 st.divider()
 
-# Seletores de casa e data
-col1, col2, col3 = st.columns(3)
-# with col1: 
-df_casas = GET_CASAS()
-casas = [casa for casa in casas_validas if casa not in ['Blue Note SP (Novo)', 'Blue Note SP (Sala 2)', 'Escritório Fabrica de Bares', 'Edificio Rolim', 'Girondino', 'Girondino - CCBB', 'Priceless', 'Sanduiche comunicação LTDA ', 'Tempus Fugit  Ltda ']]
-casas.append('Girondino - Consolidado')
-casas.append('Terraço Notie')
-casas.sort()
-casa = st.selectbox("Selecione uma casa", casas)
-mapeamento_casas = dict(zip(df_casas["Casa"], df_casas["ID_Casa"])) # Recupera id da casa
-    
-if casa == 'Girondino - Consolidado': id_casa = 156
-elif casa == 'Terraço Notie': id_casa = 149
-else: id_casa = mapeamento_casas[casa] 
-
-# with col2:
-#     mes_selecionado = int(seletor_mes('Selecione um mês', 'mes_forecast'))
-# with col3:
-#     ano_selecionado = seletor_ano(2026, datas['ano_atual'], 'ano_forecast')
-st.divider()
+with st.container(border=True): 
+    # Seletor de casa
+    df_casas = GET_CASAS()
+    casas = [casa for casa in casas_validas if casa not in ['Blue Note SP (Novo)', 'Blue Note SP (Sala 2)', 'Escritório Fabrica de Bares', 'Edificio Rolim', 'Girondino', 'Girondino - CCBB', 'Priceless', 'Sanduiche comunicação LTDA ', 'Tempus Fugit  Ltda ']]
+    casas.append('Girondino - Consolidado')
+    casas.append('Terraço Notie')
+    casas.sort()
+    casa = st.selectbox("Selecione uma casa", casas)
+    mapeamento_casas = dict(zip(df_casas["Casa"], df_casas["ID_Casa"])) # Recupera id da casa
+        
+    if casa == 'Girondino - Consolidado': id_casa = 156
+    elif casa == 'Terraço Notie': id_casa = 149
+    else: id_casa = mapeamento_casas[casa] 
 
 
-###################### EXPORTANDO DRE EM EXCEL ###################### 
+    ###################### EXPORTANDO DRE EM EXCEL ###################### 
 
-with st.container(border=True): # Exportando em Excel
-    st.subheader(f'Fazer download - Excel DRE: {casa}')
+    # st.divider()
+    st.write("")
+    # st.subheader(f'Fazer download - Excel DRE: {casa}')
     excel_filename = f'assets/sheets/Base_DRE - {id_casa}.xlsx'
 
     # st.write("Arquivo:", excel_filename) # Verificação do arquivo
@@ -85,7 +79,7 @@ with st.container(border=True): # Exportando em Excel
     elif casa == 'Orfeu': ids_casa_delivery = [112]
     else: ids_casa_delivery = None
 
-    if st.button('Atualizar e baixar arquivo'):
+    if st.button('Atualizar e baixar arquivo', type='secondary', icon=":material/progress_activity:"):
         status = st.empty()
         status.warning('Preperando dados do arquivo...')
 
@@ -144,7 +138,7 @@ with st.container(border=True): # Exportando em Excel
         if casa not in ['Arcos', 'Blue Note - São Paulo', 'Love Cabaret']: # Cartão Black - Adicionar 'Ultra Evil Premium Ltda '
             abas['Aut_Consumo_Cartao_Black'] = DRE_CONSUMO_CARTAO_BLACK(ids_casa_query)
 
-        if casa in ['Love Cabaret']: # Bilheteria Automatizada - por enquanto só Love
+        if casa in ['Love Cabaret', 'Ultra Evil Premium Ltda ']: # Bilheteria Automatizada - Adicionar casas restantes
             abas['Aut_Bilheteria'] = DRE_BILHETERIA_AUTOMATIZADA(ids_casa_query)
 
         if os.path.exists(excel_filename):
@@ -158,8 +152,10 @@ with st.container(border=True): # Exportando em Excel
         with open(excel_filename, "rb") as file:
             file_content = file.read()
             st.download_button( # Botão de Download 
-            label="Baixar Excel",
-            data=file_content,
-            file_name=f"DRE - {casa}.xlsx",
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        )
+                label="Baixar Excel",
+                icon=":material/download:",
+                data=file_content,
+                file_name=f"DRE - {casa}.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                type='secondary'
+            )
