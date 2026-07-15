@@ -374,7 +374,6 @@ else:
     height = (len(df_layout_dre) + 1) * 35 # Define altura do df sem rolagem
 
     # Exibe df de Forecast no layout DRE            
-    st.divider()
     st.subheader('Real vs Tendência do mês - Faturamento e Despesas')
     st.dataframe(df_layout_dre_styled, hide_index=True, width='stretch', height=height)
 
