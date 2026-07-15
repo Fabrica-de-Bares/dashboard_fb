@@ -57,7 +57,7 @@ with col1: # Seletor de casa
     if tipo_formatacao == 'Bilheteria':
         casas = [casa for casa in casas_validas if casa in ['Bar Brahma - Centro', 'Bar Brahma - Granja', 'Ultra Evil Premium Ltda ']] # Revisar
     else:
-        casas = [casa for casa in casas_validas if casa not in ['Blue Note SP (Novo)', 'Edificio Rolim', 'Sanduiche comunicação LTDA ', 'Tempus Fugit  Ltda ']]
+        casas = [casa for casa in casas_validas if casa not in ['Blue Note SP (Novo)', 'Blue Note SP (Sala 2)', 'Edificio Rolim', 'Sanduiche comunicação LTDA ', 'Tempus Fugit  Ltda ']]
     
     casa = st.selectbox("Selecione a casa referente ao arquivo", casas)
 
@@ -329,6 +329,17 @@ elif tipo_formatacao == 'Headcount de Pessoas':
         df_final = pd.concat([df_primeira_parte, df_segunda_parte])
         df_final['ID Casa'] = id_casa
 
+        # Adiciona coluna de flag PJ/CLT
+        condicao = df_final['Cargo'].isin(
+            ['Líder de Squad','Gerente Financeiro','Analista Financeiro - Squad','Assistente Financeiro','Gerente de Eventos',
+	        'Coordenador de Eventos','Analista de Eventos','Assistente de Eventos','Produtor de Eventos','Gerente de Marketing',
+	        'Coordenador de Marketing','Analista de Marketing','Assistente de Marketing','Curador Artístico','Produtor Artístico',
+	        'Chefe de Manutenção','- Gerente','- Subgerente','- Coordenador','- Administrativa','- Chefe de Cozinha','- Chefe de Bar',
+  	        '- Sub Chefe de Cozinha','- Sub Chefe De Bar','- Maitre','- Chefe de Fila','- Hostess','Coordenador de Hospitalidade', 'Coordenador de A&B'])
+
+        df_final.loc[condicao, 'MODELO_CONTRATACAO'] = 'PJ'
+        df_final.loc[~condicao, 'MODELO_CONTRATACAO'] = 'CLT'
+
         # Prepara para download
         df_download = df_final.rename(columns={
             'ID Casa': 'FK_EMPRESA',
@@ -338,7 +349,7 @@ elif tipo_formatacao == 'Headcount de Pessoas':
             'Valor': 'VALOR',
             'Tipo de Dado': 'TIPO_DADO'
         })
-        df_download = df_download[['FK_EMPRESA', 'MES', 'ANO', 'CARGO', 'VALOR', 'TIPO_DADO']]
+        df_download = df_download[['FK_EMPRESA', 'MES', 'ANO', 'CARGO', 'VALOR', 'TIPO_DADO', 'MODELO_CONTRATACAO']]
 
         # Mostra o resultado
         col1, col2 = st.columns([4, 1])

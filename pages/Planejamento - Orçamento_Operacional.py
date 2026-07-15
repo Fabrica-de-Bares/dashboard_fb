@@ -303,7 +303,7 @@ else: # Histórico Real
             for col in df_real_dre_formatado.columns
     ]
     
-    # Necessário ter a ordem das linhas de DRE quandp tiver itens com alteração de valor (lógica do BIT_CANCELADO)
+    # Necessário ter a ordem das linhas de DRE quando tiver itens com alteração de valor (lógica do BIT_CANCELADO)
     ordem_categorias_dre = df_ordem_categorias_dre['Categoria'].unique().tolist()
     ordem_categorias_dre = [categoria for categoria in ordem_categorias_dre if '% sobre' not in categoria]
     
@@ -367,7 +367,10 @@ else: # Histórico Real
     colunas_numericas = df_real_dre_ordenado.select_dtypes(include='number').columns
     # df_real_dre_ordenado[colunas_numericas] = df_real_dre_ordenado[colunas_numericas].abs() ###
     df_real_dre_ordenado = define_linhas_calculadas(df_real_dre_ordenado, df_real_dre_ordenado, lista_categorias_dre, colunas_numericas, 'DRE Real', mapa_posicao_percentual=mapa_posicao_percentual)
-    
+
+    colunas = ['Categoria', 'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+    'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro']
+    df_real_dre_ordenado = df_real_dre_ordenado.reindex(columns=colunas, fill_value=0)
 
     st.subheader(f'DRE Real - {ano}')
     height = (len(df_real_dre_ordenado) + 1) * 35
