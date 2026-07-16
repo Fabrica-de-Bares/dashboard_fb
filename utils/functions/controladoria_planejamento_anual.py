@@ -296,7 +296,7 @@ def highlight_secoes_dre(row):
     elif row['Categoria'] in [
         'Custos Artístico', 'Custos Ténico de Som', 'MDO', 'Serviços de Terceiros - Eventos', 'Material de Consumo',
         'Manutenção Geral', 'Transportes', 'Locações', 'Repasses Locação de Espaço',
-        'Mão de Obra - PJ', 'PJ', 'Mão de Obra - Salários', 'MDO CLT - Salário', 'Mão de Obra - Extra', 'E-Staff', 
+        'Mão de Obra - PJ', 'PJ', 'Mão de Obra - Salários', 'Salários', 'MDO CLT - Salário', 'Mão de Obra - Extra', 'E-Staff', 
         'Mão de Obra - Encargos e Provisões', 'Encargos e Provisões', 'Mão de Obra - Benefícios', 'Benefícios', 'Outros B']:
         return ['background-color: #FFFFFF; color: #993300; font-weight: 500'] * len(row)
 

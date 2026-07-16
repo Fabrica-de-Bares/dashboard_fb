@@ -69,7 +69,7 @@ with col1: # Seletor de casa
     id_casa = mapeamento_casas[casa] 
 
 with col2: # Seletor de ano
-    ano = seletor_ano(2026, 2026, 'ano', 'Selecione o ano refente ao arquivo')
+    ano = seletor_ano(2025, 2026, 'ano', 'Selecione o ano refente ao arquivo')
 
 if tipo_formatacao == 'Real DRE': # Terceira coluna de mês/trimestre
     with col3:
