@@ -71,7 +71,7 @@ with col1: # Seletor de casa
 with col2: # Seletor de ano
     ano = seletor_ano(2025, 2026, 'ano', 'Selecione o ano refente ao arquivo')
 
-if tipo_formatacao == 'Real DRE': # Terceira coluna de mês/trimestre
+if tipo_formatacao == 'Real DRE': # Cria terceira coluna de mês/trimestre
     with col3:
         lista_meses = [
             'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro',
@@ -227,6 +227,8 @@ if tipo_formatacao == 'Orçamentos':
 elif tipo_formatacao == 'Real DRE':
     if not uploaded_file:
         st.write("Adicione um arquivo XLSX para formatá-lo")
+        if casa in ['Girondino', 'Girondino - CCBB']:
+            st.warning(f'O sistema lê apenas a primeira aba da planilha anexada. Certifique-se de que a DRE do {casa} esteja na primeira aba do arquivo.')
 
     # Se arquivo adicionado, prossegue
     else:
@@ -364,7 +366,7 @@ elif tipo_formatacao == 'Headcount de Pessoas':
 
 elif tipo_formatacao == 'Bilheteria':
     if not uploaded_file:
-        st.write("Adicione um arquivo CSV para formatá-lo")
+        st.write("Adicione um arquivo CSV para formatá-lo") # Futuro - Verificar formato dos arquivos de Bilheteria das outras casas
 
     # Se arquivo adicionado, prossegue
     else:

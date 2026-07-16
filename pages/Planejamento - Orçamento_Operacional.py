@@ -49,7 +49,6 @@ st.divider()
 # Recupera dados - Orçamentos e Real
 df_orcamento_operacional = GET_ORCAMENTO_OPERACIONAL()
 df_historico_real_dre = GET_HISTORICO_REAL_DRE()
-# df_ordem_categorias_dre = GET_ORDEM_CATEGORIAS_DRE()
 
 
 if tipo_valor == 'Orçamento Operacional':

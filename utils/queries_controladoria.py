@@ -314,15 +314,6 @@ def GET_HISTORICO_REAL_DRE():
   ''')
 
 
-@st.cache_data
-def GET_ORDEM_CATEGORIAS_DRE():
-  return dataframe_query(f'''
-  SELECT
-    tvr.CATEGORIA AS 'Categoria'                       
-  FROM T_VALORES_REAIS_DRE tvr
-  WHERE YEAR(MES) = 2025;
-  ''')
-
 # Acessos - Dashboard
 @st.cache_data
 def GET_USUARIOS_CARGOS():
