@@ -334,7 +334,7 @@ def Grafico_Donut(df):
   }
   # Renderizar o gráfico
   st_echarts(
-    options=options, height="300px", width="550px"
+    options=options, height="300px", width="550px", key='grafico_donut_faturamento'
   )
 
 
@@ -389,4 +389,4 @@ def faturam_por_dia(df):
   }
     
   # Renderizar o gráfico no Streamlit
-  st_echarts(options=options, height="400px")
+  st_echarts(options=options, height="400px", key='faturam_por_dia')
