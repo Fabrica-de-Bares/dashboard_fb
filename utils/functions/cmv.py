@@ -337,7 +337,19 @@ def config_valoracao_estoque(data_inicio, data_fim, loja):
   df_valoracao_estoque = GET_VALORACAO_ESTOQUE(loja, data_inicio_nova)
 
   df_valoracao_estoque.drop(['DATA_CONTAGEM'], axis=1, inplace=True)
-  
+
+  df_agrupamentos_divergentes = GET_AGRUPAMENTOS_DIVERGENTES(loja, data_inicio_nova)
+  if not df_agrupamentos_divergentes.empty:
+    detalhes = ", ".join(
+      f"{row['Loja']} ({pd.to_datetime(row['Data_Agrupamento']).strftime('%d/%m/%Y')})"
+      for _, row in df_agrupamentos_divergentes.iterrows()
+    )
+    st.warning(
+      f"⚠️ Contagem agrupada (tipo INVENTARIO) próxima de {data_inicio_nova.strftime('%d/%m/%Y')} "
+      f"não bateu exatamente com a data de fechamento e pode estar FORA da valoração de estoque: {detalhes}. "
+      "Verificar manualmente em T_AGRUPAMENTO_CONTAGENS."
+    )
+
   return df_valoracao_estoque
 
 

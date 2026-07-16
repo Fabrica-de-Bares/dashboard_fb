@@ -2,12 +2,8 @@ import streamlit as st
 from utils.components import input_selecao_casas, seletor_ano, seletor_mes
 from utils.functions.forecast import *
 from utils.functions.general_functions import config_sidebar
-from utils.functions.cmv_teorico_fichas_tecnicas import function_format_number_columns
 from utils.functions.controladoria_planejamento_anual import highlight_secoes_dre
 from utils.queries_forecast import *
-from utils.queries_dre_download import *
-import os
-import traceback
 
 
 st.set_page_config(
@@ -124,52 +120,6 @@ PORC_FEE_GESTAO = 0.05
 # st.divider()
 
 
-###################### EXPORTANDO DRE EM EXCEL ###################### 
-
-if casa != 'Girondino - CCBB': # Incluso na DRE do Girondino
-    with st.container(border=True): # Expprtando em Excel
-        st.subheader(f'Fazer download - Excel DRE {casa}')
-        excel_filename = f'assets/sheets/Base_DRE - {id_casa}.xlsx'
-
-        # st.write("Arquivo:", excel_filename) # Verificação do arquivo
-        # st.write("Existe:", os.path.exists(excel_filename))
-        # st.write("Tamanho:", os.path.getsize(excel_filename))
-
-        # try:
-        #     wb = openpyxl.load_workbook(excel_filename)
-        # except Exception:
-        #     st.code(traceback.format_exc())
-
-        # Casas com mais de um place
-        if casa == 'Blue Note - São Paulo': ids_casa_query = [110, 131]
-        elif casa == 'Priceless': ids_casa_query = [149, 161, 162, 179]
-        elif casa == 'Girondino': ids_casa_query = [156, 160]
-        else: ids_casa_query = [id_casa]
-
-        ids_casa_query = ",".join(map(str, ids_casa_query)) # Formata para utilizar na query
-
-        # Casas com delivery
-        if casa == 'Bar Brahma - Centro': ids_casa_delivery = [117, 118]
-        elif casa == 'Bar Léo - Centro': ids_casa_delivery = [103]
-        elif casa == 'Bar Brahma - Granja': ids_casa_delivery = [169]
-        # elif casa == 'Bar Brahma - Paulista': ids_casa_delivery = [] # A definir
-        elif casa == 'Jacaré': ids_casa_delivery = [139]
-        elif casa == 'Orfeu': ids_casa_delivery = [112]
-        else: ids_casa_delivery = None
-
-        arquivo_pronto = prepara_download_excel(casa, ids_casa_query, excel_filename, ids_casa_delivery=ids_casa_delivery)
-        if arquivo_pronto and os.path.exists(excel_filename):
-            st.success('Arquivo atualizado com sucesso!')
-            with open(excel_filename, "rb") as file:
-                file_content = file.read()
-                st.download_button( # Botão de Download 
-                label="Baixar Excel",
-                data=file_content,
-                file_name=f"DRE - {casa}.xlsx",
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-            )
-
-
 ###################### PROJEÇÃO DE FATURAMENTO - DRE ###################### 
 
 if casa == 'Bar Brahma - Paulista': # Não tem orçamento lançado, então dá erro
@@ -178,6 +128,9 @@ if casa == 'Bar Brahma - Paulista': # Não tem orçamento lançado, então dá e
 else:
     # Dados - Receitas Extraordinárias (apenas Patrocínios)
     df_demais_receitas_extr = GET_DEMAIS_RECEITAS_EXTR() # Patrocínio, Eventos Rebate Fornecedores (Priceless) e itens (Blue Note) 
+
+    # Dados - Bilheteria
+    df_bilheterias = GET_BILHETERIAS()
 
     # Dados - Descontos e Promoções
     df_descontos = GET_DESCONTOS()
@@ -194,9 +147,24 @@ else:
     df_parametros_impostos = GET_PARAMETROS_IMPOSTOS() # Parâmetros e taxas - Impostos e Encargos e Provisões
     df_aliquotas_imp_simples = GET_IMPOSTO_SIMPLES() # Faixas e alíquotas - Simples Nacional
 
+    # Organiza colunas do df de bilheteria para merge com faturamento
+    df_bilheterias['Data Competência'] = pd.to_datetime(df_bilheterias['Data Competência'], errors='coerce')
+    df_bilheterias['Ano'] = df_bilheterias['Data Competência'].dt.year
+    df_bilheterias['Mês'] = df_bilheterias['Data Competência'].dt.month
+    df_bilheterias = df_bilheterias[['ID_Casa', 'Casa', 'Ano', 'Mês', 'Valor Bruto', 'Desconto', 'Valor Liquido']]
 
     # Prepara df de faturamento agregado mensal para a casa selecionada
-    df_faturamento_mes_casa, df_faturamento_orcamento = prepara_dados_faturamento_orcamentos_mensais(id_casa, df_orcamentos, df_faturamento_agregado_mes, df_demais_receitas_extr, df_ajustes_manuais, datas['ano_passado'], datas['ano_atual'], ano_selecionado)
+    df_faturamento_mes_casa, df_faturamento_orcamento = prepara_dados_faturamento_orcamentos_mensais(
+        id_casa, 
+        df_orcamentos, 
+        df_faturamento_agregado_mes, 
+        df_demais_receitas_extr, 
+        df_bilheterias, 
+        df_ajustes_manuais, 
+        datas['ano_passado'], 
+        datas['ano_atual'], 
+        ano_selecionado
+    )
     lista_itens_faturamento = df_faturamento_orcamento['Categoria'].unique().tolist() # Para exibir todos os itens de faturamento, mesmo que não haja valor para a casa
 
     # Faturamento Bruto do mês e Fee Gestão
@@ -406,7 +374,6 @@ else:
     height = (len(df_layout_dre) + 1) * 35 # Define altura do df sem rolagem
 
     # Exibe df de Forecast no layout DRE            
-    st.divider()
     st.subheader('Real vs Tendência do mês - Faturamento e Despesas')
     st.dataframe(df_layout_dre_styled, hide_index=True, width='stretch', height=height)
 

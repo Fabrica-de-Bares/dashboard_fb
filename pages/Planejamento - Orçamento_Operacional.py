@@ -36,7 +36,7 @@ st.divider()
 col1, col2, col3 = st.columns(3)
 
 with col1:
-    lista_casas_retirar = ['Todas as Casas', 'Bar Brahma - Paulista', 'Blue Note SP (Novo)', 'Blue Note SP (Sala 2)', 'Brahminha', 'Edificio Rolim', 'Priceless', 'Sanduiche comunicação LTDA ', 'Tempus Fugit  Ltda ', 'The Cavern - Almoço']
+    lista_casas_retirar = ['Todas as Casas', 'Bar Brahma - Paulista', 'Blue Note SP (Novo)', 'Blue Note SP (Sala 2)', 'Brahminha', 'Edificio Rolim', 'Priceless', 'Sanduiche comunicação LTDA ', 'Tempus Fugit  Ltda ', 'Terraço Notie Novo', 'The Cavern - Almoço']
     id_casa, casa, id_zigpay = input_selecao_casas(lista_casas_retirar, 'casa')
     
 with col2:
@@ -49,7 +49,6 @@ st.divider()
 # Recupera dados - Orçamentos e Real
 df_orcamento_operacional = GET_ORCAMENTO_OPERACIONAL()
 df_historico_real_dre = GET_HISTORICO_REAL_DRE()
-df_ordem_categorias_dre = GET_ORDEM_CATEGORIAS_DRE()
 
 
 if tipo_valor == 'Orçamento Operacional':
@@ -181,7 +180,6 @@ if tipo_valor == 'Orçamento Operacional':
             height = (len(df_formatado) + 1) * 35 # Define altura sem rolagem
             st.dataframe(df_formatado, hide_index=True, width='stretch', height=height)
 
-
     # # Formata colunas numéricas
     # df_orcamentos_concatenados_fmt = function_format_number_columns(
     #     df_orcamentos_concatenados,
@@ -303,71 +301,62 @@ else: # Histórico Real
             for col in df_real_dre_formatado.columns
     ]
     
-    # Necessário ter a ordem das linhas de DRE quandp tiver itens com alteração de valor (lógica do BIT_CANCELADO)
-    ordem_categorias_dre = df_ordem_categorias_dre['Categoria'].unique().tolist()
-    ordem_categorias_dre = [categoria for categoria in ordem_categorias_dre if '% sobre' not in categoria]
+    # Necessário ter a ordem das linhas de DRE
+    if casa == 'Girondino - CCBB': id_base = 156
+    elif casa == 'Terraço Notie': id_base = 149
+    else: id_base = id_casa
+
+    df_base = pd.read_excel(f"assets/sheets/Base_DRE - {id_base}.xlsx", sheet_name="DRE")
+    if casa == 'Riviera Bar': col_categorias = 'c'
+    else: col_categorias = 'Unnamed: 0'
     
-    ordem_categorias_dre = altera_pos_item_lista(ordem_categorias_dre, '- Hostess', 'Salários')
-    ordem_categorias_dre = altera_pos_item_lista(ordem_categorias_dre, 'Eventos Locações', 'Eventos Rebate Fornecedores - Premium Corp')
-    ordem_categorias_dre = altera_pos_item_lista(ordem_categorias_dre, 'Eventos Rebate Fornecedores - Premium Corp', 'Membership')
-    ordem_categorias_dre = altera_pos_item_lista(ordem_categorias_dre, 'Alimentação e Transporte', 'Viagens e Estadias - Artístico')
-    ordem_categorias_dre = altera_pos_item_lista(ordem_categorias_dre, 'Recurso Processual', 'Depreciação/Amortização')
-    ordem_categorias_dre = altera_pos_item_lista(ordem_categorias_dre, '- Subgerente', '- Coordenador/ Monitor')
-    ordem_categorias_dre = altera_pos_item_lista(ordem_categorias_dre, '- Coordenador/ Monitor', '- Atores do Evento')
-    ordem_categorias_dre = altera_pos_item_lista(ordem_categorias_dre, '- Atores do Evento', '- Guias')
-    ordem_categorias_dre = altera_pos_item_lista(ordem_categorias_dre, '- Guias', '- Manutenção')
-    ordem_categorias_dre = altera_pos_item_lista(ordem_categorias_dre, 'Eventos de Marketing', 'Brindes e Confraternizações - Marketing')
+    df_base = df_base[
+        (~df_base[col_categorias].isna()) & 
+        (~df_base[col_categorias].str.contains('% sobre', na=False)) & (
+        (~df_base[col_categorias].isin(['Eventos',
+        # Cargos - Salários
+        '  - Hostess','  -  Maitre','  -  Garçon III','  -  Garçon II','  -  Garçon I','  -  Passador de Chopp', 
+        '  -  Cumin','  -  Sub Chefe de Bar','  -  Bartender III','  -  Bartender II','  -  Bartender I','  -  Bar Back','  -  Barista III',
+        '  -  Barista II','  -  Barista I','  -  Chopeiro III','  -  Chopeiro II','  -  Chopeiro I','  -  Sub Chefe de Cozinha','  -  Cozinheiro Líder',
+        '  -  Cozinheiro III','  -  Cozinheiro II','  -  Cozinheiro I','  -  Ajud cozinha','  -  Saladeiro','  -  Pia','  -  Sub Chefe de Confeitaria',
+        '  -  Confeiteiro III','  -  Confeiteiro II','  -  Confeiteiro I','  -  Copeiro','  -  Pizzaiolo','  -  Ajudante de Pizzaiolo','  -  Boqueta',
+        '  -  Churrasqueiro I','  -  Churrasqueiro II','  -  Churrasqueiro III','  -  Ajud Limpeza','  -  Estoquista III','  -  Estoquista II',
+        '  -  Estoquista I','  -  Chefe de Manutenção','  -  Aux. Manutenção III','  -  Aux. Manutenção II','  -  Aux. Manutenção I','  -  Chefe da Portaria',
+        '  -  Porteiro III','  -  Porteiro II','  -  Porteiro I','  -  Hostess III','  -  Hostess II','  -  Hostess I','  -  Chefe de Bilheteria',
+        '  -  Bilheteiro III','  -  Bilheteiro II','  -  Bilheteiro I','  -  Caixa','  -  Operador de Delivery'])))
+    ].copy()
     
+    # Remove a primeira linha (nome da casa)
+    df_base = df_base.iloc[1:].reset_index(drop=True)
+
+    # Remove todas as linhas abaixo disso
+    indice = df_base[df_base[col_categorias] == 'MEMÓRIA DE CÁLCULO DAS PROJEÇÕES DE CUSTOS COM IMPOSTOS E PESSOAL'].index
+    if not indice.empty:
+        df_base = df_base.loc[:indice[0]]
+    df_base = df_base.iloc[:-1]
+    
+    ordem_categorias_dre = df_base[col_categorias].unique().tolist() # Lista ordenada das categorias
+    ordem_categorias_dre = [cat.replace("  -", "-") for cat in ordem_categorias_dre]
+
     df_real_dre_ordenado = df_real_dre_formatado.copy()
     df_real_dre_ordenado = df_real_dre_ordenado.reset_index(drop=True)
     
-    # Transforma a coluna em Categorical
+    # Transforma a coluna em Categorical para ordenar
     df_real_dre_ordenado['Categoria'] = pd.Categorical(
         df_real_dre_ordenado['Categoria'], 
         categories=ordem_categorias_dre, 
         ordered=True
     )
     df_real_dre_ordenado = df_real_dre_ordenado.sort_values('Categoria')
+    df_real_dre_ordenado = df_real_dre_ordenado[~df_real_dre_ordenado['Categoria'].isna()].copy()
 
-    # Remove ocorrência repetida de 'Eventos A&B'
-    df_real_dre_ordenado = df_real_dre_ordenado.groupby('Categoria', as_index=False).sum()
-    df_real_dre_ordenado = df_real_dre_ordenado.reset_index(drop=True)
-
-    # Reposiciona 'Serviços de Terceiros'
-    linha_mover = df_real_dre_ordenado[df_real_dre_ordenado['Categoria'] == 'Serviços de Terceiros'].reset_index(drop=True)
-
-    # remove a linha que será movida + reseta índice
-    df_temp = df_real_dre_ordenado[df_real_dre_ordenado['Categoria'] != 'Serviços de Terceiros'].reset_index(drop=True)
-
-    # pega a posição da linha de referência
-    idx = df_temp[df_temp['Categoria'] == 'Ferramentas de Marketing'].index[0]
-
-    # divide usando posição
-    parte_cima = df_temp.iloc[:idx+1]   # até a linha de referência
-    parte_baixo = df_temp.iloc[idx+1:]  # depois dela
-
-    # concatena inserindo no meio
-    df_real_dre_ordenado = pd.concat([parte_cima, linha_mover, parte_baixo]).reset_index(drop=True)
-
-    # Reposiciona 'Serviços de Terceiros - Eventos' em 'Custos Eventos'
-    linha_mover = df_real_dre_ordenado[df_real_dre_ordenado['Categoria'] == 'Serviços de Terceiros - Eventos']
-    linha_mover = linha_mover.reset_index(drop=True)
-    linha_referencia = df_real_dre_ordenado[df_real_dre_ordenado['Categoria'] == 'Comissões de Vendas - Eventos']
-
-    # remove a linha que será movida
-    df_temp = df_real_dre_ordenado[df_real_dre_ordenado['Categoria'] != 'Serviços de Terceiros - Eventos']
-    idx = linha_referencia.index[0] # pega índice da referência
-    
-    parte_cima = df_temp.loc[:idx] # divide o df
-    parte_baixo = df_temp.loc[idx+1:]
-    df_real_dre_ordenado = pd.concat([parte_cima, linha_mover, parte_baixo]) # insere no meio
-            
-    
     # Calcula porcentagens e outros valores
     colunas_numericas = df_real_dre_ordenado.select_dtypes(include='number').columns
-    # df_real_dre_ordenado[colunas_numericas] = df_real_dre_ordenado[colunas_numericas].abs() ###
     df_real_dre_ordenado = define_linhas_calculadas(df_real_dre_ordenado, df_real_dre_ordenado, lista_categorias_dre, colunas_numericas, 'DRE Real', mapa_posicao_percentual=mapa_posicao_percentual)
-    
+
+    colunas = ['Categoria', 'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+    'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro']
+    df_real_dre_ordenado = df_real_dre_ordenado.reindex(columns=colunas, fill_value=0)
 
     st.subheader(f'DRE Real - {ano}')
     height = (len(df_real_dre_ordenado) + 1) * 35

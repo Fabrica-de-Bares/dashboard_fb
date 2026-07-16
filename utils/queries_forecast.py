@@ -885,19 +885,27 @@ def GET_VALORACAO_ESTOQUE(data_inicio, data_fim):
   	tudm.UNIDADE_MEDIDA_NAME AS 'Unidade_Medida',
     tin.DESCRICAO AS 'Categoria',
   	tve.VALOR_EM_ESTOQUE AS 'Valor_em_Estoque',
-  	tci.DATA_CONTAGEM
-  FROM T_VALORACAO_ESTOQUE tve 
-  LEFT JOIN T_CONTAGEM_INSUMOS tci ON tve.FK_CONTAGEM = tci.ID 
-  LEFT JOIN T_EMPRESAS te ON tci.FK_EMPRESA = te.ID 
+  	CASE
+  	  WHEN tci.FK_AGRUPAMENTO_CONTAGENS IS NULL THEN tci.DATA_CONTAGEM
+  	  ELSE DATE_FORMAT(
+  	    DATE_ADD(tac.DATA_AGRUPAMENTO, INTERVAL IF(DAY(tac.DATA_AGRUPAMENTO) >= 16, 1, 0) MONTH),
+  	    '%Y-%m-01'
+  	  )
+  	END AS DATA_CONTAGEM
+  FROM T_VALORACAO_ESTOQUE tve
+  LEFT JOIN T_CONTAGEM_INSUMOS tci ON tve.FK_CONTAGEM = tci.ID
+  LEFT JOIN T_EMPRESAS te ON tci.FK_EMPRESA = te.ID
   LEFT JOIN T_INSUMOS_NIVEL_5 tin5 ON tci.FK_INSUMO = tin5.ID
-  LEFT JOIN T_INSUMOS_NIVEL_4 tin4 ON tin5.FK_INSUMOS_NIVEL_4 = tin4.ID 
-  LEFT JOIN T_INSUMOS_NIVEL_3 tin3 ON tin4.FK_INSUMOS_NIVEL_3 = tin3.ID 
+  LEFT JOIN T_INSUMOS_NIVEL_4 tin4 ON tin5.FK_INSUMOS_NIVEL_4 = tin4.ID
+  LEFT JOIN T_INSUMOS_NIVEL_3 tin3 ON tin4.FK_INSUMOS_NIVEL_3 = tin3.ID
   LEFT JOIN T_INSUMOS_NIVEL_2 tin2 ON tin3.FK_INSUMOS_NIVEL_2 = tin2.ID
   LEFT JOIN T_INSUMOS_NIVEL_1 tin ON tin2.FK_INSUMOS_NIVEL_1 = tin.ID
   LEFT JOIN T_UNIDADES_DE_MEDIDAS tudm ON tin5.FK_UNIDADE_MEDIDA = tudm.ID
+  LEFT JOIN T_AGRUPAMENTO_CONTAGENS tac ON tci.FK_AGRUPAMENTO_CONTAGENS = tac.ID
   WHERE tci.QUANTIDADE_INSUMO != 0
-    AND tci.DATA_CONTAGEM >= '{data_inicio}'
-    AND tci.DATA_CONTAGEM <= '{data_fim}'
+    AND (tci.FK_AGRUPAMENTO_CONTAGENS IS NULL OR tac.FK_ESTOQUE_TIPO_CONTAGEM = 103)
+    AND (CASE WHEN tci.FK_AGRUPAMENTO_CONTAGENS IS NOT NULL THEN tac.DATA_AGRUPAMENTO ELSE tci.DATA_CONTAGEM END) >= '{data_inicio}'
+    AND (CASE WHEN tci.FK_AGRUPAMENTO_CONTAGENS IS NOT NULL THEN tac.DATA_AGRUPAMENTO ELSE tci.DATA_CONTAGEM END) <= '{data_fim}'
   ORDER BY DATA_CONTAGEM DESC
   ''')
 
@@ -1336,4 +1344,36 @@ def GET_IMPOSTO_SIMPLES():
         tais.DATA_INICIO_VIGENCIA AS 'Data Inicio',
         tais.DATA_FIM_VIGENCIA AS 'Data Fim'                                                                                               
     FROM T_ALIQUOTAS_IMPOSTO_SIMPLES AS tais;                                                                                                                                                
+    ''')
+
+
+@st.cache_data
+def GET_BILHETERIAS():
+    return dataframe_query(f'''
+    SELECT
+        te.ID AS 'ID_Casa',
+        te.NOME_FANTASIA AS 'Casa',
+        # 'Bilheteria' AS 'Categoria',
+        tpb.NOME_PLATAFORMA AS 'Plataforma',
+        DATE(tfb.DATA_COMPETENCIA) AS 'Data Competência',
+        DATE(tfb.DATA_COMPRA) AS 'Data Compra',
+        tfb.DESCRICAO AS 'Descrição',
+        tfb.REBATE AS 'Rebate',
+        tfb.QUANTIDADE AS 'Qtde',
+        tfb.VALOR_INGRESSO AS 'Valor Ingresso',
+        CASE
+           WHEN te.ID = 128 THEN (tfb.VALOR_INGRESSO * tfb.QUANTIDADE) 
+           WHEN te.ID = 145 THEN tfb.VALOR_BRUTO             
+        END AS 'Valor Bruto',
+        tfb.VALOR_DESCONTOS AS 'Desconto',
+        CASE
+           WHEN te.ID = 128 THEN (tfb.VALOR_INGRESSO * tfb.QUANTIDADE - tfb.VALOR_DESCONTOS) 
+           WHEN te.ID = 145 THEN (tfb.VALOR_BRUTO - tfb.VALOR_DESCONTOS)            
+        END AS 'Valor Liquido'
+	FROM T_FATURAMENTO_BILHETERIA tfb
+	INNER JOIN T_EMPRESAS te ON te.ID = tfb.FK_EMPRESA
+	INNER JOIN T_PLATAFORMAS_BILHETERIA tpb ON tpb.ID = tfb.FK_PLATAFORMA_VENDA
+	WHERE tfb.FK_EMPRESA IN (128, 145) # Adicionar outras casas depois
+	AND STR_TO_DATE(tfb.DATA_COMPETENCIA, '%Y-%m-%d') >= '2026-06-01 00:00:00'
+	ORDER BY tfb.DATA_COMPETENCIA;
     ''')
