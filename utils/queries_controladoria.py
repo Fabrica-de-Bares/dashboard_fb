@@ -385,7 +385,8 @@ def GET_HEADCOUNT_PESSOAS():
       thp.ANO AS 'Ano',
       thp.CARGO,
       thp.VALOR AS 'Valor',
-      thp.TIPO_DADO AS 'Tipo Dado'                                                                                                               
+      thp.TIPO_DADO AS 'Tipo Dado',
+      thp.MODELO_CONTRATACAO AS 'Modelo Contrato'                                                                                                               
     FROM T_HEADCOUNT_PESSOAS AS thp
     LEFT JOIN T_EMPRESAS AS te ON (thp.FK_EMPRESA = te.ID);       
   ''')       

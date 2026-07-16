@@ -312,6 +312,11 @@ def button_download(df, file_name, key):
     # Remove caracteres inválidos e limita a 31 caracteres
     sheet_name = re.sub(r'[\[\]:*?/\\]', '_', str(file_name).strip())[:31]
 
+    # to_excel com index=False não suporta colunas MultiIndex - achata em "Nível1 - Nível2"
+    if isinstance(df.columns, pd.MultiIndex):
+        df = df.copy()
+        df.columns = [' - '.join(str(nivel) for nivel in coluna if str(nivel)) for coluna in df.columns]
+
     with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
         df.to_excel(writer, index=False, sheet_name=f"{sheet_name}")
     excel_data = output.getvalue()
