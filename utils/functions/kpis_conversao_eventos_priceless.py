@@ -385,7 +385,10 @@ def grafico_barras_motivo_declinio(df_eventos, filtro_data):
     }
 
     # Exibir gráfico com captura de clique
-    mes_selecionado = st_echarts(options=option, events=events, height="420px")
+    resultado_clique = st_echarts(options=option, events=events, height="420px")
+    # st_echarts embrulha o retorno do evento num objeto tipo-dict (chave 'chart_event')
+    # nessa versão do Streamlit; em versões mais antigas o retorno já vem "cru"
+    mes_selecionado = resultado_clique.get('chart_event') if hasattr(resultado_clique, 'get') else resultado_clique
 
     # Dicionário para mapear os meses
     meses = {

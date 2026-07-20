@@ -73,8 +73,11 @@ def grafico_barras_repasse_mensal_vencimento(df_parcelas):
     }
 
     # Exibir gráfico com captura de clique
-    mes_selecionado = st_echarts(option, events=events, height=300, width="100%", key="chart_total_repasse_mensal_vencimento")
-    
+    resultado_clique = st_echarts(option, events=events, height=300, width="100%", key="chart_total_repasse_mensal_vencimento")
+    # st_echarts embrulha o retorno do evento num objeto tipo-dict (chave 'chart_event')
+    # nessa versão do Streamlit; em versões mais antigas o retorno já vem "cru"
+    mes_selecionado = resultado_clique.get('chart_event') if hasattr(resultado_clique, 'get') else resultado_clique
+
     # Dicionário para mapear os meses
     meses = {
         "Janeiro": "01",
@@ -175,8 +178,11 @@ def grafico_barras_repasse_mensal_recebimento(df_parcelas):
     }
 
     # Exibir gráfico com captura de clique
-    mes_selecionado = st_echarts(option, events=events, height=300, width="100%", key="chart_total_repasse_mensal_recebimento")
-    
+    resultado_clique = st_echarts(option, events=events, height=300, width="100%", key="chart_total_repasse_mensal_recebimento")
+    # st_echarts embrulha o retorno do evento num objeto tipo-dict (chave 'chart_event')
+    # nessa versão do Streamlit; em versões mais antigas o retorno já vem "cru"
+    mes_selecionado = resultado_clique.get('chart_event') if hasattr(resultado_clique, 'get') else resultado_clique
+
     # Dicionário para mapear os meses
     meses = {
         "Janeiro": "01",

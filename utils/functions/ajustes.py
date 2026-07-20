@@ -301,8 +301,11 @@ def grafico_total_ajustes_mes(df_ajustes_filtrado, lista_ajustes_pos_mes_fmt, li
     }
 
     # Exibe o gráfico
-    mes_selecionado = st_echarts(options=grafico_total_ajustes_mes, events=events, height="400px", width="100%")
-    
+    resultado_clique = st_echarts(options=grafico_total_ajustes_mes, events=events, height="400px", width="100%")
+    # st_echarts embrulha o retorno do evento num objeto tipo-dict (chave 'chart_event')
+    # nessa versão do Streamlit; em versões mais antigas o retorno já vem "cru"
+    mes_selecionado = resultado_clique.get('chart_event') if hasattr(resultado_clique, 'get') else resultado_clique
+
     if not mes_selecionado:
         st.info("Selecione um mês para visualizar os ajustes correspondentes")
 

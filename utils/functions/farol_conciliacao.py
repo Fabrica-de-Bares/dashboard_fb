@@ -354,7 +354,10 @@ def grafico_dias_nao_conciliados_mes(casas_validas, lista_casas, mes_selecionado
         "click": "function(params) { return params.seriesName; }"
     }
     
-    casa_selecionada = st_echarts(options=grafico_dias_nao_conciliados_mes, events=events, height="550px", width="100%")
+    resultado_clique = st_echarts(options=grafico_dias_nao_conciliados_mes, events=events, height="550px", width="100%")
+    # st_echarts embrulha o retorno do evento num objeto tipo-dict (chave 'chart_event')
+    # nessa versão do Streamlit; em versões mais antigas o retorno já vem "cru"
+    casa_selecionada = resultado_clique.get('chart_event') if hasattr(resultado_clique, 'get') else resultado_clique
 
     if not casa_selecionada:
         st.info("Selecione uma casa para visualizar os dias não conciliados")
@@ -493,7 +496,10 @@ def grafico_dias_nao_conciliados_trim(df_conciliacao_farol, casas_validas, trime
         "click": "function(params) { return params.seriesName; }"
     }
     
-    casa_selecionada = st_echarts(options=grafico_dias_nao_conciliados_trim, events=events, height="550px", width="100%")
+    resultado_clique = st_echarts(options=grafico_dias_nao_conciliados_trim, events=events, height="550px", width="100%")
+    # st_echarts embrulha o retorno do evento num objeto tipo-dict (chave 'chart_event')
+    # nessa versão do Streamlit; em versões mais antigas o retorno já vem "cru"
+    casa_selecionada = resultado_clique.get('chart_event') if hasattr(resultado_clique, 'get') else resultado_clique
 
     if not casa_selecionada:
         st.info("Selecione uma casa para visualizar os dias não conciliados")

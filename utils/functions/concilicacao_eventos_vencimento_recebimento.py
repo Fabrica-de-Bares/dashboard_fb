@@ -144,7 +144,10 @@ def grafico_barras_vencimento_x_recebimento(df_parcelas_recebimento, df_parcelas
         "click": "function(params) { return params.name; }"
     }
     # Exibir gráfico com captura de clique
-    mes_selecionado = st_echarts(option, events=events, height="320px", width="100%", key="chart_vencimento_recebimento")
+    resultado_clique = st_echarts(option, events=events, height="320px", width="100%", key="chart_vencimento_recebimento")
+    # st_echarts embrulha o retorno do evento num objeto tipo-dict (chave 'chart_event')
+    # nessa versão do Streamlit; em versões mais antigas o retorno já vem "cru"
+    mes_selecionado = resultado_clique.get('chart_event') if hasattr(resultado_clique, 'get') else resultado_clique
 
     # Dicionário para mapear os meses
     meses = {

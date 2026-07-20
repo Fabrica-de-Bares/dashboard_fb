@@ -430,7 +430,10 @@ def grafico_barras_total_eventos(df_parcelas, tipo_data, df_orcamentos, lista_id
         "click": "function(params) { return params.name; }"
     }
 
-    mes_selecionado = st_echarts(option, events=events, height="320px", width="100%", key=f"chart_total_eventos_{tipo_data}")
+    resultado_clique = st_echarts(option, events=events, height="320px", width="100%", key=f"chart_total_eventos_{tipo_data}")
+    # st_echarts embrulha o retorno do evento num objeto tipo-dict (chave 'chart_event')
+    # nessa versão do Streamlit; em versões mais antigas o retorno já vem "cru"
+    mes_selecionado = resultado_clique.get('chart_event') if hasattr(resultado_clique, 'get') else resultado_clique
 
     if exibir_parcelas:
         _exibir_parcelas_total_eventos(df_parcelas, tipo_data, mes_selecionado)
@@ -557,8 +560,11 @@ def grafico_barras_locacao_priceless(df_parcelas, df_eventos, tipo_data, espaco,
     }
 
     # Exibir gráfico com captura de clique
-    mes_selecionado = st_echarts(option, events=events, height=300, width="100%", key=key)
-    
+    resultado_clique = st_echarts(option, events=events, height=300, width="100%", key=key)
+    # st_echarts embrulha o retorno do evento num objeto tipo-dict (chave 'chart_event')
+    # nessa versão do Streamlit; em versões mais antigas o retorno já vem "cru"
+    mes_selecionado = resultado_clique.get('chart_event') if hasattr(resultado_clique, 'get') else resultado_clique
+
     # Dicionário para mapear os meses
     meses = {
         "Janeiro": "01",
@@ -701,8 +707,11 @@ def grafico_barras_faturamento_categoria_evento(df_parcelas, tipo_data, categori
     }
 
     # Exibir gráfico com captura de clique
-    mes_selecionado = st_echarts(option, events=events, height="320px", width="100%", key=f"chart_faturamento_{categoria_evento}")
-    
+    resultado_clique = st_echarts(option, events=events, height="320px", width="100%", key=f"chart_faturamento_{categoria_evento}")
+    # st_echarts embrulha o retorno do evento num objeto tipo-dict (chave 'chart_event')
+    # nessa versão do Streamlit; em versões mais antigas o retorno já vem "cru"
+    mes_selecionado = resultado_clique.get('chart_event') if hasattr(resultado_clique, 'get') else resultado_clique
+
     # Dicionário para mapear os meses
     meses = {
         "Jan": "01",
@@ -857,4 +866,4 @@ def grafico_linhas_faturamento_classificacoes_evento(df_eventos, lista_ids_casa,
         "yAxis": [{"type": "value"}],
         "series": series
     }
-    st_echarts(options=option, height="320px")
+    st_echarts(options=option, height="320px", key=f"chart_linhas_faturamento_{coluna_categoria}")
