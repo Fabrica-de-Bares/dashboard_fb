@@ -36,7 +36,7 @@ st.divider()
 col1, col2, col3 = st.columns(3)
 
 with col1:
-    lista_casas_retirar = ['Todas as Casas', 'Bar Brahma - Paulista', 'Blue Note SP (Novo)', 'Blue Note SP (Sala 2)', 'Brahminha', 'Edificio Rolim', 'Priceless', 'Sanduiche comunicação LTDA ', 'Tempus Fugit  Ltda ', 'Terraço Notie Novo', 'The Cavern - Almoço']
+    lista_casas_retirar = ['Todas as Casas', 'Blue Note SP (Novo)', 'Blue Note SP (Sala 2)', 'Brahminha', 'Edificio Rolim', 'Priceless', 'Sanduiche comunicação LTDA ', 'Tempus Fugit  Ltda ', 'Terraço Notie Novo', 'The Cavern - Almoço']
     id_casa, casa, id_zigpay = input_selecao_casas(lista_casas_retirar, 'casa')
     
 with col2:
@@ -56,6 +56,9 @@ if tipo_valor == 'Orçamento Operacional':
         st.warning(f'Sem dados de orçamento de {ano} para o plano de contas Fábrica de Bares (2025).')
         st.stop()
     elif casa == 'The Cavern' and (ano < 2026):
+        st.warning(f'{casa} sem dados para {ano}.')
+        st.stop()
+    elif casa == 'Bar Brahma - Paulista' and ano <= 2026:
         st.warning(f'{casa} sem dados para {ano}.')
         st.stop()
 

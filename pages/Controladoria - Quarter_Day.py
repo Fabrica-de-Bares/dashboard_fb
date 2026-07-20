@@ -33,7 +33,7 @@ with col2:
     st.button(label='Atualizar dados', key='atualizar_forecast', on_click=st.cache_data.clear)
 st.divider()
 
-lista_retirar_casas = ['Todas as Casas', 'Bar Brahma - Paulista', 'Bar Léo - Vila Madalena', 'Blue Note SP (Novo)', 'Blue Note SP (Sala 2)', 'Escritório Fabrica de Bares', 'The Cavern', 'The Cavern - Almoço', 'Brahminha', 'Edificio Rolim', 'Priceless', 'Sanduiche comunicação LTDA ', 'Tempus Fugit  Ltda ', 'Terraço Notie Novo']
+lista_retirar_casas = ['Todas as Casas', 'Bar Léo - Vila Madalena', 'Blue Note SP (Novo)', 'Blue Note SP (Sala 2)', 'Escritório Fabrica de Bares', 'The Cavern', 'The Cavern - Almoço', 'Brahminha', 'Edificio Rolim', 'Priceless', 'Sanduiche comunicação LTDA ', 'Tempus Fugit  Ltda ', 'Terraço Notie Novo']
 id_casa, casa, id_zigpay = input_selecao_casas(lista_retirar_casas, key='faturamento_bruto', agregado=True)
 
 
@@ -46,6 +46,10 @@ df_ticket_medio_clientes = GET_TICKET_MEDIO_CLIENTES()
 
 
 categorias_quarter = ['Faturamento Bruto', 'Faturamento Bruto - Alimentos', 'Faturamento Bruto - Bebidas', 'Ticket Médio - A&B', 'Nº de Clientes', 'Faturamento Eventos', 'Faturamento - Artístico', 'Faturamento Delivery', 'CMV', 'EBITDA']
+
+if df_orcamento_operacional[df_orcamento_operacional['Casa'] == casa].empty or df_historico_real_dre[df_historico_real_dre['Casa'] == casa].empty:
+    st.warning(f"Sem dados de orçamento/faturamento lançados para {casa}.")
+    st.stop()
 
 for categoria in (categorias_quarter):
     if categoria == 'Faturamento Bruto': class_cont = ['FATURAMENTO BRUTO']

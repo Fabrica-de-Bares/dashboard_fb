@@ -48,7 +48,7 @@ col1, col2, col3 = st.columns(3)
 
 with col1:
     # casas = df_casas['Casa'].tolist()
-    casas = ['Todas as casas', 'Arcos', 'Bar Brahma - Centro', 'Bar Brahma - Granja', 'Bar Léo - Centro', 'Blue Note - São Paulo', 'BNSP', 'Edificio Rolim', 'Girondino', 'Girondino - CCBB', 'Jacaré', 'Love Cabaret', 'Orfeu', 'Riviera Bar', 'Terraço Notiê', 'The Cavern']
+    casas = ['Todas as casas', 'Arcos', 'Bar Brahma - Centro', 'Bar Brahma - Granja', 'Bar Brahma - Paulista', 'Bar Léo - Centro', 'Blue Note - São Paulo', 'BNSP', 'Edificio Rolim', 'Girondino', 'Girondino - CCBB', 'Jacaré', 'Love Cabaret', 'Orfeu', 'Riviera Bar', 'Terraço Notiê', 'The Cavern']
     casa = st.selectbox("Selecione uma casa:", casas)
     if casa == 'Todas as casas':
         nome_casa = None
