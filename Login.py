@@ -59,6 +59,7 @@ ABAS = {
     142: {'nome_aba': '💰 Orçamento Operacional', 'page_link': 'pages/Planejamento - Orçamento_Operacional.py'},
     145: {'nome_aba': "👥 Headcount de Pessoas", 'page_link': 'pages/Planejamento - Headcount_Pessoas.py'},
     146: {'nome_aba': "👥 Headcount de Pessoas e Remuneração", 'page_link': 'pages/Planejamento - Headcount_Pessoas_Remuneracao.py'},
+    150: {'nome_aba': "⚠️ Lançamentos Fora do Prazo", 'page_link': 'pages/Fluxo_de_Caixa - Lançamentos_Fora_do_Prazo.py'},
 }
 
 def main():

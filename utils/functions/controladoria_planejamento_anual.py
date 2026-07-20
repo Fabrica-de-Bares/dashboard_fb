@@ -1,4 +1,3 @@
-import re
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -373,29 +372,10 @@ def highlight_secoes_headcount(row):
 
 # --- Helpers compartilhados para separar análises de Headcount/Remuneração por CLT x PJ ---
 # Um cargo CLT é diferente de um cargo PJ mesmo com o mesmo nome: essas funções garantem que
-# pivot/groupby nunca misturem (soma/média) linhas de modelos de contrato diferentes.
-
-def cargo_sem_nivel(cargo):
-    return re.sub(r'\s+[IVX]+$', '', cargo).strip()
-
-
-def remapeador_cargo_base(*conjuntos_de_cargos):
-    """Fecha sobre o conjunto de cargos-base existentes em `conjuntos_de_cargos` (tipicamente
-    aprovado + efetivo de UM ÚNICO modelo de contrato) e devolve uma função que remapeia
-    variações de nível (ex: "GARÇOM I" -> "GARÇOM") pro cargo-base, quando ele existir nesse
-    mesmo conjunto. Chamar uma vez por modelo de contrato, nunca globalmente — remapear antes
-    de separar por modelo pode fundir um nível CLT com um cargo-base PJ (ou vice-versa)."""
-    todos_cargos = set()
-    for conjunto in conjuntos_de_cargos:
-        todos_cargos |= set(conjunto)
-    cargos_base_existentes = {cargo for cargo in todos_cargos if cargo_sem_nivel(cargo) == cargo}
-
-    def remapear(cargo):
-        cargo_base = cargo_sem_nivel(cargo)
-        return cargo_base if cargo_base != cargo and cargo_base in cargos_base_existentes else cargo
-
-    return remapear
-
+# pivot/groupby nunca misturem (soma/média) linhas de modelos de contrato diferentes. Cargos só
+# se cruzam entre Aprovado/Efetivo/Orçado/Real quando têm o MESMO nome (após normaliza_nomes_cargo
+# do lado Aprovado) — níveis diferentes (ex: "HOSTESS" e "HOSTESS I") NÃO são unificados, contam
+# como cargos distintos.
 
 def monta_cruzamento(df_a, df_b, rotulo_a, rotulo_b, colunas_periodo):
     """Substitui o bloco reindex+concat+swaplevel+MultiIndex hoje duplicado entre headcount
@@ -421,6 +401,9 @@ def normaliza_nomes_cargo(serie_cargo):
     serie_cargo = serie_cargo.str.replace('AJUD LIMPEZA', 'AUXILIAR DE LIMPEZA', regex=True)
     serie_cargo = serie_cargo.str.replace('AJUD COZINHA', 'AJUDANTE DE COZINHA', regex=True)
     serie_cargo = serie_cargo.str.replace('CUMIN', 'CUMIM', regex=True)
+    serie_cargo = serie_cargo.str.replace('BAR BACK', 'BARBACK', regex=True)
+    serie_cargo = serie_cargo.str.replace('CHEFE DA PORTARIA', 'CHEFE DE PORTARIA', regex=True)
+
     return serie_cargo
 
 
@@ -428,7 +411,7 @@ def constroi_aprovado(df_num_colaboradores_raw, modelo_contrato, nomes_meses, co
     """Retorna (df_exibicao com linha de TOTAL, df_styled, height, df_para_cruzamento indexado
     por CARGO normalizado — sem a linha de TOTAL, pra não entrar em duplicidade nos cruzamentos)."""
     df_filtrado = df_num_colaboradores_raw[df_num_colaboradores_raw['Modelo Contrato'] == modelo_contrato]
-    pivot = df_filtrado.pivot_table(index='CARGO', columns='Mês', values='Valor', sort=False).reset_index()
+    pivot = df_filtrado.pivot_table(index='CARGO', columns='Mês', values='Valor', aggfunc='sum', sort=False).reset_index()
     pivot = pivot.rename(columns=nomes_meses)
     for col in colunas_meses:
         if col not in pivot.columns:
@@ -518,25 +501,20 @@ def constroi_remuneracao_real(df_remuneracao_real_mes, modelo_contrato, nomes_me
 
 
 def remapeia_headcount(df_aprovado_cru, df_efetivo_cru):
-    """Remapeia níveis de cargo (ex: "GARÇOM I" -> "GARÇOM") pro cargo-base, agrupando as
-    linhas que colapsam pro mesmo cargo. Retorna (remapear, df_aprovado, df_efetivo) — o
-    remapeador é devolvido pra ser reaproveitado na remuneração do mesmo modelo de contrato."""
-    remapear = remapeador_cargo_base(df_aprovado_cru.index, df_efetivo_cru.index)
-    df_aprovado = df_aprovado_cru.rename(index=remapear).groupby(level=0).sum()
-    df_efetivo = df_efetivo_cru.rename(index=remapear).groupby(level=0).sum()
+    """Consolida linhas cujo CARGO (já normalizado/uppercased) é EXATAMENTE igual — não unifica
+    níveis diferentes (ex: "HOSTESS" e "HOSTESS I" contam como cargos distintos)."""
+    df_aprovado = df_aprovado_cru.groupby(level=0).sum()
+    df_efetivo = df_efetivo_cru.groupby(level=0).sum()
     todos_cargos = df_aprovado.index.union(df_efetivo.index)
-    return remapear, df_aprovado.reindex(todos_cargos).fillna(0), df_efetivo.reindex(todos_cargos).fillna(0)
+    return df_aprovado.reindex(todos_cargos).fillna(0), df_efetivo.reindex(todos_cargos).fillna(0)
 
 
-def remapeia_remuneracao(remapear, df_orcado_cru, df_remuneracao_real_mes, modelo_contrato, nomes_meses, colunas_meses_efetivo):
-    """Espelha exatamente o comportamento original: reusa o remapeador do headcount (mesmo
-    modelo) pra normalizar níveis também na remuneração orçada, tira média das linhas que
-    colapsam pro mesmo cargo-base (0 não entra na média)."""
-    df_orcado = df_orcado_cru.rename(index=remapear)
-    df_orcado = df_orcado.replace(0, pd.NA).groupby(level=0).mean()
+def remapeia_remuneracao(df_orcado_cru, df_remuneracao_real_mes, modelo_contrato, nomes_meses, colunas_meses_efetivo):
+    """Tira média das linhas cujo CARGO é EXATAMENTE igual (0 não entra na média)."""
+    df_orcado = df_orcado_cru.replace(0, pd.NA).groupby(level=0).mean()
 
     df_pessoas = df_remuneracao_real_mes[df_remuneracao_real_mes['Vínculo'] == modelo_contrato].copy()
-    df_pessoas['Cargo'] = df_pessoas['Cargo'].str.upper().apply(remapear)
+    df_pessoas['Cargo'] = df_pessoas['Cargo'].str.upper()
     df_real = (
         df_pessoas.groupby(['MES', 'Cargo'])['Salário'].mean()
         .reset_index().pivot_table(index='Cargo', columns='MES', values='Salário', sort=False)
@@ -545,6 +523,33 @@ def remapeia_remuneracao(remapear, df_orcado_cru, df_remuneracao_real_mes, model
 
     todos_cargos = df_orcado.index.union(df_real.index)
     return df_orcado.reindex(todos_cargos), df_real.reindex(todos_cargos)
+
+
+def pondera_remuneracao_orcada_por_headcount(df_num_colaboradores_raw, df_remuneracao_raw, modelo_contrato, nomes_meses, colunas_meses_efetivo):
+    """Salário orçado médio ponderado pelo Aprovado de cada casa (Tipo Dado = 'Nº COLABORADORES'),
+    usado só no Impacto Financeiro — garante que Custo Orçado = Aprovado x Orçado bata com a soma
+    do custo calculado casa a casa, em vez de usar a média simples entre casas (que distorce
+    quando o aprovado ou o salário variam bastante de uma casa pra outra)."""
+    df_aprovado = df_num_colaboradores_raw[df_num_colaboradores_raw['Modelo Contrato'] == modelo_contrato][['ID Casa', 'CARGO', 'Mês', 'Valor']].copy()
+    df_aprovado['CARGO'] = normaliza_nomes_cargo(df_aprovado['CARGO'])
+    # Soma linhas com o MESMO CARGO dentro da MESMA casa (mesmo critério de remapeia_headcount)
+    df_aprovado = df_aprovado.groupby(['ID Casa', 'CARGO', 'Mês'], as_index=False)['Valor'].sum().rename(columns={'Valor': 'Aprovado'})
+
+    df_orcado = df_remuneracao_raw[df_remuneracao_raw['Modelo Contrato'] == modelo_contrato][['ID Casa', 'CARGO', 'Mês', 'Valor']].copy()
+    df_orcado['CARGO'] = normaliza_nomes_cargo(df_orcado['CARGO'])
+    # Tira média das linhas com o MESMO CARGO dentro da MESMA casa (0 não entra na média, mesmo critério de remapeia_remuneracao)
+    df_orcado['Valor'] = df_orcado['Valor'].replace(0, pd.NA)
+    df_orcado = df_orcado.groupby(['ID Casa', 'CARGO', 'Mês'], as_index=False)['Valor'].mean().rename(columns={'Valor': 'Orcado'})
+
+    df_merge = df_aprovado.merge(df_orcado, on=['ID Casa', 'CARGO', 'Mês'], how='inner')
+    df_merge['Custo'] = df_merge['Aprovado'] * df_merge['Orcado']
+
+    agrupado = df_merge.groupby(['CARGO', 'Mês'])[['Custo', 'Aprovado']].sum()
+    ponderado = (agrupado['Custo'] / agrupado['Aprovado'].replace(0, pd.NA)).rename('OrcadoPonderado').reset_index()
+
+    pivot = ponderado.pivot_table(index='CARGO', columns='Mês', values='OrcadoPonderado', sort=False)
+    pivot = pivot.rename(columns=nomes_meses).reindex(columns=colunas_meses_efetivo)
+    return pivot
 
 
 def destaca_diferenca(valor):

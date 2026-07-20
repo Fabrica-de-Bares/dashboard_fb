@@ -532,3 +532,24 @@ def GET_FATURAMENTO_REAL():
 	GROUP BY te.ID, tzf.DATA
 ''')
 
+@st.cache_data
+def GET_DESPESAS_FORA_PRAZO():
+  return dataframe_query(f'''
+  SELECT 
+    te.ID AS 'ID Casa',
+    te.NOME_FANTASIA AS 'Casa',
+    tdr.ID AS 'ID Despesa',
+    DATE(tdr.COMPETENCIA) AS 'Data Competência',
+    tf.ID AS 'ID Fornecedor',
+    tf.CORPORATE_NAME AS 'Fornecedor',
+    tdr.VALOR_LIQUIDO AS 'Valor Líquido',
+    tdr.VALOR_PAGAMENTO AS 'Valor Pagamento',
+    DATE(tdr.LANCAMENTO) AS 'Data Lançamento',
+    DATE(tdr.VENCIMENTO) AS 'Data Vencimento',
+    DATE(tdr.VENCIMENTO) - DATE(tdr.LANCAMENTO) AS 'Dias de Antecedência'
+  FROM T_DESPESA_RAPIDA tdr 
+  INNER JOIN T_EMPRESAS te ON te.ID = tdr.FK_LOJA
+  INNER JOIN T_FORNECEDOR tf ON tf.ID = tdr.FK_FORNECEDOR
+  WHERE DATE(tdr.VENCIMENTO) - DATE(tdr.LANCAMENTO) < 15
+    AND DATE(tdr.VENCIMENTO) >= 2025
+  ''')

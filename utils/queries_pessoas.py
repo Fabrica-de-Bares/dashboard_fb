@@ -4,7 +4,8 @@ from utils.functions.general_functions import dataframe_query
 from utils.constants.general_constants import casas_validas
 
 @st.cache_data
-def GET_FUNCIONARIOS_ATIVOS(id_casa, dt_inicio, dt_fim):
+def GET_FUNCIONARIOS_ATIVOS(lista_ids_casas, dt_inicio, dt_fim):
+    ids_str = ', '.join(str(i) for i in lista_ids_casas)
     return dataframe_query(f'''
         SELECT DISTINCT
             CASE
@@ -42,7 +43,7 @@ def GET_FUNCIONARIOS_ATIVOS(id_casa, dt_inicio, dt_fim):
                 WHEN te.ID = 131 THEN 110 -- Blue Note SP (Novo) cadastrado incorretamente, correto é Blue Note - São Paulo
                 ELSE te.ID
             END
-        ) = '{id_casa}'
+        ) IN ({ids_str})
             AND tshf.FK_FUNCIONARIO_STATUS = 100
             AND DATE(tshf.DATA_INICIO_VIGENCIA) <= '{dt_fim}'
             AND COALESCE(DATE(tshf.DATA_FIM_VIGENCIA), '{dt_fim}') >= '{dt_inicio}'
@@ -50,7 +51,8 @@ def GET_FUNCIONARIOS_ATIVOS(id_casa, dt_inicio, dt_fim):
 ''')
 
 @st.cache_data
-def GET_FUNCIONARIOS_ATIVOS_POR_MES(id_casa, ano):
+def GET_FUNCIONARIOS_ATIVOS_POR_MES(lista_ids_casas, ano):
+    ids_str = ', '.join(str(i) for i in lista_ids_casas)
     return dataframe_query(f'''
         WITH meses AS (
             SELECT 1 AS MES UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4
@@ -98,13 +100,14 @@ def GET_FUNCIONARIOS_ATIVOS_POR_MES(id_casa, ano):
                     WHEN te.ID = 131 THEN 110 -- Blue Note SP (Novo) cadastrado incorretamente, correto é Blue Note - São Paulo
                     ELSE te.ID
                 END
-            ) = '{id_casa}'
+            ) IN ({ids_str})
         GROUP BY hm.MES, tscf.DESCRICAO, tstvf.DESCRICAO
         ORDER BY hm.MES, tscf.DESCRICAO
 ''')
 
 @st.cache_data
-def GET_REMUNERACAO_REAL_POR_MES(id_casa, ano):
+def GET_REMUNERACAO_REAL_POR_MES(lista_ids_casas, ano):
+    ids_str = ', '.join(str(i) for i in lista_ids_casas)
     return dataframe_query(f'''
         WITH meses AS (
             SELECT 1 AS MES UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4
@@ -151,14 +154,14 @@ def GET_REMUNERACAO_REAL_POR_MES(id_casa, ano):
             ON ficha_atual.CPF = tsf.CPF
             AND ficha_atual.VERBA = 'Salário Mês c/ Adic.'
             AND ficha_atual.PROCESSO = '1 - Mensal'
-            AND ficha_atual.FK_CASA = '{id_casa}'
+            AND ficha_atual.FK_CASA IN ({ids_str})
             AND ficha_atual.REFERENCIA = DATE_FORMAT(STR_TO_DATE(CONCAT('{ano}-', hm.MES, '-01'), '%Y-%m-%d'), '%m%Y')
         -- Fallback: se não houver ficha financeira do mês corrente, usa a do mês anterior
         LEFT JOIN T_FICHA_FINANCEIRA_SINERGY ficha_anterior
             ON ficha_anterior.CPF = tsf.CPF
             AND ficha_anterior.VERBA = 'Salário Mês c/ Adic.'
             AND ficha_anterior.PROCESSO = '1 - Mensal'
-            AND ficha_anterior.FK_CASA = '{id_casa}'
+            AND ficha_anterior.FK_CASA IN ({ids_str})
             AND ficha_anterior.REFERENCIA = DATE_FORMAT(DATE_SUB(STR_TO_DATE(CONCAT('{ano}-', hm.MES, '-01'), '%Y-%m-%d'), INTERVAL 1 MONTH), '%m%Y')
         WHERE hm.rn = 1
             AND (
@@ -168,6 +171,6 @@ def GET_REMUNERACAO_REAL_POR_MES(id_casa, ano):
                     WHEN te.ID = 131 THEN 110
                     ELSE te.ID
                 END
-            ) = '{id_casa}'
+            ) IN ({ids_str})
         ORDER BY hm.MES, tscf.DESCRICAO, tsf.NOME
 ''')
