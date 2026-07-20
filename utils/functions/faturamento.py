@@ -845,7 +845,9 @@ def grafico_linhas_faturamento_classificacoes_evento(df_eventos, lista_ids_casa,
             "valueFormatter": JsCode("function (value) { return 'R$ ' + Number(value).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2}); }").js_code
         },
         "legend": {
-            "data": list(valores_por_categoria.keys())
+            "data": list(valores_por_categoria.keys()),
+            "top": "top",
+            "type": "scroll"
         },
         "toolbox": {
             "feature": {
@@ -856,6 +858,7 @@ def grafico_linhas_faturamento_classificacoes_evento(df_eventos, lista_ids_casa,
             "left": "3%",
             "right": "4%",
             "bottom": "3%",
+            "top": "18%",
             "containLabel": True
         },
         "xAxis": [{
@@ -866,4 +869,4 @@ def grafico_linhas_faturamento_classificacoes_evento(df_eventos, lista_ids_casa,
         "yAxis": [{"type": "value"}],
         "series": series
     }
-    st_echarts(options=option, height="320px", key=f"chart_linhas_faturamento_{coluna_categoria}")
+    st_echarts(options=option, height="360px", key=f"chart_linhas_faturamento_{coluna_categoria}")
