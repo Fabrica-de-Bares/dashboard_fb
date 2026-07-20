@@ -239,7 +239,7 @@ with st.container(border=True):
     st.subheader('Alteração de despesas após data de fechamento da DRE')
     col1, col2 = st.columns(2)
     with col1:
-        lista_retirar_casas = ['Todas as Casas', 'Bar Brahma - Paulista', 'Brahminha', 'Bar Léo - Vila Madalena', 'Blue Note SP (Novo)', 'Blue Note SP (Sala 2)', 'Edificio Rolim', 'Sanduiche comunicação LTDA ', 'Tempus Fugit  Ltda ', 'Terraço Notie', 'The Cavern - Almoço']
+        lista_retirar_casas = ['Todas as Casas', 'Brahminha', 'Bar Léo - Vila Madalena', 'Blue Note SP (Novo)', 'Blue Note SP (Sala 2)', 'Edificio Rolim', 'Sanduiche comunicação LTDA ', 'Tempus Fugit  Ltda ', 'Terraço Notie', 'Terraço Notie Novo', 'The Cavern - Almoço']
         id_casa, casa, id_zigpay = input_selecao_casas(lista_retirar_casas, key='seletor_casas_despesas')	
     with col2:
         mes_competencia_selecionado = int(seletor_mes("Selecione o mês da DRE", key="seletor_mes_despesas"))
