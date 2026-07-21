@@ -472,7 +472,7 @@ WHERE te.ID in (149)
 @st.cache_data
 def DRE_AUT_FOLHA(ids_casa):
   return dataframe_query(f'''
-  WITH funcionarios_ativos_periodo AS (
+    WITH funcionarios_ativos_periodo AS (
     SELECT DISTINCT
         te.ID AS id_casa,
         te.NOME_FANTASIA AS casa,
@@ -486,7 +486,7 @@ def DRE_AUT_FOLHA(ids_casa):
     INNER JOIN T_SINERGY_CARGOS_FUNCIONARIOS tscf ON tscf.ID = tshf.FK_CARGOS_FUNCIONARIOS
     INNER JOIN T_SINERGY_FILIAIS tsf2 ON tsf2.ID = tshf.FK_FILIAL
     INNER JOIN T_EMPRESAS te ON te.ID = tsf2.FK_EMPRESA
-    WHERE te.ID IN ({ids_casa}) <- lugar onde você define a casa
+    WHERE te.ID IN ({ids_casa})   -- <- único lugar onde você define a casa
 )
 SELECT
     fa.id_casa AS 'ID_CASA',
