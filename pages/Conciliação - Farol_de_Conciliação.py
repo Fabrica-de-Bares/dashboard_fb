@@ -51,7 +51,7 @@ with col1:
 
 # Seletor de ano
 with col2:
-    ano_farol = seletor_ano(2024, 2026, 'ano_farol')
+    ano_farol = seletor_ano(2025, 2026, 'ano_farol')
     
 st.divider()
 

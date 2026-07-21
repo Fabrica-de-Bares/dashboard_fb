@@ -576,11 +576,14 @@ def df_farol_conciliacao_casa_mes(df_conciliacao_farol, casa_selecionada, lista_
     for casa in lista_casas_mes:  
         lista_indices = [i for i, valor in enumerate(casa) if valor != 0]  
         lista_meses_nao_conciliados_casa.append(lista_indices)  
-
-    for mes_nao_conciliado in lista_meses_nao_conciliados_casa[indice_casa]:
-        st.markdown(f"<h4>{nomes_meses[mes_nao_conciliado]}</h4>", unsafe_allow_html=True)
-        df_dias_nao_conciliados_casa, qtd_dias_nao_conciliados = dias_nao_conciliados_casa_mes(df_conciliacao_farol, casa_selecionada, mes_nao_conciliado, ano_farol, datas_completas)
-        df_dias_nao_conciliados_casa_fmt = formata_df(df_dias_nao_conciliados_casa)
-        st.dataframe(df_dias_nao_conciliados_casa_fmt, hide_index=True)
-        st.write(f'**Quantidade de dias não conciliados:** {qtd_dias_nao_conciliados}')
-        st.divider()
+    
+    if len(lista_meses_nao_conciliados_casa[indice_casa]) == 0:
+        st.success("Todos os meses estão conciliados!")
+    else:
+        for mes_nao_conciliado in lista_meses_nao_conciliados_casa[indice_casa]:
+            st.markdown(f"<h4>{nomes_meses[mes_nao_conciliado]}</h4>", unsafe_allow_html=True)
+            df_dias_nao_conciliados_casa, qtd_dias_nao_conciliados = dias_nao_conciliados_casa_mes(df_conciliacao_farol, casa_selecionada, mes_nao_conciliado, ano_farol, datas_completas)
+            df_dias_nao_conciliados_casa_fmt = formata_df(df_dias_nao_conciliados_casa)
+            st.dataframe(df_dias_nao_conciliados_casa_fmt, hide_index=True)
+            st.write(f'**Quantidade de dias não conciliados:** {qtd_dias_nao_conciliados}')
+            st.divider()
