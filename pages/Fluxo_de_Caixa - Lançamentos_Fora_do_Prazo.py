@@ -71,15 +71,72 @@ with col1:
 with col2:
     st.metric(label='Antecedência média das despesas', value=f'{media_prazo:.1f} dias' if pd.notna(media_prazo) else '—', border=True)
 
+# "Todas as Casas" é sempre selecionada sozinha (ver input_multiselecao_casas) — mesma checagem usada lá
+casas_selecionadas_raw = st.session_state.get('calendario', [])
+todas_as_casas_selecionada = bool(casas_selecionadas_raw) and casas_selecionadas_raw[0] == 'Todas as Casas'
+
+if todas_as_casas_selecionada:
+    st.divider()
+    st.markdown('### Comparativo entre Casas')
+    if df_despesas_fora_prazo.empty:
+        st.info('Sem despesas fora do prazo no período pra montar o comparativo.')
+    else:
+        df_resumo_casas = df_despesas_fora_prazo.groupby('Casa').agg(
+            **{
+                'Nº Despesas Fora do Prazo': ('ID Despesa', 'count'),
+                'Antecedência Média (dias)': ('Dias de Antecedência', 'mean'),
+            }
+        ).reset_index()
+
+        col1, col2 = st.columns(2)
+        with col1:
+            df_qtd_ordenado = df_resumo_casas.sort_values('Nº Despesas Fora do Prazo', ascending=False)
+            options_qtd_por_casa = {
+                "tooltip": {"trigger": "axis"},
+                "grid": {"left": "60", "right": "4%", "bottom": "20%", "containLabel": True},
+                "xAxis": [{
+                    "type": "category",
+                    "data": df_qtd_ordenado['Casa'].tolist(),
+                    "axisLabel": {"rotate": 45, "fontSize": 10},
+                }],
+                "yAxis": [{"type": "value", "name": "Nº de Despesas", "nameLocation": "middle", "nameGap": 40}],
+                "series": [{
+                    "name": "Despesas Fora do Prazo",
+                    "type": "bar",
+                    "data": df_qtd_ordenado['Nº Despesas Fora do Prazo'].astype(int).tolist(),
+                    "itemStyle": {"color": "#e34948"},
+                }],
+            }
+            st.caption('Nº de despesas fora do prazo por casa, no período selecionado')
+            st_echarts(options=options_qtd_por_casa, height="400px", key='echarts_qtd_despesas_por_casa')
+
+        with col2:
+            df_prazo_ordenado = df_resumo_casas.sort_values('Antecedência Média (dias)', ascending=False)
+            options_prazo_por_casa = {
+                "tooltip": {"trigger": "axis"},
+                "grid": {"left": "60", "right": "4%", "bottom": "20%", "containLabel": True},
+                "xAxis": [{
+                    "type": "category",
+                    "data": df_prazo_ordenado['Casa'].tolist(),
+                    "axisLabel": {"rotate": 45, "fontSize": 10},
+                }],
+                "yAxis": [{"type": "value", "name": "Dias", "nameLocation": "middle", "nameGap": 40}],
+                "series": [{
+                    "name": "Antecedência Média",
+                    "type": "bar",
+                    "data": df_prazo_ordenado['Antecedência Média (dias)'].round(1).tolist(),
+                    "itemStyle": {"color": "#2a78d6"},
+                }],
+            }
+            st.caption('Antecedência média (dias) das despesas fora do prazo por casa, no período selecionado')
+            st_echarts(options=options_prazo_por_casa, height="400px", key='echarts_prazo_medio_por_casa')
+
 df_despesas_fora_prazo = df_format_date_columns_brazilian(df_despesas_fora_prazo, ['Data Competência', 'Data Lançamento', 'Data Vencimento'])
 
 col1, col2 = st.columns([4, 1], vertical_alignment='center')
+with col1:
+    st.markdown('### Despesas lançadas fora do prazo')
 with col2:
     button_download(df_despesas_fora_prazo, 'despesas_fora_prazo', 'despesas_fora_prazo')
 df_despesas_fora_prazo_styled = df_despesas_fora_prazo.style.map(lambda x: 'font-weight: bold', subset=['Dias de Antecedência'])
 st.dataframe(df_despesas_fora_prazo_styled, hide_index=True, height=35 * 15 + 38)
-
-
-
-
-
