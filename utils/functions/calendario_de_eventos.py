@@ -36,6 +36,7 @@ def dataframe_to_json_calendar(df_eventos, event_color_type=None):
         104: '#898989',  # Orfeu
         115: '#00CCC8',  # Riviera
         145: '#000000',  # Ultra Evil (Rolim)
+        173: '#12b823' # Brahma - Paulista
     }
 
 

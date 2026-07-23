@@ -95,6 +95,10 @@ def main():
                     <span>Bar Brahma - Granja</span>
                 </div>
                 <div style="display: flex; align-items: center;">
+                    <div style="width: 16px; height: 16px; background-color: #12b823; border-radius: 4px; margin-right: 8px;"></div>
+                    <span>Bar Brahma - Paulista</span>
+                </div>
+                <div style="display: flex; align-items: center;">
                     <div style="width: 16px; height: 16px; background-color: #FF2C2C; border-radius: 4px; margin-right: 8px;"></div>
                     <span>Bar Leo Centro</span>
                 </div>
