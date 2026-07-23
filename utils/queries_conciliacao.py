@@ -195,7 +195,7 @@ def GET_PARCELAS_RECEIT_EXTR():
         te.ID = 110 # Blue Note - São Paulo
         AND tsp.DESCRICAO = 'Desconto'
       )
-      AND tsp.DESCRICAO NOT IN ('Permuta')                                        
+      AND tsp.DESCRICAO NOT IN ('Permuta', 'Encontro de Contas')                                        
       ORDER BY te.NOME_FANTASIA ASC, vpa.DATA_RECEBIMENTO DESC
     ''')
     df_parc_receit_extr['Data_Ocorrencia'] = pd.to_datetime(df_parc_receit_extr['Data_Ocorrencia']) 
