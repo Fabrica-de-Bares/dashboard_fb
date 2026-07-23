@@ -1013,14 +1013,16 @@ def DRE_AJUSTES_MANUAIS(ids_casa):
       tam.MES_COMPETENCIA AS 'Mês',
       tam.ANO_COMPETENCIA AS 'Ano',
       tccg1.DESCRICAO AS 'Classificacao_Contabil_1',
-      tccg2.DESCRICAO AS 'Classificacao_Contabil_2',
+      tccg2.DESCRICAO AS 'Classificacao_Contabil_2',                  
       tam.VALOR AS 'Valor Ajuste',
       tam.DESCRICAO AS 'Descrição Ajuste',
-      CONCAT(tam.MES_COMPETENCIA, '/', tam.ANO_COMPETENCIA) AS Mes_Texto
+      CONCAT(tam.MES_COMPETENCIA, '/', tam.ANO_COMPETENCIA) AS Mes_Texto,
+      tcc.DESCRICAO_CARGO_DRE AS 'Cargo_DRE'
     FROM T_AJUSTES_MANUAIS_DRE AS tam
     LEFT JOIN T_EMPRESAS AS te ON (tam.FK_EMPRESA = te.ID)   
     LEFT JOIN T_CLASSIFICACAO_CONTABIL_GRUPO_1 tccg1 ON (tam.FK_CLASSIFICACAO_CONTABIL_1 = tccg1.ID)
     LEFT JOIN T_CLASSIFICACAO_CONTABIL_GRUPO_2 tccg2 ON (tam.FK_CLASSIFICACAO_CONTABIL_2 = tccg2.ID)
+    LEFT JOIN T_CADASTRO_DE_CARGOS tcc ON (tam.CARGO_DRE = tcc.ID)
     WHERE te.ID IN ({ids_casa}) AND tam.BIT_CANCELADO = 0 
     ORDER BY tam.MES_COMPETENCIA DESC, tam.ANO_COMPETENCIA DESC; 
   ''')

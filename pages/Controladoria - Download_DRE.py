@@ -84,16 +84,21 @@ with st.container(border=True):
         status.warning('Preperando dados do arquivo...')
 
         # Carrega dados das abas
-        df_aut_blue_me_sem_pedido = DRE_AUT_BLUE_ME_SEM_PEDIDO(ids_casa_query)
-        df_aut_blue_me_com_pedido = DRE_AUT_BLUE_ME_COM_PEDIDO(ids_casa_query)
+        ## Faturamento
         df_aut_faturamento_zig = DRE_AUT_FATURAMENTO_ZIG(ids_casa_query)
         df_aut_receitas_extraord = DRE_AUT_RECEITAS_EXTRAORD(ids_casa_query)
         if casa in ['Priceless', 'Terraço Notie']: df_bd_eventos_novo = DRE_BD_EVENTOS_NOVO_PRICELESS(ids_casa_query)
         else: df_bd_eventos_novo = DRE_BD_EVENTOS_NOVO(ids_casa_query)
+        ## Ajustes manuais
+        df_aut_ajustes_manuais = DRE_AJUSTES_MANUAIS(ids_casa_query)
+        ## Despesas
+        df_aut_blue_me_sem_pedido = DRE_AUT_BLUE_ME_SEM_PEDIDO(ids_casa_query)
+        df_aut_blue_me_com_pedido = DRE_AUT_BLUE_ME_COM_PEDIDO(ids_casa_query)
         df_aut_folha = DRE_AUT_FOLHA(ids_casa_query)
         df_aut_descontos = DRE_AUT_DESCONTOS(ids_casa_query)
         df_aut_promocoes = DRE_AUT_PROMOCOES_UTILIZADAS(ids_casa_query)
         df_aut_endividamentos = DRE_AUT_ENDIVIDAMENTOS(ids_casa_query)
+        ## CMV
         df_aut_contagem = DRE_AUT_CONTAGEM(ids_casa_query)
         df_aut_precos_insumos = DRE_AUT_PRECOS_INSUMOS(ids_casa_query)
         if casa == 'Love Cabaret': df_aut_valor_estoque = DRE_AUT_VALOR_ESTOQUE_LOVE(ids_casa_query)
@@ -103,7 +108,6 @@ with st.container(border=True):
         df_aut_transferencias = DRE_AUT_TRANSFERENCIAS(ids_casa_query)
         df_aut_consumo_func = DRE_AUT_CONSUMO_FUNCIONARIOS(ids_casa_query)
         df_aut_insumos_prod = DRE_AUT_INSUMOS_PRODUCAO(ids_casa_query)
-        df_aut_ajustes_manuais = DRE_AJUSTES_MANUAIS(ids_casa_query)
 
         abas = {
             'Aut_BlueMe_Sem_Pedido': df_aut_blue_me_sem_pedido,
@@ -145,6 +149,45 @@ with st.container(border=True):
             wb = openpyxl.load_workbook(excel_filename) # Carrega Excel da casa
             for sheet_name, df in abas.items(): # Cria abas
                 export_to_excel(wb, df, sheet_name)
+
+            # Reorganiza a ordem das abas
+            ordem = [
+                'Rateio Despesas Compartilhadas',
+                'DRE',
+                'DRE CCBB',
+                'DRE GIRONDINO',
+                'Aut_BlueMe_Sem_Pedido',
+                'Aut_BlueMe_Com_Pedido',
+                'Aut_Ajustes_Manuais',
+                'Aut_Faturamento_Zig',
+                'Aut_Faturamento_Zig_Delivery',
+                'Aut_Consumo_Cartao_Black',
+                'Aut_Bilheteria',
+                'Aut_Receitas_Extraord',
+                'BD_Eventos_Novo',
+                'BD_Eventos_Concierge',
+                'BD_Eventos Geral',
+                'CMV_Manual',
+                'Aut_Folha',
+                'Aut_Descontos',
+                'Aut_Promocoes_Utilizadas',
+                'Fiscal',
+                'Aut_Endividamentos',
+                'Aut_Contagem',
+                'Aut_Precos_Insumos',
+                'Aut_Valor_Estoque',
+                'Aut_Precos_Consolidados_Mes',
+                'Aut_Eventos_AeB',
+                'Aut_Transferencias',
+                'Aut_Consumo_Funcionarios',
+                'Aut_Insumos_Producao',
+            ]
+
+            for i, nome in enumerate(ordem):
+                if nome in wb.sheetnames:
+                    ws = wb[nome]       # Guarda a referência antes
+                    wb._sheets.remove(ws)
+                    wb._sheets.insert(i, ws)
 
             wb.save(excel_filename) # Salva configurações do Excel
         
