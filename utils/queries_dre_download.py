@@ -472,24 +472,8 @@ WHERE te.ID in (149)
 @st.cache_data
 def DRE_AUT_FOLHA(ids_casa):
   return dataframe_query(f'''
-    WITH funcionarios_ativos_periodo AS (
-    SELECT DISTINCT
-        te.ID AS id_casa,
-        te.NOME_FANTASIA AS casa,
-        tsf.ID AS id_func,
-        tsf.COD_FUNCIONARIO_SINERGY AS cod_func,
-        tsf.CPF AS cpf,
-        tsf.NOME AS nome
-    FROM T_SINERGY_HISTORICO_FUNCIONARIOS tshf
-    INNER JOIN T_SINERGY_FUNCIONARIOS_STATUS tsfs ON tsfs.ID = tshf.FK_FUNCIONARIO_STATUS
-    INNER JOIN T_SINERGY_FUNCIONARIOS tsf ON tsf.ID = tshf.FK_FUNCIONARIO
-    INNER JOIN T_SINERGY_CARGOS_FUNCIONARIOS tscf ON tscf.ID = tshf.FK_CARGOS_FUNCIONARIOS
-    INNER JOIN T_SINERGY_FILIAIS tsf2 ON tsf2.ID = tshf.FK_FILIAL
-    INNER JOIN T_EMPRESAS te ON te.ID = tsf2.FK_EMPRESA
-    WHERE te.ID IN ({ids_casa})   -- <- único lugar onde você define a casa
-)
-SELECT
-    fa.id_casa AS 'ID_CASA',
+  SELECT
+    tffs.FK_CASA AS 'ID_CASA',
     tffs.CNPJ AS 'CNPJ_CASA',
     tffs.NUMERO_MATRICULA AS 'NUM_MATRICULA_FUNC',
     tffs.NOME AS 'NOME_FUNC',
@@ -502,14 +486,10 @@ SELECT
     CONCAT(SUBSTRING(tffs.REFERENCIA, 1, 2), '/', SUBSTRING(tffs.REFERENCIA, 3, 4)) AS 'Mes_Texto',
     tffs.DATA_CALCULO,
     tffs.DATA_PAGAMENTO
-FROM funcionarios_ativos_periodo fa
-INNER JOIN T_FICHA_FINANCEIRA_SINERGY tffs
-    ON fa.cpf = tffs.CPF
-    AND fa.cod_func = tffs.NUMERO_MATRICULA
-    AND fa.id_casa = tffs.FK_CASA   -- <- garante o mesmo filtro sem repetir literal
-WHERE tffs.CODIGO_VERBA = 2003 -- Filtro verba = Gorjeta
-    AND STR_TO_DATE(CONCAT('01/', SUBSTRING(tffs.REFERENCIA, 1, 2), '/', SUBSTRING(tffs.REFERENCIA, 3, 4)), '%d/%m/%Y') >= '2025-12-01'
-ORDER BY fa.casa, fa.nome;
+  FROM T_FICHA_FINANCEIRA_SINERGY tffs
+  WHERE tffs.FK_CASA IN ({ids_casa})
+	AND tffs.CODIGO_VERBA = 2003 # Filtro verba = Gorjeta
+	AND STR_TO_DATE(CONCAT('01/', SUBSTRING(tffs.REFERENCIA, 1, 2), '/', SUBSTRING(tffs.REFERENCIA, 3, 4)), '%d/%m/%Y') >= '2025-12-01'
   ''')
 
 
