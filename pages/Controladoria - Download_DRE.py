@@ -181,6 +181,8 @@ with st.container(border=True):
                 'Aut_Transferencias',
                 'Aut_Consumo_Funcionarios',
                 'Aut_Insumos_Producao',
+                'T_ORCAMENTOS', 
+                'T_REAL'
             ]
 
             for i, nome in enumerate(ordem):

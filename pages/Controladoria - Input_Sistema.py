@@ -77,7 +77,7 @@ if tipo_formatacao == 'Real DRE': # Cria terceira coluna de mês/trimestre
             'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro',
             '1º Trimestre', '2º Trimestre', '3º Trimestre', '4º Trimestre'
         ]
-        mes = st.selectbox('Selecione o mês/período que deseja inputar', lista_meses, help='1º Trimestre é para inputar os meses de Jan, Fev e Mar. E assim por diante.')
+        mes = st.selectbox('Selecione o mês/trimestre que deseja inputar', lista_meses, help='1º Trimestre é para inputar os meses de Jan, Fev e Mar. E assim por diante.')
         meses = {
             "Janeiro": 1,
             "Fevereiro": 2,
@@ -227,13 +227,17 @@ if tipo_formatacao == 'Orçamentos':
 elif tipo_formatacao == 'Real DRE':
     if not uploaded_file:
         st.write("Adicione um arquivo XLSX para formatá-lo")
-        if casa in ['Girondino', 'Girondino - CCBB']:
-            st.warning(f'O sistema lê apenas a primeira aba da planilha anexada. Certifique-se de que a DRE do {casa} esteja na primeira aba do arquivo.')
+        # if casa in ['Girondino', 'Girondino - CCBB']:
+        #     st.warning(f'O sistema lê apenas a primeira aba da planilha anexada. Certifique-se de que a DRE do {casa} esteja na primeira aba do arquivo.')
 
     # Se arquivo adicionado, prossegue
     else:
         # Lê o arquivo adicionado
-        df = pd.read_excel(uploaded_file, skiprows=3)
+        if casa == 'Girondino': aba_dre = 'DRE GIRONDINO'
+        elif casa == 'Girondino - CCBB': aba_dre = 'DRE CCBB'
+        else: aba_dre = 'DRE'
+
+        df = pd.read_excel(uploaded_file, sheet_name=aba_dre, skiprows=3)
         df_transformado = df.copy()
         st.divider()
 
