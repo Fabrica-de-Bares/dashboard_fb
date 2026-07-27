@@ -735,24 +735,34 @@ def DRE_AUT_PRECOS_INSUMOS(ids_casa):
 @st.cache_data
 def DRE_AUT_VALOR_ESTOQUE(ids_casa):
   return dataframe_query(f'''
+  # Nova Query Valor de Estoque (considerando data de agrupamento das contagens)
   SELECT DISTINCT
     tve.FK_CONTAGEM as 'ID_Contagem',
     te.ID as 'ID_Loja',
     te.NOME_FANTASIA as 'Loja',
-    tci.DATA_CONTAGEM as 'Data_Contagem',
+    CASE
+      WHEN tci.FK_AGRUPAMENTO_CONTAGENS IS NOT NULL
+        THEN tac.DATA_AGRUPAMENTO
+      ELSE tci.DATA_CONTAGEM
+    END as 'Data_Contagem',
     tci.FK_INSUMO as 'ID_Insumo',
     tin5.DESCRICAO as 'Insumo',
     tin4.ID as 'ID_Nivel_4',
     tci.QUANTIDADE_INSUMO as 'Quantidade',
     tudm.UNIDADE_MEDIDA as 'Unidade_Medida',
     tin1.DESCRICAO as 'Categoria_Insumo',
-    DATE_FORMAT(DATE_SUB(tci.DATA_CONTAGEM, INTERVAL 1 MONTH), '%m/%Y') as 'Mes_Texto',
+    CASE
+      WHEN tci.FK_AGRUPAMENTO_CONTAGENS IS NOT NULL
+        THEN DATE_FORMAT(DATE_SUB(tac.DATA_AGRUPAMENTO, INTERVAL 1 MONTH), '%m/%Y')
+      ELSE DATE_FORMAT(DATE_SUB(tci.DATA_CONTAGEM, INTERVAL 1 MONTH), '%m/%Y')
+    END as 'Mes_Texto',
     tve.PRECO_MEDIO_PAGO_NO_MES as 'Preco_Medio_Pago_no_Mes',
     tve.DATA_ULTIMA_COMPRA_LOCAL as 'Data_Ultima_Compra',
     tve.VALOR_ULTIMA_COMPRA_LOCAL as 'Valor_Ultima_Compra',
     tve.VALOR_ULTIMA_COMPRA_GLOBAL as 'Valor_Ultima_Compra_Global',
     tve.VALOR_EM_ESTOQUE as 'Valor_em_Estoque',
-    tci.OBSERVACAO as 'Observacao'
+    tci.OBSERVACAO as 'Observacao',
+    tci.FK_AGRUPAMENTO_CONTAGENS as 'ID_Agrupam_Contagens'
   FROM T_VALORACAO_ESTOQUE tve
   INNER JOIN T_CONTAGEM_INSUMOS tci ON (tve.FK_CONTAGEM = tci.ID)
   INNER JOIN T_EMPRESAS te ON (tci.FK_EMPRESA = te.ID)
@@ -764,7 +774,6 @@ def DRE_AUT_VALOR_ESTOQUE(ids_casa):
   LEFT JOIN T_UNIDADES_DE_MEDIDAS tudm ON (tin5.FK_UNIDADE_MEDIDA = tudm.ID)
   LEFT JOIN T_AGRUPAMENTO_CONTAGENS tac ON (tci.FK_AGRUPAMENTO_CONTAGENS = tac.ID)
   WHERE te.ID IN ({ids_casa})
-  AND (tci.FK_AGRUPAMENTO_CONTAGENS IS NULL OR tac.FK_ESTOQUE_TIPO_CONTAGEM = 103)
   ORDER BY tci.DATA_CONTAGEM DESC, tve.VALOR_EM_ESTOQUE DESC;
   ''')
 
