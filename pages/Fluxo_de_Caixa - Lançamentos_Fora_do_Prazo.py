@@ -131,6 +131,37 @@ if todas_as_casas_selecionada:
             st.caption('Antecedência média (dias) das despesas fora do prazo por casa, no período selecionado')
             st_echarts(options=options_prazo_por_casa, height="400px", key='echarts_prazo_medio_por_casa')
 
+st.divider()
+st.markdown('### Comparativo entre Classificações Contábeis')
+if df_despesas_fora_prazo.empty:
+    st.info('Sem despesas fora do prazo no período pra montar o comparativo por classificação contábil.')
+else:
+    df_resumo_depto = df_despesas_fora_prazo.groupby('Class. Cont. 1').agg(
+        **{
+            'Nº Despesas Fora do Prazo': ('ID Despesa', 'count'),
+        }
+    ).reset_index().rename(columns={'Class. Cont. 1': 'Classificação Contábil 1'})
+
+    df_depto_qtd = df_resumo_depto.sort_values('Nº Despesas Fora do Prazo', ascending=False)
+    options_qtd_depto = {
+        "tooltip": {"trigger": "axis"},
+        "grid": {"left": "60", "right": "4%", "bottom": "20%", "containLabel": True},
+        "xAxis": [{
+            "type": "category",
+            "data": df_depto_qtd['Classificação Contábil 1'].tolist(),
+            "axisLabel": {"rotate": 45, "fontSize": 10},
+        }],
+        "yAxis": [{"type": "value", "name": "Nº de Despesas", "nameLocation": "middle", "nameGap": 40}],
+        "series": [{
+            "name": "Despesas Fora do Prazo",
+            "type": "bar",
+            "data": df_depto_qtd['Nº Despesas Fora do Prazo'].astype(int).tolist(),
+            "itemStyle": {"color": "#e34948"},
+        }],
+    }
+    st.caption('Nº de despesas fora do prazo por Classificação Contábil 1, no período selecionado')
+    st_echarts(options=options_qtd_depto, height="400px", key='echarts_qtd_despesas_por_depto')
+
 df_despesas_fora_prazo = df_format_date_columns_brazilian(df_despesas_fora_prazo, ['Data Competência', 'Data Lançamento', 'Data Vencimento'])
 
 col1, col2 = st.columns([4, 1], vertical_alignment='center')
