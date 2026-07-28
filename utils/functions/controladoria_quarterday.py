@@ -165,7 +165,12 @@ def prepara_dados_faturamento_orcamento(df_historico_real_dre, df_orcamento_oper
 
 
 def prepara_dados_ticket_clientes(df_ticket, casa, datas, coluna_valor):
-    df = df_ticket[df_ticket['Casa'] == casa].copy()
+    if casa == 'Girondino - Agregado':
+        df_ticket['Casa'] = df_ticket['Casa'].replace('Girondino - CCBB', 'Girondino')
+        df = df_ticket[df_ticket['Casa'] == 'Girondino'].copy()
+    else:
+        df = df_ticket[df_ticket['Casa'] == casa].copy()
+
     df['Ano'] = pd.to_datetime(df['MES']).dt.year
     df['Mes'] = pd.to_datetime(df['MES']).dt.month
 
