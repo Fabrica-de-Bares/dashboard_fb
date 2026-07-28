@@ -122,6 +122,10 @@ def main():
         # Permissão de abas em relação aos cargos
         cargo_abas = GET_ABAS_CARGOS(cargo)
         abas_permitidas = cargo_abas.to_dict("records")
+
+        if cargo in ['Dev', 'Diretor de Sistemas e Inovação', 'Gerente de Controladoria']:
+            abas_permitidas = [{"ID Aba": aba_id, "Aba": ABAS[aba_id]["nome_aba"]} for aba_id in ABAS.keys()]  # Permite todas as abas para o cargo específico
+        print(abas_permitidas)
         for aba in abas_permitidas:
             if aba["ID Aba"] in ABAS.keys():
                 aba["page_link"] = ABAS[aba["ID Aba"]]["page_link"]
