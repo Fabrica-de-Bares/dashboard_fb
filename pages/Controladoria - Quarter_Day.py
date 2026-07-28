@@ -47,9 +47,10 @@ df_ticket_medio_clientes = GET_TICKET_MEDIO_CLIENTES()
 
 categorias_quarter = ['Faturamento Bruto', 'Faturamento Bruto - Alimentos', 'Faturamento Bruto - Bebidas', 'Ticket Médio - A&B', 'Nº de Clientes', 'Faturamento Eventos', 'Faturamento - Artístico', 'Faturamento Delivery', 'CMV', 'EBITDA']
 
-if df_orcamento_operacional[df_orcamento_operacional['Casa'] == casa].empty or df_historico_real_dre[df_historico_real_dre['Casa'] == casa].empty:
-    st.warning(f"Sem dados de orçamento/faturamento lançados para {casa}.")
-    st.stop()
+if casa != 'Girondino - Agregado':
+    if df_orcamento_operacional[df_orcamento_operacional['Casa'] == casa].empty or df_historico_real_dre[df_historico_real_dre['Casa'] == casa].empty:
+        st.warning(f"Sem dados de orçamento/faturamento lançados para {casa}.")
+        st.stop()
 
 for categoria in (categorias_quarter):
     if categoria == 'Faturamento Bruto': class_cont = ['FATURAMENTO BRUTO']
