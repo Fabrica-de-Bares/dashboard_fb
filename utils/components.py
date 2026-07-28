@@ -187,16 +187,13 @@ def input_selecao_casas_analise_produtos(lista_casas_retirar, key):
     df_casas = GET_CASAS_VALIDAS_ANALISE_PRODUTOS()
     # Remove casas da lista_casas_retirar
     df_casas = df_casas[~df_casas["Casa"].isin(lista_casas_retirar)].sort_values(by="Casa").reset_index(drop=True)
+
+    # Filtra apenas as casas que o usuário tem acesso (via permissões de cargos/abas)
+    df_permissao_casas = pd.DataFrame(st.session_state['casas_permitidas'], columns=['ID Loja', 'Loja', 'ID Zigpay'])
+    lista_ids_casas_acesso = df_permissao_casas["ID Loja"].to_list()
+    df_casas = df_casas[df_casas["ID_Casa"].isin(lista_ids_casas_acesso)].sort_values(by="Casa").reset_index(drop=True)
+
     lista_casas_validas = df_casas["Casa"].to_list()
-
-    # Se o usuário não tem acesso a todas as casas, mostra apenas as casas que ele tem acesso
-    user_login = st.session_state['user_login']
-    lista_ids_casas_acesso = st.secrets["user_access"][user_login]
-    if -1 not in lista_ids_casas_acesso:
-        df_casas = df_casas[df_casas["ID_Casa"].isin(lista_ids_casas_acesso)].sort_values(by="Casa").reset_index(drop=True)
-        lista_casas_validas = df_casas["Casa"].to_list()
-
-    df_validas = pd.DataFrame(lista_casas_validas, columns=["Casa"])
     casa = st.selectbox("Casa", lista_casas_validas, key=key)
 
     if casa == "Todas as Casas":
@@ -204,19 +201,12 @@ def input_selecao_casas_analise_produtos(lista_casas_retirar, key):
         casa = "Todas as Casas"
         id_zigpay = -1
     else:
-        df = df_casas.merge(df_validas, on="Casa", how="inner")
-        # Definindo um dicionário para mapear nomes de casas a IDs de casas
-        mapeamento_ids = dict(zip(df["Casa"], df["ID_Casa"]))
-        # Definindo um dicionário para mapear IDs de casas a IDs da Zigpay
-        mapeamento_zigpay = dict(zip(df["Casa"], df["ID_Zigpay"]))
-
-        # Obtendo o ID da casa selecionada
+        mapeamento_ids = dict(zip(df_casas["Casa"], df_casas["ID_Casa"]))
+        mapeamento_zigpay = dict(zip(df_casas["Casa"], df_casas["ID_Zigpay"]))
         id_casa = mapeamento_ids[casa]
-        # Obtendo o ID da Zigpay correspondente ao ID da casa
         id_zigpay = mapeamento_zigpay[casa]
 
     return id_casa, casa, id_zigpay
-
 
 def input_periodo_datas(key, label='Selecionar Período'):
     today = get_today()
