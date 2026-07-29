@@ -182,7 +182,7 @@ def grafico_pizza_num_propostas(num_confirmadas, num_declinadas, num_em_negociac
         ]
     }
     with st.container(border=True):
-        st_echarts(option, height="300px")
+        st_echarts(option, height="300px", key="echarts_pizza_status_propostas")
 		
 
 def grafico_barras_num_propostas(df_eventos_ano, filtro_data):
@@ -287,7 +287,7 @@ def grafico_barras_num_propostas(df_eventos_ano, filtro_data):
         ]
     }
     with st.container(border=True):
-	    st_echarts(option, height="420px")
+        st_echarts(option, height="420px", key="echarts_barras_num_propostas")
 
 
 def grafico_barras_motivo_declinio(df_eventos, filtro_data):
@@ -355,7 +355,9 @@ def grafico_barras_motivo_declinio(df_eventos, filtro_data):
             "axisPointer": {"type": "shadow"}
         },
         "legend": {
-            "data": categorias
+            "data": categorias,
+            "bottom": 0,
+            "type": "scroll"
         },
         "toolbox": {
             "feature": {
@@ -365,7 +367,8 @@ def grafico_barras_motivo_declinio(df_eventos, filtro_data):
         "grid": {
             "left": "3%",
             "right": "4%",
-            "bottom": "3%",
+            "bottom": "12%",
+            "top": "5%",
             "containLabel": True
         },
         "xAxis": [{
@@ -385,7 +388,7 @@ def grafico_barras_motivo_declinio(df_eventos, filtro_data):
     }
 
     # Exibir gráfico com captura de clique
-    resultado_clique = st_echarts(options=option, events=events, height="420px")
+    resultado_clique = st_echarts(options=option, events=events, height="420px", key="echarts_barras_motivo_declinio")
     # st_echarts embrulha o retorno do evento num objeto tipo-dict (chave 'chart_event')
     # nessa versão do Streamlit; em versões mais antigas o retorno já vem "cru"
     mes_selecionado = resultado_clique.get('chart_event') if hasattr(resultado_clique, 'get') else resultado_clique
