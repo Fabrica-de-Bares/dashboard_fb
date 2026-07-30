@@ -109,8 +109,8 @@ for modelo_contrato, titulo in VARIANTES:
     cruzamentos_headcount_por_modelo[modelo_contrato] = (df_aprovado_remap, df_efetivo_remap)
 
     if not df_remuneracao_raw.empty:
-        _, _, _, df_orcado_rem_cru = constroi_remuneracao_orcada(df_remuneracao_raw, modelo_contrato, nomes_meses, colunas_meses, colunas_meses_efetivo)
-        df_orcado_rem, df_real_rem = remapeia_remuneracao(df_orcado_rem_cru, df_remuneracao_real_mes, modelo_contrato, nomes_meses, colunas_meses_efetivo)
+        _, _, _, df_orcado_rem_cru = constroi_remuneracao_orcada(df_remuneracao_raw, modelo_contrato, nomes_meses, colunas_meses, colunas_meses_efetivo, df_num_colaboradores_raw)
+        df_orcado_rem, df_real_rem = remapeia_remuneracao(df_orcado_rem_cru, df_remuneracao_real_mes, modelo_contrato, nomes_meses, colunas_meses_efetivo, df_num_colaboradores_raw, df_remuneracao_raw)
         cruzamentos_remuneracao_por_modelo[modelo_contrato] = (df_orcado_rem, df_real_rem)
 
 # --- Impacto Financeiro: pré-calcula Custo/Efeitos por modelo (CLT / PJ) ---
@@ -177,18 +177,14 @@ with tab_impacto_financeiro:
             df_comparativo_impacto.index.name = 'CARGO'
             df_comparativo_impacto = df_comparativo_impacto.reset_index()
 
-            col1, col_download, col2 = st.columns([3, 1, 1], vertical_alignment='center')
+            col1, col_download = st.columns([4, 1], vertical_alignment='center')
             with col1:
                 st.subheader(f'Impacto Financeiro {titulo} (Headcount x Remuneração) - {ano}', help='Custo = Headcount x Remuneração média, por cargo e mês (Orçado = Aprovado x Salário Orçado; Real = Efetivo x Salário Real).')
-            with col2:
-                remover_cargos_sem_dados_impacto = st.toggle('Remover cargos sem dados', key=f'toggle_remover_cargos_sem_dados_impacto_{modelo_contrato.lower()}', value=False)
 
-            df_comparativo_impacto_exibicao = df_comparativo_impacto
-            if remover_cargos_sem_dados_impacto:
-                cargos_com_dados_impacto = df_custo_orcado.index[
-                    (df_custo_orcado.sum(axis=1, skipna=True) != 0) | (df_custo_real.sum(axis=1, skipna=True) != 0)
-                ]
-                df_comparativo_impacto_exibicao = df_comparativo_impacto_exibicao[df_comparativo_impacto_exibicao['CARGO'].isin(cargos_com_dados_impacto)]
+            cargos_com_dados_impacto = df_custo_orcado.index[
+                (df_custo_orcado.sum(axis=1, skipna=True) != 0) | (df_custo_real.sum(axis=1, skipna=True) != 0)
+            ]
+            df_comparativo_impacto_exibicao = df_comparativo_impacto[df_comparativo_impacto['CARGO'].isin(cargos_com_dados_impacto)]
 
             colunas_numericas_impacto = [col for col in df_comparativo_impacto_exibicao.columns if col != ('CARGO', '')]
             linha_total_impacto = df_comparativo_impacto_exibicao[colunas_numericas_impacto].sum()
@@ -376,7 +372,7 @@ with tab_impacto_financeiro:
                 df_pessoas_cargo_mes = df_pessoas_filtrado[
                     (df_pessoas_filtrado['Cargo'] == cargo_selecionado_impacto) &
                     (df_pessoas_filtrado['MES'] == mes_numero_impacto)
-                ][['CPF', 'NOME', 'Salário']].copy()
+                ][['Casa', 'CPF', 'NOME', 'Salário']].sort_values('Casa').copy()
                 df_pessoas_cargo_mes['Salário Orçado (média do cargo)'] = salario_orcado_cargo
                 df_pessoas_cargo_mes['Diferença Salário'] = salario_orcado_cargo - df_pessoas_cargo_mes['Salário']
                 df_pessoas_cargo_mes['Headcount Aprovado'] = aprovado_hc_cargo
@@ -451,18 +447,14 @@ with tab_comparativo:
             for col in pd.MultiIndex.from_product([colunas_meses_efetivo, ['Aprovado', 'Efetivo', 'Diferença']]):
                 df_comparativo_headcount[col] = pd.to_numeric(df_comparativo_headcount[col], errors='coerce')
 
-            col1, col_download, col2 = st.columns([3, 1, 1], vertical_alignment='center')
+            col1, col_download = st.columns([4, 1], vertical_alignment='center')
             with col1:
                 st.subheader(f'Headcount Aprovado x Efetivo {titulo} - {ano}')
-            with col2:
-                remover_cargos_sem_dados = st.toggle('Remover cargos sem dados', key=f'toggle_remover_cargos_sem_dados_{modelo_contrato.lower()}', value=False)
 
-            df_comparativo_headcount_exibicao = df_comparativo_headcount
-            if remover_cargos_sem_dados:
-                cargos_com_dados = df_aprovado_cruzamento.index[
-                    (df_aprovado_cruzamento.sum(axis=1) != 0) | (df_efetivo_cruzamento.sum(axis=1) != 0)
-                ]
-                df_comparativo_headcount_exibicao = df_comparativo_headcount_exibicao[df_comparativo_headcount_exibicao['CARGO'].isin(cargos_com_dados)]
+            cargos_com_dados = df_aprovado_cruzamento.index[
+                (df_aprovado_cruzamento.sum(axis=1) != 0) | (df_efetivo_cruzamento.sum(axis=1) != 0)
+            ]
+            df_comparativo_headcount_exibicao = df_comparativo_headcount[df_comparativo_headcount['CARGO'].isin(cargos_com_dados)]
 
             # Adiciona linha de total
             colunas_numericas_comparativo = [col for col in df_comparativo_headcount_exibicao.columns if col != ('CARGO', '')]
@@ -472,6 +464,7 @@ with tab_comparativo:
                 [df_comparativo_headcount_exibicao, linha_total_comparativo.to_frame().T],
                 ignore_index=True
             )
+            df_comparativo_headcount_download = df_comparativo_headcount_exibicao.copy()
             df_comparativo_headcount_exibicao[colunas_numericas_comparativo] = df_comparativo_headcount_exibicao[colunas_numericas_comparativo].astype(int)
 
             colunas_diferenca = [col for col in df_comparativo_headcount_exibicao.columns if col[1] == 'Diferença']
@@ -483,7 +476,7 @@ with tab_comparativo:
             )
 
             with col_download:
-                button_download(df_comparativo_headcount_exibicao, f'Headcount_Aprovado_x_Efetivo_{titulo}_{casa}_{ano}', f'download_headcount_comparativo_{modelo_contrato.lower()}')
+                button_download(df_comparativo_headcount_download, f'Headcount_Aprovado_x_Efetivo_{titulo}_{casa}_{ano}', f'download_headcount_comparativo_{modelo_contrato.lower()}')
 
             st.dataframe(
                 df_comparativo_headcount_styled,
@@ -713,18 +706,14 @@ with tab_remuneracao_comparativo:
             df_comparativo_remuneracao.index.name = 'CARGO'
             df_comparativo_remuneracao = df_comparativo_remuneracao.reset_index()
 
-            col1, col_download, col2 = st.columns([3, 1, 1], vertical_alignment='center')
+            col1, col_download = st.columns([4, 1], vertical_alignment='center')
             with col1:
                 st.subheader(f'Remuneração Orçada x Real {titulo} - {ano}')
-            with col2:
-                remover_cargos_sem_dados_remuneracao = st.toggle('Remover cargos sem dados', key=f'toggle_remover_cargos_sem_dados_remuneracao_{modelo_contrato.lower()}', value=False)
 
-            df_comparativo_remuneracao_exibicao = df_comparativo_remuneracao
-            if remover_cargos_sem_dados_remuneracao:
-                cargos_com_dados_remuneracao = df_orcado_remuneracao_cruzamento.index[
-                    (df_orcado_remuneracao_cruzamento.sum(axis=1, skipna=True) != 0) | (df_real_remuneracao_cruzamento.sum(axis=1, skipna=True) != 0)
-                ]
-                df_comparativo_remuneracao_exibicao = df_comparativo_remuneracao_exibicao[df_comparativo_remuneracao_exibicao['CARGO'].isin(cargos_com_dados_remuneracao)]
+            cargos_com_dados_remuneracao = df_orcado_remuneracao_cruzamento.index[
+                (df_orcado_remuneracao_cruzamento.sum(axis=1, skipna=True) != 0) | (df_real_remuneracao_cruzamento.sum(axis=1, skipna=True) != 0)
+            ]
+            df_comparativo_remuneracao_exibicao = df_comparativo_remuneracao[df_comparativo_remuneracao['CARGO'].isin(cargos_com_dados_remuneracao)]
 
             colunas_diferenca_remuneracao = [col for col in df_comparativo_remuneracao_exibicao.columns if col[1] == 'Diferença']
             colunas_numericas_remuneracao = [col for col in df_comparativo_remuneracao_exibicao.columns if col != ('CARGO', '')]
@@ -800,7 +789,7 @@ with tab_remuneracao_orcada:
         sub_tab_clt, sub_tab_pj = st.tabs(['CLT', 'PJ'])
         for (modelo_contrato, titulo), sub_tab in zip(VARIANTES, [sub_tab_clt, sub_tab_pj]):
             with sub_tab:
-                df_final, df_styled, height, _ = constroi_remuneracao_orcada(df_remuneracao_raw, modelo_contrato, nomes_meses, colunas_meses, colunas_meses_efetivo)
+                df_final, df_styled, height, _ = constroi_remuneracao_orcada(df_remuneracao_raw, modelo_contrato, nomes_meses, colunas_meses, colunas_meses_efetivo, df_num_colaboradores_raw)
                 if df_final.empty:
                     st.info(f'Não há remuneração orçada com Modelo Contrato = {titulo} pra essa casa/ano.')
                     continue
@@ -863,15 +852,17 @@ with tab_remuneracao_real:
                 if cargos_selecionado_remuneracao:
                     df_funcionarios_salario = df_funcionarios_salario[df_funcionarios_salario['Cargo'].isin(cargos_selecionado_remuneracao)]
 
+                df_funcionarios_salario_exibicao = df_funcionarios_salario[['Casa', 'CPF', 'NOME', 'Cargo', 'Referência', 'Salário']].reset_index(drop=True)
+
                 _, col_download = st.columns([5, 1])
                 with col_download:
                     button_download(
-                        df_funcionarios_salario[['CPF', 'NOME', 'Cargo', 'Referência', 'Salário']],
+                        df_funcionarios_salario_exibicao,
                         f'Detalhamento_Remuneracao_{titulo}_{casa}_{mes_selecionado_remuneracao}_{ano}',
                         f'download_detalhamento_remuneracao_{modelo_contrato.lower()}'
                     )
                 st.dataframe(
-                    df_funcionarios_salario[['CPF', 'NOME', 'Cargo', 'Referência', 'Salário']].style.format({'Salário': formatar_moeda_br}),
+                    df_funcionarios_salario_exibicao.style.format({'Salário': formatar_moeda_br}),
                     hide_index=True,
                     width='stretch'
                 )

@@ -34,7 +34,7 @@ def GET_FUNCIONARIOS_ATIVOS(lista_ids_casas, dt_inicio, dt_fim):
         INNER JOIN T_SINERGY_FILIAIS tsf2 ON tsf2.ID = tshf.FK_FILIAL
         INNER JOIN T_EMPRESAS te ON te.ID = tsf2.FK_EMPRESA
         INNER JOIN T_SINERGY_LOCAIS_DE_TRABALHO tsldt ON tsldt.ID = tshf.FK_LOCAL_DE_TRABALHO
-        INNER JOIN T_SINERGY_SETORES_CARGO tssc ON tssc.ID = tscf.FK_SETOR
+        LEFT JOIN T_SINERGY_SETORES_CARGO tssc ON tssc.ID = tscf.FK_SETOR
         LEFT JOIN T_SINERGY_TIPOS_VINCULO_FUNCIONARIOS tstvf ON tstvf.ID = tshf.FK_TIPO_VINCULO
         WHERE (
             CASE
@@ -137,6 +137,12 @@ def GET_REMUNERACAO_REAL_POR_MES(lista_ids_casas, ano):
         )
         SELECT
             hm.MES,
+            CASE
+                WHEN tsldt.DESCRICAO = 'TUTUM - GIRONDINO - CCBB' THEN 'Girondino - CCBB'
+                WHEN tsldt.DESCRICAO IN ('TUTUM - GIRONDINO - BOA VISTA', 'TUTUM BAR E EVENTOS LTDA - GIRONDINO') THEN 'Girondino'
+                WHEN te.ID = 131 THEN 'Blue Note - São Paulo'
+                ELSE te.NOME_FANTASIA
+            END AS 'Casa',
             tscf.DESCRICAO AS 'Cargo',
             tstvf.DESCRICAO AS 'Vínculo',
             tsf.CPF,
@@ -154,14 +160,24 @@ def GET_REMUNERACAO_REAL_POR_MES(lista_ids_casas, ano):
             ON ficha_atual.CPF = tsf.CPF
             AND ficha_atual.VERBA = 'Salário Mês c/ Adic.'
             AND ficha_atual.PROCESSO = '1 - Mensal'
-            AND ficha_atual.FK_CASA IN ({ids_str})
+            AND ficha_atual.FK_CASA = CASE
+                WHEN tsldt.DESCRICAO = 'TUTUM - GIRONDINO - CCBB' THEN 160
+                WHEN tsldt.DESCRICAO IN ('TUTUM - GIRONDINO - BOA VISTA', 'TUTUM BAR E EVENTOS LTDA - GIRONDINO') THEN 156
+                WHEN te.ID = 131 THEN 110
+                ELSE te.ID
+            END
             AND ficha_atual.REFERENCIA = DATE_FORMAT(STR_TO_DATE(CONCAT('{ano}-', hm.MES, '-01'), '%Y-%m-%d'), '%m%Y')
         -- Fallback: se não houver ficha financeira do mês corrente, usa a do mês anterior
         LEFT JOIN T_FICHA_FINANCEIRA_SINERGY ficha_anterior
             ON ficha_anterior.CPF = tsf.CPF
             AND ficha_anterior.VERBA = 'Salário Mês c/ Adic.'
             AND ficha_anterior.PROCESSO = '1 - Mensal'
-            AND ficha_anterior.FK_CASA IN ({ids_str})
+            AND ficha_anterior.FK_CASA = CASE
+                WHEN tsldt.DESCRICAO = 'TUTUM - GIRONDINO - CCBB' THEN 160
+                WHEN tsldt.DESCRICAO IN ('TUTUM - GIRONDINO - BOA VISTA', 'TUTUM BAR E EVENTOS LTDA - GIRONDINO') THEN 156
+                WHEN te.ID = 131 THEN 110
+                ELSE te.ID
+            END
             AND ficha_anterior.REFERENCIA = DATE_FORMAT(DATE_SUB(STR_TO_DATE(CONCAT('{ano}-', hm.MES, '-01'), '%Y-%m-%d'), INTERVAL 1 MONTH), '%m%Y')
         WHERE hm.rn = 1
             AND (

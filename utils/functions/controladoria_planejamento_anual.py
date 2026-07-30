@@ -403,7 +403,7 @@ def normaliza_nomes_cargo(serie_cargo):
     serie_cargo = serie_cargo.str.replace('CUMIN', 'CUMIM', regex=True)
     serie_cargo = serie_cargo.str.replace('BAR BACK', 'BARBACK', regex=True)
     serie_cargo = serie_cargo.str.replace('CHEFE DA PORTARIA', 'CHEFE DE PORTARIA', regex=True)
-
+    serie_cargo = serie_cargo.str.replace('^PIA$', 'AJUDANTE DE COZINHA (PIA)', regex=True)
     return serie_cargo
 
 
@@ -421,6 +421,11 @@ def constroi_aprovado(df_num_colaboradores_raw, modelo_contrato, nomes_meses, co
     df_cruzamento = df_final.copy()
     df_cruzamento['CARGO'] = normaliza_nomes_cargo(df_cruzamento['CARGO'])
     df_cruzamento = df_cruzamento.set_index('CARGO')[colunas_meses_efetivo] if colunas_meses_efetivo else df_cruzamento.set_index('CARGO')[[]]
+
+    # Remove cargos sem headcount aprovado do display (cruzamento mantém todos)
+    df_final = df_final[
+        df_final[colunas_meses].apply(pd.to_numeric, errors='coerce').fillna(0).any(axis=1)
+    ].reset_index(drop=True)
 
     if not df_final.empty:
         linha_total = df_final[colunas_meses].sum().to_frame().T
@@ -464,16 +469,44 @@ def constroi_efetivo(df_funcionarios_ativos_mes, modelo_contrato, nomes_meses, c
     return df_exibicao, df_styled, height, df_cruzamento
 
 
-def constroi_remuneracao_orcada(df_remuneracao_raw, modelo_contrato, nomes_meses, colunas_meses, colunas_meses_efetivo):
-    """Retorna (df_exibicao, df_styled, height, df_para_cruzamento indexado por CARGO normalizado)."""
-    df_filtrado = df_remuneracao_raw[df_remuneracao_raw['Modelo Contrato'] == modelo_contrato]
+def constroi_remuneracao_orcada(df_remuneracao_raw, modelo_contrato, nomes_meses, colunas_meses, colunas_meses_efetivo, df_num_colaboradores_raw=None):
+    """Retorna (df_exibicao, df_styled, height, df_para_cruzamento indexado por CARGO normalizado).
+    Se df_num_colaboradores_raw for fornecido, células onde headcount aprovado = 0 ficam em branco."""
+    df_filtrado = df_remuneracao_raw[df_remuneracao_raw['Modelo Contrato'] == modelo_contrato].copy()
+    df_filtrado['Valor'] = df_filtrado['Valor'].replace(0, pd.NA)  # zeros não entram no denominador da média
     pivot = df_filtrado.pivot_table(index='CARGO', columns='Mês', values='Valor', sort=False).reset_index()
     pivot = pivot.rename(columns=nomes_meses)
     for col in colunas_meses:
         if col not in pivot.columns:
             pivot[col] = pd.NA
     df_final = pivot[['CARGO', *colunas_meses]]
-    df_styled = df_final.style.format(lambda x: '' if pd.isna(x) or x == 0 else formatar_moeda_br(x), subset=colunas_meses)
+
+    # Zera remuneração orçada nos meses em que o headcount aprovado é 0
+    if df_num_colaboradores_raw is not None and not df_final.empty:
+        df_hc = df_num_colaboradores_raw[df_num_colaboradores_raw['Modelo Contrato'] == modelo_contrato]
+        if not df_hc.empty:
+            pivot_hc = df_hc.pivot_table(index='CARGO', columns='Mês', values='Valor', aggfunc='sum', fill_value=0, sort=False)
+            pivot_hc = pivot_hc.rename(columns=nomes_meses)
+            df_final_indexed = df_final.set_index('CARGO')
+            for col in colunas_meses:
+                if col in df_final_indexed.columns and col in pivot_hc.columns:
+                    hc_no_mes = pivot_hc[col].reindex(df_final_indexed.index, fill_value=0)
+                    df_final_indexed.loc[hc_no_mes == 0, col] = pd.NA
+            df_final = df_final_indexed.reset_index()
+
+    # Converte colunas numéricas: None → 0
+    for col in colunas_meses:
+        df_final[col] = pd.to_numeric(df_final[col], errors='coerce').fillna(0)
+
+    # Exibe apenas linhas com pelo menos um mês com valor
+    df_final = df_final[df_final[colunas_meses].any(axis=1)].reset_index(drop=True)
+
+    def _fmt(x):
+        if pd.isna(x) or x == 0:
+            return ''
+        return f"{x:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+
+    df_styled = df_final.style.format(_fmt, subset=colunas_meses)
 
     height = (len(df_final) + 1) * 35
     df_cruzamento = df_final.copy()
@@ -490,7 +523,7 @@ def constroi_remuneracao_real(df_remuneracao_real_mes, modelo_contrato, nomes_me
     if df.empty:
         return pd.DataFrame(columns=['CARGO', *colunas_meses_efetivo])
 
-    media = df.groupby(['MES', 'Cargo'])['Salário'].mean().reset_index()
+    media = df.dropna(subset=['Salário']).groupby(['MES', 'Cargo'])['Salário'].mean().reset_index()
     pivot = media.pivot_table(index='Cargo', columns='MES', values='Salário', sort=False).reset_index().rename(columns={'Cargo': 'CARGO'})
     pivot = pivot.rename(columns=nomes_meses)
     for col in colunas_meses_efetivo:
@@ -509,14 +542,21 @@ def remapeia_headcount(df_aprovado_cru, df_efetivo_cru):
     return df_aprovado.reindex(todos_cargos).fillna(0), df_efetivo.reindex(todos_cargos).fillna(0)
 
 
-def remapeia_remuneracao(df_orcado_cru, df_remuneracao_real_mes, modelo_contrato, nomes_meses, colunas_meses_efetivo):
-    """Tira média das linhas cujo CARGO é EXATAMENTE igual (0 não entra na média)."""
-    df_orcado = df_orcado_cru.replace(0, pd.NA).groupby(level=0).mean()
+def remapeia_remuneracao(df_orcado_cru, df_remuneracao_real_mes, modelo_contrato, nomes_meses, colunas_meses_efetivo, df_num_colaboradores_raw=None, df_remuneracao_raw=None):
+    """Orçado: média ponderada pelo headcount aprovado quando df_num_colaboradores_raw e
+    df_remuneracao_raw forem fornecidos (consistente com o Real, que já é ponderado por pessoa);
+    caso contrário, média simples entre casas. Real: média dos salários individuais por cargo/mês."""
+    if df_num_colaboradores_raw is not None and df_remuneracao_raw is not None:
+        df_orcado = pondera_remuneracao_orcada_por_headcount(
+            df_num_colaboradores_raw, df_remuneracao_raw, modelo_contrato, nomes_meses, colunas_meses_efetivo
+        )
+    else:
+        df_orcado = df_orcado_cru.replace(0, pd.NA).groupby(level=0).mean()
 
     df_pessoas = df_remuneracao_real_mes[df_remuneracao_real_mes['Vínculo'] == modelo_contrato].copy()
     df_pessoas['Cargo'] = df_pessoas['Cargo'].str.upper()
     df_real = (
-        df_pessoas.groupby(['MES', 'Cargo'])['Salário'].mean()
+        df_pessoas.dropna(subset=['Salário']).groupby(['MES', 'Cargo'])['Salário'].mean()
         .reset_index().pivot_table(index='Cargo', columns='MES', values='Salário', sort=False)
         .rename(columns=nomes_meses).reindex(columns=colunas_meses_efetivo)
     )
