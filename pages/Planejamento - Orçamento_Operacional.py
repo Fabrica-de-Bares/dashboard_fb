@@ -46,26 +46,32 @@ with col3:
     tipo_valor = st.selectbox("Selecione a informação a visualizar:", ['Orçamento Operacional', 'Histórico Real'])
 st.divider()
 
-# Recupera dados - Orçamentos e Real
+# Recupera dados - Orçamentos, Revisão e Real
 df_orcamento_operacional = GET_ORCAMENTO_OPERACIONAL()
+df_revisao_orcamento_operacional = GET_REVISAO_ORCAMENTO_OPERACIONAL()
 df_historico_real_dre = GET_HISTORICO_REAL_DRE()
 
 
-if tipo_valor == 'Orçamento Operacional':
+def renderiza_orcamento_operacional(df_orcamento_operacional, ano, casa):
     if ano == 2024 or ano == 2023:
         st.warning(f'Sem dados de orçamento de {ano} para o plano de contas Fábrica de Bares (2025).')
-        st.stop()
+        return
     elif casa == 'The Cavern' and (ano < 2026):
         st.warning(f'{casa} sem dados para {ano}.')
-        st.stop()
+        return
     elif casa == 'Bar Brahma - Paulista' and ano <= 2026:
         st.warning(f'{casa} sem dados para {ano}.')
-        st.stop()
+        return
 
     df_orcamento_filtrado = df_orcamento_operacional[
         (df_orcamento_operacional['Casa'] == casa) &
         (df_orcamento_operacional['Ano'] == ano)
     ].copy()
+
+    if df_orcamento_filtrado.empty:
+        st.info(f'{casa} sem dados para {ano}.')
+        return
+
     df_orcamento_filtrado.drop(columns=['Ano', 'ID Casa'], inplace=True)
 
     # Nomeia meses
@@ -190,10 +196,17 @@ if tipo_valor == 'Orçamento Operacional':
     # )
 
     # # Destaca linhas de título
-    # df_orcamentos_concatenados_styled = df_orcamentos_concatenados_fmt.style.apply(highlight_titulos_dre, axis=1) 
+    # df_orcamentos_concatenados_styled = df_orcamentos_concatenados_fmt.style.apply(highlight_titulos_dre, axis=1)
     # height = (len(df_orcamentos_concatenados_fmt) + 1) * 35 # Define altura sem rolagem
     # st.dataframe(df_orcamentos_concatenados_styled, hide_index=True, width='stretch', height=height)
 
+
+if tipo_valor == 'Orçamento Operacional':
+    tab_original, tab_revisao = st.tabs(['Orçamento Operacional', 'Revisão Orçamento Operacional'])
+    with tab_original:
+        renderiza_orcamento_operacional(df_orcamento_operacional, ano, casa)
+    with tab_revisao:
+        renderiza_orcamento_operacional(df_revisao_orcamento_operacional, ano, casa)
 
 else: # Histórico Real
     if casa == 'The Cavern' and ano < 2026:

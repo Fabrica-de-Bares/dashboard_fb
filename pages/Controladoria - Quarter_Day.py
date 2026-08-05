@@ -37,8 +37,8 @@ lista_retirar_casas = ['Todas as Casas', 'Bar Léo - Vila Madalena', 'Blue Note 
 id_casa, casa, id_zigpay = input_selecao_casas(lista_retirar_casas, key='faturamento_bruto', agregado=True)
 
 
-# Dados - Orçamentos e Real
-df_orcamento_operacional = GET_ORCAMENTO_OPERACIONAL()
+# Dados - Orçamentos (revisão quando existir, senão o original) e Real
+df_orcamento_operacional = GET_ORCAMENTO_OPERACIONAL_ATUAL()
 df_historico_real_dre = GET_HISTORICO_REAL_DRE()
 
 # Dados - Ticket Médio e N Clientes 

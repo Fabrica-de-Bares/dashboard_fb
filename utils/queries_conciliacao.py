@@ -569,15 +569,23 @@ def GET_TIPO_CLASS_CONT_2():
 @st.cache_data
 def GET_ORCAMENTOS():
     df_orcamentos = dataframe_query('''
-      SELECT 
+      WITH T_ORCAMENTOS_ATUAL AS (
+          SELECT t.*,
+              ROW_NUMBER() OVER (
+                  PARTITION BY t.FK_EMPRESA, t.FK_CLASSIFICACAO_1, t.FK_CLASSIFICACAO_2, t.MES, t.ANO
+                  ORDER BY t.TAG_REVISAO DESC
+              ) AS rn
+          FROM T_ORCAMENTOS t
+      )
+      SELECT
       to2.ID as 'ID_Orcamento',
       CASE
-        WHEN te.ID IN (161, 162, 179) THEN 149 
-        ELSE te.ID                                                                 
+        WHEN te.ID IN (161, 162, 179) THEN 149
+        ELSE te.ID
       END AS 'ID_Casa',
       CASE
-        WHEN te.ID IN (161, 162, 179) THEN 'Priceless' 
-        ELSE te.NOME_FANTASIA                                                                 
+        WHEN te.ID IN (161, 162, 179) THEN 'Priceless'
+        ELSE te.NOME_FANTASIA
       END AS 'Casa',
       tccg.ID as 'ID_Class_Cont_1',
       tccg.DESCRICAO as 'Class_Cont_1',
@@ -587,12 +595,12 @@ def GET_ORCAMENTOS():
       to2.MES as 'Mes_Orcamento',
       to2.VALOR as 'Valor_Orcamento',
       ttcdff.DESCRICAO as 'Tipo_Fluxo_Futuro'
-      FROM T_ORCAMENTOS to2 
+      FROM T_ORCAMENTOS_ATUAL to2
       LEFT JOIN T_EMPRESAS te ON (to2.FK_EMPRESA = te.ID)
       LEFT JOIN T_CLASSIFICACAO_CONTABIL_GRUPO_1 tccg ON (to2.FK_CLASSIFICACAO_1 = tccg.ID)
       LEFT JOIN T_CLASSIFICACAO_CONTABIL_GRUPO_2 tccg2 ON (to2.FK_CLASSIFICACAO_2 = tccg2.ID)
       LEFT JOIN T_TIPO_CLASSIF_DESPESA_FLUXO_FUTURO ttcdff ON (tccg2.FK_TIPO_FLUXO_FUTURO = ttcdff.ID)
-      WHERE to2.ANO >= 2025
+      WHERE to2.ANO >= 2025 AND to2.rn = 1
       ORDER BY te.NOME_FANTASIA, to2.ANO, to2.MES, tccg.DESCRICAO, tccg2.DESCRICAO
       ''')
     return df_orcamentos

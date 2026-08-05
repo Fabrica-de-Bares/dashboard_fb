@@ -259,35 +259,74 @@ def GET_ITENS_COM_CADASTRO_DUPLICADO():
 
 
 # Para Orçamento Operacional e Real DRE
-@st.cache_data
-def GET_ORCAMENTO_OPERACIONAL():
-  return dataframe_query('''
+_ORCAMENTO_OPERACIONAL_SELECT = '''
     SELECT
       CASE
         WHEN te.ID = 149 THEN 162
-        ELSE te.ID                                                     
+        ELSE te.ID
       END AS 'ID Casa',
       CASE
         WHEN te.ID = 149 THEN 'Terraço Notie'
-        ELSE te.NOME_FANTASIA                                                                   
+        ELSE te.NOME_FANTASIA
       END AS 'Casa',
         to2.ANO AS 'Ano',
         to2.MES AS 'Mês',
         to2.VALOR AS 'Orçamento',
         CASE
-            WHEN tccg1.DESCRICAO = 'Despesas com Transporte / Hospedagem' THEN 'Manutenção' -- considera como Despesas Gerais  
-            WHEN tccg2.DESCRICAO IN ('Desconto - Alimentação Escritório', 'Descontos - Marketing', 'Descontos - Operação') THEN 'Desconto sobre Venda'  
+            WHEN tccg1.DESCRICAO = 'Despesas com Transporte / Hospedagem' THEN 'Manutenção' -- considera como Despesas Gerais
+            WHEN tccg2.DESCRICAO IN ('Desconto - Alimentação Escritório', 'Descontos - Marketing', 'Descontos - Operação') THEN 'Desconto sobre Venda'
             WHEN tccg2.DESCRICAO IN ('MDO Terceirizada - Artístico') THEN 'Custos Artístico Geral'
             WHEN tccg2.DESCRICAO IN ('MDO Terceirizada - Eventos') THEN 'Custos de Eventos'
-            WHEN tccg1.DESCRICAO = 'Mão de Obra - Pro Labores' THEN 'Mão de Obra - Benefícios'                  
-            ELSE tccg1.DESCRICAO                            
-        END as 'Classificação Contábil 1',               
+            WHEN tccg1.DESCRICAO = 'Mão de Obra - Pro Labores' THEN 'Mão de Obra - Benefícios'
+            ELSE tccg1.DESCRICAO
+        END as 'Classificação Contábil 1',
         tccg2.DESCRICAO AS 'Classificação Contábil 2'
+'''
+
+@st.cache_data
+def GET_ORCAMENTO_OPERACIONAL():
+  return dataframe_query(_ORCAMENTO_OPERACIONAL_SELECT + '''
     FROM T_ORCAMENTOS to2
     JOIN T_EMPRESAS te ON (to2.FK_EMPRESA = te.ID)
     JOIN T_CLASSIFICACAO_CONTABIL_GRUPO_1 tccg1 ON (to2.FK_CLASSIFICACAO_1 = tccg1.ID)
     JOIN T_CLASSIFICACAO_CONTABIL_GRUPO_2 tccg2 ON (to2.FK_CLASSIFICACAO_2 = tccg2.ID)
-    # WHERE FK_PLANO_DE_CONTAS = 103
+    WHERE (to2.TAG_REVISAO = 0 OR to2.TAG_REVISAO IS NULL)
+    # AND FK_PLANO_DE_CONTAS = 103
+    ORDER BY te.NOME_FANTASIA, to2.MES, to2.ANO;
+  ''')
+
+
+# Só as revisões (TAG_REVISAO = 1) do orçamento operacional
+@st.cache_data
+def GET_REVISAO_ORCAMENTO_OPERACIONAL():
+  return dataframe_query(_ORCAMENTO_OPERACIONAL_SELECT + '''
+    FROM T_ORCAMENTOS to2
+    JOIN T_EMPRESAS te ON (to2.FK_EMPRESA = te.ID)
+    JOIN T_CLASSIFICACAO_CONTABIL_GRUPO_1 tccg1 ON (to2.FK_CLASSIFICACAO_1 = tccg1.ID)
+    JOIN T_CLASSIFICACAO_CONTABIL_GRUPO_2 tccg2 ON (to2.FK_CLASSIFICACAO_2 = tccg2.ID)
+    WHERE to2.TAG_REVISAO = 1
+    ORDER BY te.NOME_FANTASIA, to2.MES, to2.ANO;
+  ''')
+
+
+# Orçamento operacional "vigente": revisão quando existir, senão o original
+@st.cache_data
+def GET_ORCAMENTO_OPERACIONAL_ATUAL():
+  return dataframe_query('''
+    WITH T_ORCAMENTOS_ATUAL AS (
+        SELECT t.*,
+            ROW_NUMBER() OVER (
+                PARTITION BY t.FK_EMPRESA, t.FK_CLASSIFICACAO_1, t.FK_CLASSIFICACAO_2, t.MES, t.ANO
+                ORDER BY t.TAG_REVISAO DESC
+            ) AS rn
+        FROM T_ORCAMENTOS t
+    )
+''' + _ORCAMENTO_OPERACIONAL_SELECT + '''
+    FROM T_ORCAMENTOS_ATUAL to2
+    JOIN T_EMPRESAS te ON (to2.FK_EMPRESA = te.ID)
+    JOIN T_CLASSIFICACAO_CONTABIL_GRUPO_1 tccg1 ON (to2.FK_CLASSIFICACAO_1 = tccg1.ID)
+    JOIN T_CLASSIFICACAO_CONTABIL_GRUPO_2 tccg2 ON (to2.FK_CLASSIFICACAO_2 = tccg2.ID)
+    WHERE to2.rn = 1
     ORDER BY te.NOME_FANTASIA, to2.MES, to2.ANO;
   ''')
 

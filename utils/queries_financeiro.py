@@ -38,6 +38,14 @@ def GET_DESPESAS():
 @st.cache_data
 def GET_ORCAMENTOS_DESPESAS():
   return dataframe_query(f'''
+  WITH T_ORCAMENTOS_ATUAL AS (
+      SELECT t.*,
+          ROW_NUMBER() OVER (
+              PARTITION BY t.FK_EMPRESA, t.FK_CLASSIFICACAO_1, t.FK_CLASSIFICACAO_2, t.MES, t.ANO
+              ORDER BY t.TAG_REVISAO DESC
+          ) AS rn
+      FROM T_ORCAMENTOS t
+  )
   SELECT
     to2.ID AS ID_Orcamento,
     te.NOME_FANTASIA AS Loja,
@@ -46,10 +54,11 @@ def GET_ORCAMENTOS_DESPESAS():
     to2.VALOR AS Orcamento,
     cast(date_format(cast(CONCAT(to2.ANO, '-', to2.MES, '-01') AS date), '%Y-%m-01') as date) AS Primeiro_Dia_Mes
   FROM
-    T_ORCAMENTOS to2 
+    T_ORCAMENTOS_ATUAL to2
   LEFT JOIN T_CLASSIFICACAO_CONTABIL_GRUPO_2 tccg2 ON to2.FK_CLASSIFICACAO_2 = tccg2.ID
   LEFT JOIN T_CLASSIFICACAO_CONTABIL_GRUPO_1 tccg1 ON tccg2.FK_GRUPO_1 = tccg1.ID
-  LEFT JOIN T_EMPRESAS te ON to2.FK_EMPRESA = te.ID;
+  LEFT JOIN T_EMPRESAS te ON to2.FK_EMPRESA = te.ID
+  WHERE to2.rn = 1;
 ''')
 
 
@@ -113,6 +122,14 @@ def GET_FATURAM_ZIG_AGREGADO(data_inicio, data_fim):
 @st.cache_data
 def GET_ORCAM_FATURAM():
   return dataframe_query(f'''
+  WITH T_ORCAMENTOS_ATUAL AS (
+      SELECT t.*,
+          ROW_NUMBER() OVER (
+              PARTITION BY t.FK_EMPRESA, t.FK_CLASSIFICACAO_1, t.FK_CLASSIFICACAO_2, t.MES, t.ANO
+              ORDER BY t.TAG_REVISAO DESC
+          ) AS rn
+      FROM T_ORCAMENTOS t
+  )
   SELECT
 	CASE
 		WHEN te.ID IN (149) THEN 162
@@ -135,13 +152,14 @@ def GET_ORCAM_FATURAM():
       ELSE tccg.DESCRICAO
     END AS Categoria
   FROM
-    T_ORCAMENTOS to2
+    T_ORCAMENTOS_ATUAL to2
   JOIN
     T_EMPRESAS te ON to2.FK_EMPRESA = te.ID
   JOIN
     T_CLASSIFICACAO_CONTABIL_GRUPO_2 tccg ON to2.FK_CLASSIFICACAO_2 = tccg.ID
   WHERE
     to2.FK_CLASSIFICACAO_1 IN (178, 245)
+    AND to2.rn = 1
   ORDER BY
     ID_Loja,
     Ano_Mes;

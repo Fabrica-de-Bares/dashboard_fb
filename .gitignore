@@ -14,4 +14,7 @@ venv/
 # Ignorar devcontainer
 .devcontainer/
 
+# Ignorar configs do Claude Code (skills, etc.)
+.claude/
+
 

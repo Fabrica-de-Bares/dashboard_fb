@@ -431,19 +431,28 @@ def GET_FATURAMENTO_ITENS_VENDIDOS_COMPLETO(data_inicio, data_fim, id_casa):
 @st.cache_data
 def GET_CMV_ORCADO_AB():
   return dataframe_query(f'''
-      WITH Orcamento_CMV AS (
-        SELECT 
+      WITH T_ORCAMENTOS_ATUAL AS (
+        SELECT t.*,
+            ROW_NUMBER() OVER (
+                PARTITION BY t.FK_EMPRESA, t.FK_CLASSIFICACAO_1, t.FK_CLASSIFICACAO_2, t.MES, t.ANO
+                ORDER BY t.TAG_REVISAO DESC
+            ) AS rn
+        FROM T_ORCAMENTOS t
+    ),
+    Orcamento_CMV AS (
+        SELECT
             te.ID,
             te.NOME_FANTASIA,
             t.MES,
             t.ANO,
             SUM(t.VALOR) AS Valor_Orcamento_CMV
-        FROM T_ORCAMENTOS t 
-        LEFT JOIN T_EMPRESAS te ON te.ID = t.FK_EMPRESA 
+        FROM T_ORCAMENTOS_ATUAL t
+        LEFT JOIN T_EMPRESAS te ON te.ID = t.FK_EMPRESA
         LEFT JOIN T_CLASSIFICACAO_CONTABIL_GRUPO_1 tccg ON tccg.ID = t.FK_CLASSIFICACAO_1
         LEFT JOIN T_CLASSIFICACAO_CONTABIL_GRUPO_2 tccg2 ON tccg2.ID = t.FK_CLASSIFICACAO_2
         WHERE tccg.ID IN (180, 236)
           AND tccg2.ID IN (957, 958, 493, 494)
+          AND t.rn = 1
         GROUP BY te.ID, te.NOME_FANTASIA, t.MES, t.ANO
     ),
     Orcamento_Faturamento AS (
@@ -453,12 +462,13 @@ def GET_CMV_ORCADO_AB():
             t.MES,
             t.ANO,
             SUM(t.VALOR) AS Valor_Orcamento_Faturamento
-        FROM T_ORCAMENTOS t 
-        LEFT JOIN T_EMPRESAS te ON te.ID = t.FK_EMPRESA 
+        FROM T_ORCAMENTOS_ATUAL t
+        LEFT JOIN T_EMPRESAS te ON te.ID = t.FK_EMPRESA
         LEFT JOIN T_CLASSIFICACAO_CONTABIL_GRUPO_1 tccg ON tccg.ID = t.FK_CLASSIFICACAO_1
         LEFT JOIN T_CLASSIFICACAO_CONTABIL_GRUPO_2 tccg2 ON tccg2.ID = t.FK_CLASSIFICACAO_2
         WHERE tccg.ID IN (178, 245)
           AND tccg2.ID IN (442, 457, 899, 914)
+          AND t.rn = 1
         GROUP BY te.ID, te.NOME_FANTASIA, t.MES, t.ANO
     )
     SELECT
