@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 from utils.functions.general_functions import format_brazilian_without_decimal
+from utils.constants.general_constants import TAXA_DESPESAS_FINANCEIRAS_PADRAO, TAXA_DESPESAS_FINANCEIRAS_EXCECOES
 
 
 # Análise SWOT
@@ -118,7 +119,7 @@ def fatia_por_categoria(df, coluna, inicio, fim):
 
 
 # Calcula porcentagens e outros valores - Orçamento e Real DRE
-def define_linhas_calculadas(df_orcamentos_resumo, df_orcamentos_concatenados, lista_categorias_dre, colunas_meses, tipo, mapa_posicao_percentual=None):
+def define_linhas_calculadas(df_orcamentos_resumo, df_orcamentos_concatenados, lista_categorias_dre, colunas_meses, tipo, mapa_posicao_percentual=None, casa=None):
     if tipo == 'Orçamento':
         # Define valores mais usados
         cmv = df_orcamentos_concatenados[df_orcamentos_concatenados['Categoria'] == 'Custo Mercadoria Vendida'][colunas_meses].sum()
@@ -127,6 +128,11 @@ def define_linhas_calculadas(df_orcamentos_resumo, df_orcamentos_concatenados, l
         faturamento_bruto = df_orcamentos_concatenados[df_orcamentos_concatenados['Categoria'] == 'Faturamento Bruto'][colunas_meses].sum()
         custos_eventos = df_orcamentos_concatenados[df_orcamentos_concatenados['Categoria'] == 'Custos de Eventos'][colunas_meses].sum()
 
+        # PATROCÍNIO líquido (valores gravados sempre positivos no upload - Despesas precisa entrar com sinal invertido)
+        receitas_patrocinio = df_orcamentos_concatenados[df_orcamentos_concatenados['Categoria'] == '(+) Receitas de Patrocínio'][colunas_meses].sum()
+        despesas_patrocinio = df_orcamentos_concatenados[df_orcamentos_concatenados['Categoria'] == '(-) Despesas de Patrocínio'][colunas_meses].sum()
+        patrocinio_liquido = receitas_patrocinio - despesas_patrocinio
+
         # RECEITA LIQUIDA
         receita_liquida = (
             df_orcamentos_concatenados[df_orcamentos_concatenados['Categoria'] == 'Faturamento Bruto'][colunas_meses].sum() -
@@ -134,6 +140,9 @@ def define_linhas_calculadas(df_orcamentos_resumo, df_orcamentos_concatenados, l
             df_orcamentos_concatenados[df_orcamentos_concatenados['Categoria'] == 'Impostos sobre Venda'][colunas_meses].sum()
         )
         df_final = insere_nova_linha(df_orcamentos_resumo, colunas_meses, receita_liquida, 'Impostos sobre Venda', 'Categoria', 'RECEITA LÍQUIDA')
+
+        # Substitui a soma bruta de 'Patrocínio' (Receitas + Despesas somadas como positivas) pelo valor líquido
+        df_final.loc[df_final['Categoria'] == 'Patrocínio', colunas_meses] = patrocinio_liquido.values
 
         # % sobre Receita Bruta - CMV
         receita_bruta = (
@@ -146,20 +155,20 @@ def define_linhas_calculadas(df_orcamentos_resumo, df_orcamentos_concatenados, l
         df_final = insere_nova_linha(df_final, colunas_meses, porc_receita_bruta_cmv, 'Custo Mercadoria Vendida', 'Categoria', '% sobre Receita Bruta')
         
         # % sobre Receita Líquida - CMV
-        porc_receita_liquida_cmv = (cmv / receita_liquida).round(2)
+        porc_receita_liquida_cmv = (cmv / receita_liquida)
         df_final = insere_nova_linha(df_final, colunas_meses, porc_receita_liquida_cmv, '% sobre Receita Bruta', 'Categoria', '% sobre Receita Líquida')
 
         # % sobre Receita Artístico
-        porc_receita_artistico = (custos_artistico / faturamento_artistico).round(2)
+        porc_receita_artistico = (custos_artistico / faturamento_artistico)
         df_final = insere_nova_linha(df_final, colunas_meses, porc_receita_artistico, 'Custos Artístico Geral', 'Categoria', '% sobre Receita Artístico')
 
         # % sobre Receita de Eventos
         faturamento_eventos = (
             df_orcamentos_concatenados[df_orcamentos_concatenados['Categoria'] == 'Eventos A&B'][colunas_meses].sum() +
             df_orcamentos_concatenados[df_orcamentos_concatenados['Categoria'] == 'Eventos Locações'][colunas_meses].sum() +
-            df_orcamentos_concatenados[df_orcamentos_concatenados['Categoria'] == 'Eventos Couvert'][colunas_meses].sum() 
+            df_orcamentos_concatenados[df_orcamentos_concatenados['Categoria'] == 'Eventos Couvert'][colunas_meses].sum()
         )
-        porc_receita_eventos = (custos_eventos / faturamento_eventos.replace(0, np.nan)).round(2)
+        porc_receita_eventos = (custos_eventos / faturamento_eventos.replace(0, np.nan))
         df_final = insere_nova_linha(df_final, colunas_meses, porc_receita_eventos, 'Custos de Eventos', 'Categoria', '% sobre Receita de Eventos')
 
         # PESSOAL
@@ -202,12 +211,51 @@ def define_linhas_calculadas(df_orcamentos_resumo, df_orcamentos_concatenados, l
         ebit = ebitda
         df_final = insere_nova_linha(df_final, colunas_meses, ebit, 'EBITDA', 'Categoria', 'EBIT')
 
+        # RECEITAS/DESPESAS FINANCEIRAS
+        taxa_despesas_financeiras = TAXA_DESPESAS_FINANCEIRAS_EXCECOES.get(casa, TAXA_DESPESAS_FINANCEIRAS_PADRAO)
+        receitas_despesas_financeiras = -(faturamento_bruto * taxa_despesas_financeiras)
+        df_final = insere_nova_linha(df_final, colunas_meses, receitas_despesas_financeiras, 'EBIT', 'Categoria', 'Receitas/Despesas Financeiras')
+
+        # RESULTADO ANTES DO IR
+        resultado_antes_ir = ebit + receitas_despesas_financeiras + patrocinio_liquido
+        df_final = insere_nova_linha(df_final, colunas_meses, resultado_antes_ir, 'Patrocínio', 'Categoria', 'Resultado Antes do IR')
+
+        # RESULTADO LÍQUIDO
+        impostos = df_final[df_final['Categoria'] == 'Imposto de Renda'][colunas_meses].sum()
+        resultado_liquido = resultado_antes_ir - impostos
+        df_final = insere_nova_linha(df_final, colunas_meses, resultado_liquido, 'Imposto de Renda', 'Categoria', 'Resultado Líquido')
+
+        # % sobre Receita Bruta - Resultado Líquido
+        porc_receita_bruta_resultado_liquido = (resultado_liquido / faturamento_bruto)
+        df_final = insere_nova_linha(df_final, colunas_meses, porc_receita_bruta_resultado_liquido, 'Resultado Líquido', 'Categoria', '% sobre Receita Bruta')
+
+        # OUTRAS VARIAÇÕES NO FLUXO DE CAIXA (valores gravados sempre positivos no upload - despesas, entram negativas)
+        outras_variacoes_fluxo_caixa = -(
+            df_orcamentos_concatenados[df_orcamentos_concatenados['Categoria'] == 'Remuneração Variável'][colunas_meses].sum() +
+            df_orcamentos_concatenados[df_orcamentos_concatenados['Categoria'] == 'Dividendos'][colunas_meses].sum() +
+            df_orcamentos_concatenados[df_orcamentos_concatenados['Categoria'] == 'Endividamento Geral'][colunas_meses].sum() +
+            df_orcamentos_concatenados[df_orcamentos_concatenados['Categoria'] == 'Processo Judicial'][colunas_meses].sum() +
+            df_orcamentos_concatenados[df_orcamentos_concatenados['Categoria'] == 'Processo Civil'][colunas_meses].sum() +
+            df_orcamentos_concatenados[df_orcamentos_concatenados['Categoria'] == 'Recurso Processual'][colunas_meses].sum() +
+            df_orcamentos_concatenados[df_orcamentos_concatenados['Categoria'] == 'Empréstimos Gerais'][colunas_meses].sum()
+        )
+        df_final = insere_nova_linha(df_final, colunas_meses, outras_variacoes_fluxo_caixa, 'Investimento - CAPEX', 'Categoria', 'Outras variações no fluxo de caixa')
+
+        # TOTAL - VARIAÇÕES S/ RESULTADO LÍQUIDO
+        capex = df_final[df_final['Categoria'] == 'Investimento - CAPEX'][colunas_meses].sum()
+        total_variacoes_resultado_liquido = capex + outras_variacoes_fluxo_caixa
+        df_final = insere_nova_linha(df_final, colunas_meses, total_variacoes_resultado_liquido, 'Outras variações no fluxo de caixa', 'Categoria', 'Total - Variações s/ Resultado Líquido')
+
+        # FCF
+        fcf = resultado_liquido + total_variacoes_resultado_liquido
+        df_final = insere_nova_linha(df_final, colunas_meses, fcf, 'Total - Variações s/ Resultado Líquido', 'Categoria', 'FCF')
+
         # Calcula % sobre Receita Bruta de cada categoria
         for categoria in lista_categorias_dre:
             # Casos específicos (não pedem o cálculo ou foram calculados acima)
-            if categoria not in ['Faturamento Bruto', 'Custo Mercadoria Vendida', 'Impostos sobre Venda', 'Mão de Obra - PJ', 'Mão de Obra - Salários', 'Mão de Obra - Extra', 'Mão de Obra - Encargos e Provisões', 'Mão de Obra - Benefícios', 'Patrocínio']:
+            if categoria not in ['Faturamento Bruto', 'Custo Mercadoria Vendida', 'Impostos sobre Venda', 'Mão de Obra - PJ', 'Mão de Obra - Salários', 'Mão de Obra - Extra', 'Mão de Obra - Encargos e Provisões', 'Mão de Obra - Benefícios', 'Patrocínio', 'Imposto de Renda', 'Investimento - CAPEX', 'Dividendos e Remunerações Variáveis', 'Endividamento']:
                 custos_categoria = df_final[df_final['Categoria'] == categoria][colunas_meses].sum()
-                porc_faturamento_bruto_categoria = (custos_categoria / faturamento_bruto).round(2)
+                porc_faturamento_bruto_categoria = (custos_categoria / faturamento_bruto)
                 if categoria == 'PESSOAL':
                     apos_linha = 'Mão de Obra - Benefícios'
                 else:
@@ -243,11 +291,11 @@ def define_linhas_calculadas(df_orcamentos_resumo, df_orcamentos_concatenados, l
         df_final = insere_nova_linha(df_orcamentos_concatenados, colunas_meses, porc_receita_bruta_cmv, apos_linha, 'Categoria', '% sobre Receita Bruta')
         
         # % sobre Receita Líquida - CMV
-        porc_receita_liquida_cmv = (cmv / receita_liquida).round(2)
+        porc_receita_liquida_cmv = (cmv / receita_liquida)
         df_final = insere_nova_linha(df_final, colunas_meses, porc_receita_liquida_cmv, '% sobre Receita Bruta', 'Categoria', '% sobre Receita Líquida')
 
         # % sobre Receita Artístico
-        porc_receita_artistico = (custos_artistico / faturamento_artistico).round(2)
+        porc_receita_artistico = (custos_artistico / faturamento_artistico)
         apos_linha = mapa_posicao_percentual.get('(-) Custos Artístico Geral')
         df_final = insere_nova_linha(df_final, colunas_meses, porc_receita_artistico, apos_linha, 'Categoria', '% sobre Receita Artístico')
 
@@ -255,9 +303,9 @@ def define_linhas_calculadas(df_orcamentos_resumo, df_orcamentos_concatenados, l
         faturamento_eventos = (
             df_orcamentos_concatenados[df_orcamentos_concatenados['Categoria'] == 'Eventos A&B'][colunas_meses].sum() +
             df_orcamentos_concatenados[df_orcamentos_concatenados['Categoria'] == 'Eventos Locações'][colunas_meses].sum() +
-            df_orcamentos_concatenados[df_orcamentos_concatenados['Categoria'] == 'Eventos Couvert'][colunas_meses].sum() 
+            df_orcamentos_concatenados[df_orcamentos_concatenados['Categoria'] == 'Eventos Couvert'][colunas_meses].sum()
         )
-        porc_receita_eventos = (custos_eventos / faturamento_eventos.replace(0, np.nan)).round(2)
+        porc_receita_eventos = (custos_eventos / faturamento_eventos.replace(0, np.nan))
         apos_linha = mapa_posicao_percentual.get('(-) Custos de Eventos')
         df_final = insere_nova_linha(df_final, colunas_meses, porc_receita_eventos, apos_linha, 'Categoria', '% sobre Receita de Eventos')
 
@@ -266,8 +314,8 @@ def define_linhas_calculadas(df_orcamentos_resumo, df_orcamentos_concatenados, l
             # Casos específicos (não pedem o cálculo ou foram calculados acima)
             if categoria not in ['FATURAMENTO BRUTO', '(-) Custo Mercadoria Vendida', '(-) Impostos sobre Venda', 'PJ', 'MDO CLT - Salário', 'Mão de Obra Extra', 'Encargos e Provisões', 'Benefícios', 'Outros B', '(+) Receitas de Patrocínio']:
                 custos_categoria = df_final[df_final['Categoria'] == categoria][colunas_meses].sum()
-                porc_faturamento_bruto_categoria = (custos_categoria / faturamento_bruto).round(2)
-                
+                porc_faturamento_bruto_categoria = (custos_categoria / faturamento_bruto)
+
                 apos_linha = mapa_posicao_percentual.get(categoria, categoria)
                 df_final = insere_nova_linha(df_final, colunas_meses, porc_faturamento_bruto_categoria, apos_linha, 'Categoria', '% sobre Receita Bruta')
 
@@ -283,16 +331,19 @@ def highlight_secoes_dre(row):
         'Custos de Eventos', '(-) Custos Eventos', 'Gorjeta', '(-) Dedução da Gorjeta', 'Deduções sobre Venda', '(-) Deduções sobre Venda', 
         'PESSOAL', 'Custo de Ocupação', 'Utilidades', 'Informática e TI', 'Manutenção', 'Despesas Gerais', 'Marketing', 
         'Serviços de Terceiros', 'Locação de Equipamentos', 'Sistema de Franquias', 'TOTAL - DESPESAS OPERATIVAS', '(-) Depreciação/Amortização',
-        '(+/-) Receitas/Despesas Financeiras', 'Despesas Financeiras', 'Patrocínio', '(+) Receitas de Patrocínio', '(-) Despesas de Patrocínio', '(-) Impostos', 
-        '(-) CAPEX (Investimentos)', 'Investimento - CAPEX', '(+/-) Outras variações no fluxo de caixa', 'Total - Variações s/ Resultado Líquido'
+        '(+/-) Receitas/Despesas Financeiras', 'Despesas Financeiras', 'Receitas/Despesas Financeiras', 'Patrocínio', '(+) Receitas de Patrocínio', '(-) Despesas de Patrocínio', '(-) Impostos', 'Impostos',
+        '(-) CAPEX (Investimentos)', 'Investimento - CAPEX', 'CAPEX (Investimentos)', '(+/-) Outras variações no fluxo de caixa', 'Outras variações no fluxo de caixa', 'Total - Variações s/ Resultado Líquido'
         ]:
         return ['background-color: rgba(255, 165, 0, 0.05); color: #993300; font-weight: 500'] * len(row)
     
     elif row['Categoria'] in ['Faturamento', 'FATURAMENTO BRUTO', 'RECEITA LÍQUIDA', 'MARGEM BRUTA DE CONTRIBUIÇÃO', 'EBITDA', 'EBIT', 'Resultado Antes do IR', 'Resultado Líquido']:
         return ['background-color: #E8F2FC; color: black; font-weight: 500'] * len(row)
     
-    elif row['Categoria'] in ['% sobre Receita Bruta', '% sobre Receita Líquida', '% sobre Receita Artístico', '% sobre Receita de Eventos', 'FCF', 'Saldo Operacional']:
+    elif row['Categoria'] in ['% sobre Receita Bruta', '% sobre Receita Líquida', '% sobre Receita Artístico', '% sobre Receita de Eventos', 'Saldo Operacional']:
         return ['background-color: #FFFFFF; color: black; font-weight: 500'] * len(row)
+
+    elif row['Categoria'] == 'FCF':
+        return ['background-color: #D4F5EC; color: black; font-weight: 500'] * len(row)
 
     elif row['Categoria'] in [
         'Custos Artístico', 'Custos Ténico de Som', 'MDO', 'Serviços de Terceiros - Eventos', 'Material de Consumo',

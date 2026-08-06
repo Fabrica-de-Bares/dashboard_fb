@@ -116,8 +116,16 @@ def renderiza_orcamento_operacional(df_orcamento_operacional, ano, casa):
         'Serviços de Terceiros',
         'Locação de Equipamentos',
         'Sistema de Franquias',
-        'Patrocínio'
+        'Patrocínio',
+        'Imposto de Renda',
+        'Investimento - CAPEX',
+        'Dividendos e Remunerações Variáveis',
+        'Endividamento'
     ]
+
+    # Categorias que precisam entrar em df_orcamentos_concatenados (soma/detalhamento) mas não devem
+    # aparecer como linha própria no Resumo do Orçamento - entram consolidadas em outra linha calculada
+    categorias_ocultas_resumo = ['Dividendos e Remunerações Variáveis', 'Endividamento']
 
     lista_df_orcamentos = []
     lista_df_orcamentos = loop_prepara_dados_despesas(lista_categorias_dre, df_orcamento_pivot, lista_df_orcamentos)
@@ -134,16 +142,21 @@ def renderiza_orcamento_operacional(df_orcamento_operacional, ano, casa):
     df_orcamentos_concatenados['4º Trimestre'] = df_orcamentos_concatenados[['Outubro', 'Novembro', 'Dezembro']].sum(axis=1)
 
     # Df apenas com os títulos das seções principais
-    df_orcamentos_resumo = df_orcamentos_concatenados[df_orcamentos_concatenados['Categoria'].isin(lista_categorias_dre)].copy()
+    df_orcamentos_resumo = df_orcamentos_concatenados[
+        df_orcamentos_concatenados['Categoria'].isin(lista_categorias_dre) &
+        ~df_orcamentos_concatenados['Categoria'].isin(categorias_ocultas_resumo)
+    ].copy()
 
     # Calcula porcentagens e outros valores
     colunas_numericas = df_orcamentos_resumo.select_dtypes(include='number').columns
-    df_orcamentos_resumo = define_linhas_calculadas(df_orcamentos_resumo, df_orcamentos_concatenados, lista_categorias_dre, colunas_numericas, 'Orçamento')
+    df_orcamentos_resumo = define_linhas_calculadas(df_orcamentos_resumo, df_orcamentos_concatenados, lista_categorias_dre, colunas_numericas, 'Orçamento', casa=casa)
     height = (len(df_orcamentos_resumo) + 1) * 35 # Define altura sem rolagem
 
     st.subheader(f'Resumo do Orçamento - {ano}')
     df_orcamentos_resumo_styled = df_orcamentos_resumo.copy()
     df_orcamentos_resumo_styled.loc[df_orcamentos_resumo_styled['Categoria'] == 'Faturamento Bruto', 'Categoria'] = df_orcamentos_resumo_styled['Categoria'].str.upper()
+    df_orcamentos_resumo_styled.loc[df_orcamentos_resumo_styled['Categoria'] == 'Imposto de Renda', 'Categoria'] = 'Impostos'
+    df_orcamentos_resumo_styled.loc[df_orcamentos_resumo_styled['Categoria'] == 'Investimento - CAPEX', 'Categoria'] = 'CAPEX (Investimentos)'
 
     linhas_percentual = df_orcamentos_resumo_styled['Categoria'].str.contains('%')
     linhas_moeda = ~linhas_percentual

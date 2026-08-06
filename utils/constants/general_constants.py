@@ -181,3 +181,10 @@ mapeamento_class_cont = {
     'Locação de Equipamentos Eventos': 'Locação de Equipamentos',
     # Faturamento Bruto
 }
+
+
+# Receitas/Despesas Financeiras (Orçamento Operacional) - taxa estimada sobre Faturamento Bruto
+TAXA_DESPESAS_FINANCEIRAS_PADRAO = 0.0015  # 0,15%
+TAXA_DESPESAS_FINANCEIRAS_EXCECOES = {
+    # 'Nome da Casa': taxa,  # preencher conforme o usuário for passando as exceções
+}
