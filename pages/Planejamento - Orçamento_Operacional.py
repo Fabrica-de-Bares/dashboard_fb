@@ -35,15 +35,20 @@ st.divider()
 # Seletor de casa e ano
 col1, col2, col3 = st.columns(3)
 
-with col1:
-    lista_casas_retirar = ['Todas as Casas', 'Blue Note SP (Novo)', 'Blue Note SP (Sala 2)', 'Brahminha', 'Edificio Rolim', 'Priceless', 'Sanduiche comunicação LTDA ', 'Tempus Fugit  Ltda ', 'Terraço Notie Novo', 'The Cavern - Almoço']
-    id_casa, casa, id_zigpay = input_selecao_casas(lista_casas_retirar, 'casa')
-    
-with col2:
-    ano = seletor_ano(2023, 2026, 'ano')
-
 with col3:
     tipo_valor = st.selectbox("Selecione a informação a visualizar:", ['Orçamento Operacional', 'Histórico Real'])
+
+with col1:
+    lista_casas_retirar = ['Blue Note SP (Novo)', 'Blue Note SP (Sala 2)', 'Brahminha', 'Edificio Rolim', 'Priceless', 'Sanduiche comunicação LTDA ', 'Tempus Fugit  Ltda ', 'Terraço Notie Novo', 'The Cavern - Almoço']
+    if tipo_valor == 'Histórico Real':
+        # 'Todas as Casas' não é suportado no Histórico Real (depende de um arquivo Base_DRE por casa)
+        lista_casas_retirar = lista_casas_retirar + ['Todas as Casas']
+        if st.session_state.get('casa') == 'Todas as Casas':
+            del st.session_state['casa']  # evita erro do selectbox com valor fora das opções válidas
+    id_casa, casa, id_zigpay = input_selecao_casas(lista_casas_retirar, 'casa')
+
+with col2:
+    ano = seletor_ano(2023, 2026, 'ano')
 st.divider()
 
 # Recupera dados - Orçamentos, Revisão e Real
@@ -63,8 +68,15 @@ def renderiza_orcamento_operacional(df_orcamento_operacional, ano, casa):
         st.warning(f'{casa} sem dados para {ano}.')
         return
 
+    if casa == 'Todas as Casas':
+        casas_permitidas = [c['Loja'] for c in st.session_state['casas_permitidas']]
+        casas_somar = [c for c in casas_permitidas if c not in lista_casas_retirar]
+        filtro_casa = df_orcamento_operacional['Casa'].isin(casas_somar)
+    else:
+        filtro_casa = df_orcamento_operacional['Casa'] == casa
+
     df_orcamento_filtrado = df_orcamento_operacional[
-        (df_orcamento_operacional['Casa'] == casa) &
+        filtro_casa &
         (df_orcamento_operacional['Ano'] == ano)
     ].copy()
 
@@ -82,9 +94,16 @@ def renderiza_orcamento_operacional(df_orcamento_operacional, ano, casa):
     }
     df_orcamento_filtrado["Mês"] = df_orcamento_filtrado["Mês"].map(mapa_meses)
 
+    # Faturamento Bruto por casa - usado no cálculo de Receitas/Despesas Financeiras (taxa por casa)
+    df_faturamento_por_casa = df_orcamento_filtrado[
+        df_orcamento_filtrado['Classificação Contábil 1'] == 'Faturamento Bruto'
+    ].pivot_table(index='Casa', columns='Mês', values='Orçamento', aggfunc='sum').fillna(0)
+    for col in df_faturamento_por_casa.columns:
+        df_faturamento_por_casa[col] = pd.to_numeric(df_faturamento_por_casa[col], errors='coerce').fillna(0)
+
     # Transforma meses em colunas
     df_orcamento_pivot = df_orcamento_filtrado.pivot_table(
-        index=["Casa", "Classificação Contábil 1", "Classificação Contábil 2"], 
+        index=["Classificação Contábil 1", "Classificação Contábil 2"],
         columns="Mês",
         values="Orçamento",
         aggfunc="sum"
@@ -141,6 +160,15 @@ def renderiza_orcamento_operacional(df_orcamento_operacional, ano, casa):
     df_orcamentos_concatenados['3º Trimestre'] = df_orcamentos_concatenados[['Julho', 'Agosto', 'Setembro']].sum(axis=1)
     df_orcamentos_concatenados['4º Trimestre'] = df_orcamentos_concatenados[['Outubro', 'Novembro', 'Dezembro']].sum(axis=1)
 
+    # Garante todos os meses e cria as mesmas colunas de acumulado do ano e trimestres no Faturamento Bruto por casa
+    meses_ano = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro']
+    df_faturamento_por_casa = df_faturamento_por_casa.reindex(columns=meses_ano, fill_value=0)
+    df_faturamento_por_casa[f'Ano {ano}'] = df_faturamento_por_casa[meses_ano].sum(axis=1)
+    df_faturamento_por_casa['1º Trimestre'] = df_faturamento_por_casa[['Janeiro', 'Fevereiro', 'Março']].sum(axis=1)
+    df_faturamento_por_casa['2º Trimestre'] = df_faturamento_por_casa[['Abril', 'Maio', 'Junho']].sum(axis=1)
+    df_faturamento_por_casa['3º Trimestre'] = df_faturamento_por_casa[['Julho', 'Agosto', 'Setembro']].sum(axis=1)
+    df_faturamento_por_casa['4º Trimestre'] = df_faturamento_por_casa[['Outubro', 'Novembro', 'Dezembro']].sum(axis=1)
+
     # Df apenas com os títulos das seções principais
     df_orcamentos_resumo = df_orcamentos_concatenados[
         df_orcamentos_concatenados['Categoria'].isin(lista_categorias_dre) &
@@ -149,7 +177,7 @@ def renderiza_orcamento_operacional(df_orcamento_operacional, ano, casa):
 
     # Calcula porcentagens e outros valores
     colunas_numericas = df_orcamentos_resumo.select_dtypes(include='number').columns
-    df_orcamentos_resumo = define_linhas_calculadas(df_orcamentos_resumo, df_orcamentos_concatenados, lista_categorias_dre, colunas_numericas, 'Orçamento', casa=casa)
+    df_orcamentos_resumo = define_linhas_calculadas(df_orcamentos_resumo, df_orcamentos_concatenados, lista_categorias_dre, colunas_numericas, 'Orçamento', faturamento_bruto_por_casa=df_faturamento_por_casa)
     height = (len(df_orcamentos_resumo) + 1) * 35 # Define altura sem rolagem
 
     st.subheader(f'Resumo do Orçamento - {ano}')
@@ -222,6 +250,10 @@ if tipo_valor == 'Orçamento Operacional':
         renderiza_orcamento_operacional(df_revisao_orcamento_operacional, ano, casa)
 
 else: # Histórico Real
+    if casa == 'Todas as Casas':
+        st.warning('Selecione uma casa específica para visualizar o Histórico Real.')
+        st.stop()
+
     if casa == 'The Cavern' and ano < 2026:
         st.warning(f'{casa} sem dados para {ano}.')
         st.stop()

@@ -119,7 +119,7 @@ def fatia_por_categoria(df, coluna, inicio, fim):
 
 
 # Calcula porcentagens e outros valores - Orçamento e Real DRE
-def define_linhas_calculadas(df_orcamentos_resumo, df_orcamentos_concatenados, lista_categorias_dre, colunas_meses, tipo, mapa_posicao_percentual=None, casa=None):
+def define_linhas_calculadas(df_orcamentos_resumo, df_orcamentos_concatenados, lista_categorias_dre, colunas_meses, tipo, mapa_posicao_percentual=None, faturamento_bruto_por_casa=None):
     if tipo == 'Orçamento':
         # Define valores mais usados
         cmv = df_orcamentos_concatenados[df_orcamentos_concatenados['Categoria'] == 'Custo Mercadoria Vendida'][colunas_meses].sum()
@@ -211,9 +211,11 @@ def define_linhas_calculadas(df_orcamentos_resumo, df_orcamentos_concatenados, l
         ebit = ebitda
         df_final = insere_nova_linha(df_final, colunas_meses, ebit, 'EBITDA', 'Categoria', 'EBIT')
 
-        # RECEITAS/DESPESAS FINANCEIRAS
-        taxa_despesas_financeiras = TAXA_DESPESAS_FINANCEIRAS_EXCECOES.get(casa, TAXA_DESPESAS_FINANCEIRAS_PADRAO)
-        receitas_despesas_financeiras = -(faturamento_bruto * taxa_despesas_financeiras)
+        # RECEITAS/DESPESAS FINANCEIRAS - taxa por casa (correto mesmo agregando múltiplas casas em "Todas as Casas")
+        receitas_despesas_financeiras = pd.Series(0.0, index=colunas_meses)
+        for casa_nome, linha_faturamento in faturamento_bruto_por_casa.iterrows():
+            taxa = TAXA_DESPESAS_FINANCEIRAS_EXCECOES.get(casa_nome, TAXA_DESPESAS_FINANCEIRAS_PADRAO)
+            receitas_despesas_financeiras = receitas_despesas_financeiras - linha_faturamento[colunas_meses] * taxa
         df_final = insere_nova_linha(df_final, colunas_meses, receitas_despesas_financeiras, 'EBIT', 'Categoria', 'Receitas/Despesas Financeiras')
 
         # RESULTADO ANTES DO IR
