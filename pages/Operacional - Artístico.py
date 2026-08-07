@@ -92,7 +92,7 @@ def main():
     lucro_total = float(df_merged_filtrado['Resultado'].sum())
     lucro_total_anterior = float(df_merged_anterior_filtrado['Resultado'].sum())
     delta_lucro = float(lucro_total - lucro_total_anterior)
-    delta_lucro_porcentagem = float((delta_lucro / lucro_total_anterior) * 100)
+    delta_lucro_porcentagem = float((delta_lucro / lucro_total_anterior) * 100) if lucro_total_anterior != 0 else 0.0
 
     # Gráfico do st.metric
     df_chart = df_merged_filtrado.groupby('Data Evento').agg({'Resultado': 'sum'}).reset_index()
