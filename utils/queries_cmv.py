@@ -1137,7 +1137,28 @@ def GET_INSUMOS_BLUE_ME_SEM_PEDIDO():
 
 @st.cache_data
 def GET_VALORACAO_PRODUCAO(data):
+  # Reescrita 2026-08-07: antes exigia (via JOIN) uma valoração casada no MESMO mês em
+  # T_ITENS_PRODUCAO_VALORACAO — item contado sem essa valoração desaparecia
+  # silenciosamente da soma (nem aparecia como R$0). Além disso, o JOIN em
+  # T_ITENS_PRODUCAO era encadeado a partir de tipv (T_ITENS_PRODUCAO tip ON
+  # tipv.FK_ITEM_PRODUZIDO = tip.ID) — então mesmo um item com VALOR_TOTAL já
+  # calculado pela ficha técnica sumia inteiro (Casa/Categoria ficavam NULL em
+  # cascata e caíam fora do filtro de loja) se não tivesse valoração casada no mês.
+  # Agora: usa PRECO_MEDIO/VALOR_TOTAL de T_ITENS_PRODUCAO_CONTAGEM diretamente quando
+  # existirem (>0); sem eles, cai para o ÚLTIMO preço conhecido do item em
+  # T_ITENS_PRODUCAO_VALORACAO até a data (CTE UltimoValor, não mais restrito ao mesmo
+  # mês), sem checagem de sanidade adicional. DATE(tipc.DATA_CONTAGEM), não igualdade
+  # exata — a coluna guarda o horário real de submissão até o lote noturno normalizar
+  # para meia-noite; um match exato perdia contagens recentes.
   return dataframe_query(f'''
+  WITH UltimoValor AS (
+    SELECT
+        FK_ITEM_PRODUZIDO,
+        VALOR,
+        ROW_NUMBER() OVER (PARTITION BY FK_ITEM_PRODUZIDO ORDER BY DATA_VALORACAO DESC) AS rn
+    FROM T_ITENS_PRODUCAO_VALORACAO
+    WHERE DATE(DATA_VALORACAO) <= '{data}'
+  )
   SELECT
     te.ID as 'ID_Loja',
     te.NOME_FANTASIA as 'Loja',
@@ -1147,13 +1168,21 @@ def GET_VALORACAO_PRODUCAO(data):
     tudm.UNIDADE_MEDIDA_NAME as 'Unidade_Medida',
     tipc.QUANTIDADE_INSUMO as 'Quantidade',
     tin.DESCRICAO as 'Categoria',
-    tipv.VALOR as 'Valor_Unidade_Medida',
-    ROUND(tipc.QUANTIDADE_INSUMO * tipv.VALOR, 2) as 'Valor_Total'
+    CASE
+        WHEN tipc.PRECO_MEDIO > 0
+            THEN ROUND(tipc.PRECO_MEDIO, 2)
+        ELSE uv.VALOR
+    END as 'Valor_Unidade_Medida',
+    CASE
+        WHEN tipc.VALOR_TOTAL > 0
+            THEN ROUND(tipc.VALOR_TOTAL, 2)
+        ELSE ROUND(tipc.QUANTIDADE_INSUMO * uv.VALOR, 2)
+    END as 'Valor_Total'
   FROM T_ITENS_PRODUCAO_CONTAGEM tipc
-  LEFT JOIN T_ITENS_PRODUCAO_VALORACAO tipv ON (tipc.FK_ITEM_PRODUZIDO = tipv.FK_ITEM_PRODUZIDO) AND (DATE_FORMAT(tipc.DATA_CONTAGEM, '%m/%Y') = DATE_FORMAT(tipv.DATA_VALORACAO, '%m/%Y'))
-  LEFT JOIN T_ITENS_PRODUCAO tip ON (tipv.FK_ITEM_PRODUZIDO = tip.ID)
+  JOIN T_ITENS_PRODUCAO tip ON (tip.ID = tipc.FK_ITEM_PRODUZIDO)
   LEFT JOIN T_EMPRESAS te ON (tip.FK_EMPRESA = te.ID)
   LEFT JOIN T_INSUMOS_NIVEL_1 tin ON (tip.FK_INSUMO_NIVEL_1 = tin.ID)
   LEFT JOIN T_UNIDADES_DE_MEDIDAS tudm ON (tip.FK_UNIDADE_MEDIDA = tudm.ID)
-  WHERE tipc.DATA_CONTAGEM = '{data}'
+  LEFT JOIN UltimoValor uv ON (uv.FK_ITEM_PRODUZIDO = tipc.FK_ITEM_PRODUZIDO AND uv.rn = 1)
+  WHERE DATE(tipc.DATA_CONTAGEM) = '{data}'
   ''')
