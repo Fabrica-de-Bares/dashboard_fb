@@ -932,26 +932,42 @@ def config_valoracao_estoque_ou_producao(tipo, data_inicio, data_fim, loja):
     df_valoracao = df_valoracao[
        (df_valoracao['Loja'] == loja) &
        (df_valoracao['Categoria'].isin(['ALIMENTOS', 'BEBIDAS']))
-    ]
-    
+    ].copy()
+
+    # Fix 2026-08-10: contagens recentes (lag de consolidação — mesmo fenômeno já
+    # documentado nos fixes de GET_VALORACAO_PRODUCAO/DRE_AUT_INSUMOS_PRODUCAO) chegam
+    # com o horário exato de submissão em vez de meia-noite, e a query de estoque
+    # (GET_VALORACAO_ESTOQUE) mistura DATETIME cru com string formatada (DATE_FORMAT)
+    # dependendo se a contagem é agrupada — pd.to_datetime com formato misto pode
+    # travar no primeiro formato inferido e descartar (NaT) todo o resto silenciosamente.
+    # Isso fazia o fechamento do mês mais recente (ex.: produção com dois horários
+    # distintos no mesmo dia, um por categoria) não casar com o "scaffold" de meses
+    # abaixo — Variação_Mensal do mês virava 0 - valor_anterior em vez de atual -
+    # anterior, distorcendo o CMV Real da aba Forecast (achado real: Bar Brahma - Granja,
+    # jul/2026 — CMV saía -35,64% em vez de -30,36%, mesmo valor já validado no CMV
+    # Real/Download DRE). Normaliza para os 10 primeiros caracteres (parte de data, sem
+    # horário) antes de parsear e já trunca para o 1º dia do mês — garante o match com o
+    # scaffold independente do horário exato de submissão ou do formato retornado.
+    df_valoracao[col_data] = pd.to_datetime(
+        df_valoracao[col_data].astype(str).str[:10], errors='coerce'
+    ).dt.to_period('M').dt.to_timestamp()
+
     # Agrupar por mês, loja e categoria
     df_valoracao = (
         df_valoracao
         .groupby(['Loja', 'Categoria', col_data], as_index=False)
         .agg({col_valor: 'sum'})
     )
-    
+
     # Criar todas as datas do período
     todas_datas = pd.date_range(start=data_inicio, end=data_fim, freq='MS')
-    
+
     # Todas combinações de Loja, Categoria e DATA_CONTAGEM
     lojas_categorias = df_valoracao[['Loja', 'Categoria']].drop_duplicates()
     todas_combinacoes = (
         lojas_categorias
         .merge(pd.DataFrame({col_data: todas_datas}), how='cross')
     )
-    
-    df_valoracao[col_data] = pd.to_datetime(df_valoracao[col_data], errors='coerce')
 
     # Merge com o dataframe real
     df_valoracao = todas_combinacoes.merge(
