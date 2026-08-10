@@ -177,7 +177,11 @@ def renderiza_orcamento_operacional(df_orcamento_operacional, ano, casa):
 
     # Calcula porcentagens e outros valores
     colunas_numericas = df_orcamentos_resumo.select_dtypes(include='number').columns
+<<<<<<< Updated upstream
     df_orcamentos_resumo = define_linhas_calculadas(df_orcamentos_resumo, df_orcamentos_concatenados, lista_categorias_dre, colunas_numericas, 'Orçamento', faturamento_bruto_por_casa=df_faturamento_por_casa)
+=======
+    df_orcamentos_resumo = define_linhas_calculadas(df_orcamentos_resumo, df_orcamentos_concatenados, lista_categorias_dre, colunas_numericas, 'Orçamento', casa=casa)
+>>>>>>> Stashed changes
     height = (len(df_orcamentos_resumo) + 1) * 35 # Define altura sem rolagem
 
     st.subheader(f'Resumo do Orçamento - {ano}')
