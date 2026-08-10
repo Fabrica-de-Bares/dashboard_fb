@@ -558,8 +558,16 @@ def GET_VALORACAO_ESTOQUE(loja, data_contagem):
     where_loja = "te.ID IN (156, 160)"
   else:
     where_loja = f"te.NOME_FANTASIA = '{loja}'"
+  # Fix 2026-08-10 (mesma sessão/decisão do fix em brands/fabrica-de-bares/scripts/
+  # queries/14_cmv_valoracao_estoque.sql): nível acima de T_AGRUPAMENTO_CONTAGENS —
+  # T_AGRUPAMENTO_CONTAGENS.FK_AGRUPAMENTO_INVENTARIO -> T_AGRUPAMENTO_INVENTARIO, com
+  # sua própria DATA_AGRUPAMENTO (data "oficial" do inventário consolidado, pode
+  # divergir da DATA_AGRUPAMENTO do agrupamento de contagens). Quando vinculado, usa
+  # esse nível (tai); senão cai para tac.DATA_AGRUPAMENTO, como antes. Achado real: Bar
+  # Léo - Centro (ID_Casa=116), fechamento jul/2026 — tac.DATA_AGRUPAMENTO = 31/07 (não
+  # batia com a data-alvo 01/08 = 0 linhas), tai.DATA_AGRUPAMENTO = 01/08 (bate).
   return dataframe_query(f'''
-  SELECT 
+  SELECT
   	te.ID AS 'ID_Loja',
   	te.NOME_FANTASIA AS 'Loja',
   	tin5.ID AS 'ID_Insumo',
@@ -570,19 +578,20 @@ def GET_VALORACAO_ESTOQUE(loja, data_contagem):
     tin.DESCRICAO AS 'Categoria',
   	tve.VALOR_EM_ESTOQUE AS 'Valor_em_Estoque',
   	tci.DATA_CONTAGEM
-  FROM T_VALORACAO_ESTOQUE tve 
-  LEFT JOIN T_CONTAGEM_INSUMOS tci ON tve.FK_CONTAGEM = tci.ID 
-  LEFT JOIN T_EMPRESAS te ON tci.FK_EMPRESA = te.ID 
+  FROM T_VALORACAO_ESTOQUE tve
+  LEFT JOIN T_CONTAGEM_INSUMOS tci ON tve.FK_CONTAGEM = tci.ID
+  LEFT JOIN T_EMPRESAS te ON tci.FK_EMPRESA = te.ID
   LEFT JOIN T_INSUMOS_NIVEL_5 tin5 ON tci.FK_INSUMO = tin5.ID
-  LEFT JOIN T_INSUMOS_NIVEL_4 tin4 ON tin5.FK_INSUMOS_NIVEL_4 = tin4.ID 
-  LEFT JOIN T_INSUMOS_NIVEL_3 tin3 ON tin4.FK_INSUMOS_NIVEL_3 = tin3.ID 
+  LEFT JOIN T_INSUMOS_NIVEL_4 tin4 ON tin5.FK_INSUMOS_NIVEL_4 = tin4.ID
+  LEFT JOIN T_INSUMOS_NIVEL_3 tin3 ON tin4.FK_INSUMOS_NIVEL_3 = tin3.ID
   LEFT JOIN T_INSUMOS_NIVEL_2 tin2 ON tin3.FK_INSUMOS_NIVEL_2 = tin2.ID
   LEFT JOIN T_INSUMOS_NIVEL_1 tin ON tin2.FK_INSUMOS_NIVEL_1 = tin.ID
   LEFT JOIN T_UNIDADES_DE_MEDIDAS tudm ON tin5.FK_UNIDADE_MEDIDA = tudm.ID
   LEFT JOIN T_AGRUPAMENTO_CONTAGENS tac ON tci.FK_AGRUPAMENTO_CONTAGENS = tac.ID
+  LEFT JOIN T_AGRUPAMENTO_INVENTARIO tai ON tac.FK_AGRUPAMENTO_INVENTARIO = tai.ID
   WHERE tci.QUANTIDADE_INSUMO != 0
     AND (tci.FK_AGRUPAMENTO_CONTAGENS IS NULL OR tac.FK_ESTOQUE_TIPO_CONTAGEM = 103)
-    AND (CASE WHEN tci.FK_AGRUPAMENTO_CONTAGENS IS NOT NULL THEN tac.DATA_AGRUPAMENTO ELSE tci.DATA_CONTAGEM END) = '{data_contagem}'
+    AND (CASE WHEN tci.FK_AGRUPAMENTO_CONTAGENS IS NOT NULL THEN COALESCE(tai.DATA_AGRUPAMENTO, tac.DATA_AGRUPAMENTO) ELSE tci.DATA_CONTAGEM END) = '{data_contagem}'
     AND {where_loja}
   ORDER BY DATA_CONTAGEM DESC
   ''')
@@ -590,8 +599,9 @@ def GET_VALORACAO_ESTOQUE(loja, data_contagem):
 
 @st.cache_data
 def GET_AGRUPAMENTOS_DIVERGENTES(loja, data_contagem):
-  # Contagens agrupadas tipo INVENTARIO (103) próximas da data-alvo (±5 dias) que não
-  # bateram exatamente com ela — usado para alertar quando o match exato de
+  # Contagens agrupadas tipo INVENTARIO (103) próximas da data-alvo (±5 dias) cuja data
+  # EFETIVA (2 níveis, fix 2026-08-10 — ver GET_VALORACAO_ESTOQUE) ainda não bateu
+  # exatamente com ela — usado para alertar quando o match exato de
   # GET_VALORACAO_ESTOQUE pode estar deixando uma contagem agrupada de fora.
   if loja == 'Girondino - Agregado':
     where_loja = "te.ID IN (156, 160)"
@@ -603,9 +613,10 @@ def GET_AGRUPAMENTOS_DIVERGENTES(loja, data_contagem):
     tac.DATA_AGRUPAMENTO AS 'Data_Agrupamento'
   FROM T_AGRUPAMENTO_CONTAGENS tac
   LEFT JOIN T_EMPRESAS te ON tac.FK_EMPRESA = te.ID
+  LEFT JOIN T_AGRUPAMENTO_INVENTARIO tai ON tac.FK_AGRUPAMENTO_INVENTARIO = tai.ID
   WHERE tac.FK_ESTOQUE_TIPO_CONTAGEM = 103
-    AND tac.DATA_AGRUPAMENTO BETWEEN DATE_SUB('{data_contagem}', INTERVAL 5 DAY) AND DATE_ADD('{data_contagem}', INTERVAL 5 DAY)
-    AND tac.DATA_AGRUPAMENTO <> '{data_contagem}'
+    AND COALESCE(tai.DATA_AGRUPAMENTO, tac.DATA_AGRUPAMENTO) BETWEEN DATE_SUB('{data_contagem}', INTERVAL 5 DAY) AND DATE_ADD('{data_contagem}', INTERVAL 5 DAY)
+    AND COALESCE(tai.DATA_AGRUPAMENTO, tac.DATA_AGRUPAMENTO) <> '{data_contagem}'
     AND {where_loja}
   ''')
 
@@ -904,6 +915,19 @@ def GET_INSUMOS_AGRUPADOS_BLUE_ME_POR_CATEG_COM_PEDIDO():
 
 @st.cache_data
 def GET_TRANSF_ESTOQUE():
+  # Fix 2026-08-10 (mesma sessão do fix em scripts/queries/16_cmv_transferencias_
+  # insumos.sql do script standalone): transferência de ITEM PRODUZIDO
+  # (T_TRANSFERENCIAS_INSUMOS.FK_ITEM_PRODUCAO, ex. semi-prontos/mise en place) vinha
+  # com FK_INSUMO_NIVEL_5 NULL, e a cadeia de JOIN até tin.DESCRICAO ficava inteira
+  # NULL em cascata — a linha aparecia com Categoria=NULL, e todo consumidor Python que
+  # agrupa por Categoria (processar_transferencias, aqui e em utils/functions/
+  # forecast.py) descartava a linha silenciosamente do pivot (nenhum bucket
+  # Alimentos/Bebidas contava essa transferência). Resolvido direto em SQL via
+  # COALESCE com a categoria do item produzido (T_ITENS_PRODUCAO -> T_INSUMOS_NIVEL_1,
+  # mesmo padrão inline já usado em GET_VALORACAO_PRODUCAO) — os dois consumidores
+  # Python ganham o fix automaticamente, sem precisar mudar o pandas. Achado real: Bar
+  # Léo - Centro, transferência ID 3883 (PANCETA CROCATE, R$98,17, casa 114->116,
+  # 18/07/2026).
   return dataframe_query(f'''
   SELECT
     tti.ID as 'ID_Transferencia',
@@ -914,20 +938,22 @@ def GET_TRANSF_ESTOQUE():
     tti.DATA_TRANSFERENCIA as 'Data_Transferencia',
     tin5.ID as 'ID_Insumo_Nivel_5',
     tin5.DESCRICAO as 'Insumo_Nivel_5',
-    tin.DESCRICAO as 'Categoria',
+    COALESCE(tin.DESCRICAO, tin1_prod.DESCRICAO) as 'Categoria',
     tti.QUANTIDADE as 'Quantidade',
     tudm.UNIDADE_MEDIDA_NAME as 'Unidade_Medida',
     tti.VALOR_TRANSFERENCIA as 'Valor_Transferencia',
     tti.OBSERVACAO as 'Observacao'
-  FROM T_TRANSFERENCIAS_INSUMOS tti 
+  FROM T_TRANSFERENCIAS_INSUMOS tti
     LEFT JOIN T_EMPRESAS te ON (tti.FK_EMRPESA_SAIDA = te.ID)
     LEFT JOIN T_EMPRESAS te2 ON tti.FK_EMPRESA_ENTRADA = te2.ID
     LEFT JOIN T_INSUMOS_NIVEL_5 tin5 ON tti.FK_INSUMO_NIVEL_5 = tin5.ID
-    LEFT JOIN T_INSUMOS_NIVEL_4 tin4 ON tin5.FK_INSUMOS_NIVEL_4 = tin4.ID 
-    LEFT JOIN T_INSUMOS_NIVEL_3 tin3 ON tin4.FK_INSUMOS_NIVEL_3 = tin3.ID 
-    LEFT JOIN T_INSUMOS_NIVEL_2 tin2 ON tin3.FK_INSUMOS_NIVEL_2 = tin2.ID 
+    LEFT JOIN T_INSUMOS_NIVEL_4 tin4 ON tin5.FK_INSUMOS_NIVEL_4 = tin4.ID
+    LEFT JOIN T_INSUMOS_NIVEL_3 tin3 ON tin4.FK_INSUMOS_NIVEL_3 = tin3.ID
+    LEFT JOIN T_INSUMOS_NIVEL_2 tin2 ON tin3.FK_INSUMOS_NIVEL_2 = tin2.ID
     LEFT JOIN T_INSUMOS_NIVEL_1 tin ON tin2.FK_INSUMOS_NIVEL_1 = tin.id
     LEFT JOIN T_UNIDADES_DE_MEDIDAS tudm ON (tin5.FK_UNIDADE_MEDIDA = tudm.ID)
+    LEFT JOIN T_ITENS_PRODUCAO tip ON tti.FK_ITEM_PRODUCAO = tip.ID
+    LEFT JOIN T_INSUMOS_NIVEL_1 tin1_prod ON tip.FK_INSUMO_NIVEL_1 = tin1_prod.ID
   ORDER BY tti.ID DESC
 ''')
 
@@ -1150,6 +1176,15 @@ def GET_VALORACAO_PRODUCAO(data):
   # mês), sem checagem de sanidade adicional. DATE(tipc.DATA_CONTAGEM), não igualdade
   # exata — a coluna guarda o horário real de submissão até o lote noturno normalizar
   # para meia-noite; um match exato perdia contagens recentes.
+  #
+  # Fix 2026-08-10 (mesma sessão do fix em GET_VALORACAO_ESTOQUE acima e em
+  # scripts/queries/15_cmv_valoracao_producao.sql do script standalone): esta query não
+  # tinha NENHUMA ciência de contagem agrupada (T_AGRUPAMENTO_CONTAGENS/
+  # T_AGRUPAMENTO_INVENTARIO) — batia só contra tipc.DATA_CONTAGEM cru, então uma
+  # produção fechada via agrupamento cuja data efetiva não caísse exatamente em '{data}'
+  # desaparecia (mesmo caso real do Bar Léo - Centro que motivou o fix em
+  # GET_VALORACAO_ESTOQUE: agrupamento datado 31/07 vs. data-alvo 01/08). Ganhou os
+  # mesmos 2 níveis (tai > tac) e a restrição a tipo INVENTARIO (103), ausente antes.
   return dataframe_query(f'''
   WITH UltimoValor AS (
     SELECT
@@ -1184,5 +1219,8 @@ def GET_VALORACAO_PRODUCAO(data):
   LEFT JOIN T_INSUMOS_NIVEL_1 tin ON (tip.FK_INSUMO_NIVEL_1 = tin.ID)
   LEFT JOIN T_UNIDADES_DE_MEDIDAS tudm ON (tip.FK_UNIDADE_MEDIDA = tudm.ID)
   LEFT JOIN UltimoValor uv ON (uv.FK_ITEM_PRODUZIDO = tipc.FK_ITEM_PRODUZIDO AND uv.rn = 1)
-  WHERE DATE(tipc.DATA_CONTAGEM) = '{data}'
+  LEFT JOIN T_AGRUPAMENTO_CONTAGENS tac ON tipc.FK_AGRUPAMENTO_CONTAGENS = tac.ID
+  LEFT JOIN T_AGRUPAMENTO_INVENTARIO tai ON tac.FK_AGRUPAMENTO_INVENTARIO = tai.ID
+  WHERE (tipc.FK_AGRUPAMENTO_CONTAGENS IS NULL OR tac.FK_ESTOQUE_TIPO_CONTAGEM = 103)
+    AND (CASE WHEN tipc.FK_AGRUPAMENTO_CONTAGENS IS NOT NULL THEN DATE(COALESCE(tai.DATA_AGRUPAMENTO, tac.DATA_AGRUPAMENTO)) ELSE DATE(tipc.DATA_CONTAGEM) END) = '{data}'
   ''')

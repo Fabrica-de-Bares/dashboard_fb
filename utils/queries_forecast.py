@@ -882,8 +882,16 @@ def GET_FATURAMENTO_CATEGORIA_MENSAL(df_faturamento_categoria, df_descontos, df_
 ######################################## CMV ########################################
 @st.cache_data
 def GET_VALORACAO_ESTOQUE(data_inicio, data_fim):
+  # Fix 2026-08-10 (mesma sessão do fix em queries_cmv.py::GET_VALORACAO_ESTOQUE e
+  # DRE_AUT_VALOR_ESTOQUE): esta função já tinha um heurístico de arredondamento
+  # (DAY(tac.DATA_AGRUPAMENTO) >= 16 -> mês seguinte) que cobre a maioria dos casos de
+  # contagem agrupada fora do dia 1 mesmo sem o nível tai. Mas quando
+  # T_AGRUPAMENTO_INVENTARIO está vinculado, a data ali é a oficial e não precisa de
+  # heurística — priorizada antes do arredondamento (tai.DATA_AGRUPAMENTO já cai
+  # sempre no dia 1). Nos filtros de intervalo (data_inicio/data_fim) e no ORDER BY,
+  # o COALESCE(tai, tac) substitui o tac isolado usado antes.
   return dataframe_query(f'''
-  SELECT 
+  SELECT
   	te.ID AS 'ID_Loja',
   	te.NOME_FANTASIA AS 'Loja',
   	tin5.ID AS 'ID_Insumo',
@@ -895,6 +903,7 @@ def GET_VALORACAO_ESTOQUE(data_inicio, data_fim):
   	tve.VALOR_EM_ESTOQUE AS 'Valor_em_Estoque',
   	CASE
   	  WHEN tci.FK_AGRUPAMENTO_CONTAGENS IS NULL THEN tci.DATA_CONTAGEM
+  	  WHEN tai.DATA_AGRUPAMENTO IS NOT NULL THEN DATE_FORMAT(tai.DATA_AGRUPAMENTO, '%Y-%m-01')
   	  ELSE DATE_FORMAT(
   	    DATE_ADD(tac.DATA_AGRUPAMENTO, INTERVAL IF(DAY(tac.DATA_AGRUPAMENTO) >= 16, 1, 0) MONTH),
   	    '%Y-%m-01'
@@ -910,10 +919,11 @@ def GET_VALORACAO_ESTOQUE(data_inicio, data_fim):
   LEFT JOIN T_INSUMOS_NIVEL_1 tin ON tin2.FK_INSUMOS_NIVEL_1 = tin.ID
   LEFT JOIN T_UNIDADES_DE_MEDIDAS tudm ON tin5.FK_UNIDADE_MEDIDA = tudm.ID
   LEFT JOIN T_AGRUPAMENTO_CONTAGENS tac ON tci.FK_AGRUPAMENTO_CONTAGENS = tac.ID
+  LEFT JOIN T_AGRUPAMENTO_INVENTARIO tai ON tac.FK_AGRUPAMENTO_INVENTARIO = tai.ID
   WHERE tci.QUANTIDADE_INSUMO != 0
     AND (tci.FK_AGRUPAMENTO_CONTAGENS IS NULL OR tac.FK_ESTOQUE_TIPO_CONTAGEM = 103)
-    AND (CASE WHEN tci.FK_AGRUPAMENTO_CONTAGENS IS NOT NULL THEN tac.DATA_AGRUPAMENTO ELSE tci.DATA_CONTAGEM END) >= '{data_inicio}'
-    AND (CASE WHEN tci.FK_AGRUPAMENTO_CONTAGENS IS NOT NULL THEN tac.DATA_AGRUPAMENTO ELSE tci.DATA_CONTAGEM END) <= '{data_fim}'
+    AND (CASE WHEN tci.FK_AGRUPAMENTO_CONTAGENS IS NOT NULL THEN COALESCE(tai.DATA_AGRUPAMENTO, tac.DATA_AGRUPAMENTO) ELSE tci.DATA_CONTAGEM END) >= '{data_inicio}'
+    AND (CASE WHEN tci.FK_AGRUPAMENTO_CONTAGENS IS NOT NULL THEN COALESCE(tai.DATA_AGRUPAMENTO, tac.DATA_AGRUPAMENTO) ELSE tci.DATA_CONTAGEM END) <= '{data_fim}'
   ORDER BY DATA_CONTAGEM DESC
   ''')
 
@@ -933,12 +943,40 @@ def GET_VALORACAO_PRODUCAO(data_inicio, data_fim):
     # existirem (>0); fallback via subquery correlacionada para o ultimo preco conhecido
     # em T_ITENS_PRODUCAO_VALORACAO ate a propria DATA_CONTAGEM da linha (nao uma unica
     # data de referencia, pois esta funcao cobre um intervalo data_inicio/data_fim).
+    #
+    # Fix 2026-08-10 (mesma sessão, mesmo achado do fix em GET_VALORACAO_ESTOQUE acima):
+    # Data_Contagem não tinha NENHUM arredondamento de contagem agrupada — uma produção
+    # fechada via agrupamento fora do dia 1 (ex.: Bar Léo - Centro, jul/2026, 31/07)
+    # ficava bucketizada no mês ERRADO em config_valoracao_estoque_ou_producao (que só
+    # trunca pra o mês da própria data, sem arredondar), desalinhando com o "scaffold"
+    # de meses que a valoração de estoque (já arredondada) usa — Variação_Mensal saía
+    # errada mesmo com o valor certo. Ganhou o mesmo tratamento de GET_VALORACAO_ESTOQUE:
+    # tai.DATA_AGRUPAMENTO quando vinculado (já cai no dia 1), senão arredondamento
+    # DAY(tac.DATA_AGRUPAMENTO) >= 16 -> mês seguinte, e a restrição a tipo INVENTARIO
+    # (103), ausente antes.
     return dataframe_query(f'''
         SELECT
             te.ID as 'ID_Loja',
             te.NOME_FANTASIA as 'Loja',
-            tipc.DATA_CONTAGEM as 'Data_Contagem',
-            DATE_FORMAT(DATE_SUB(tipc.DATA_CONTAGEM, INTERVAL 1 MONTH), '%m/%Y') AS 'Mes_Texto',
+            CASE
+              WHEN tipc.FK_AGRUPAMENTO_CONTAGENS IS NULL THEN tipc.DATA_CONTAGEM
+              WHEN tai.DATA_AGRUPAMENTO IS NOT NULL THEN DATE_FORMAT(tai.DATA_AGRUPAMENTO, '%Y-%m-01')
+              ELSE DATE_FORMAT(
+                DATE_ADD(tac.DATA_AGRUPAMENTO, INTERVAL IF(DAY(tac.DATA_AGRUPAMENTO) >= 16, 1, 0) MONTH),
+                '%Y-%m-01'
+              )
+            END AS 'Data_Contagem',
+            DATE_FORMAT(
+              DATE_SUB(
+                CASE
+                  WHEN tipc.FK_AGRUPAMENTO_CONTAGENS IS NULL THEN tipc.DATA_CONTAGEM
+                  WHEN tai.DATA_AGRUPAMENTO IS NOT NULL THEN tai.DATA_AGRUPAMENTO
+                  ELSE DATE_ADD(tac.DATA_AGRUPAMENTO, INTERVAL IF(DAY(tac.DATA_AGRUPAMENTO) >= 16, 1, 0) MONTH)
+                END,
+                INTERVAL 1 MONTH
+              ),
+              '%m/%Y'
+            ) AS 'Mes_Texto',
             tip.NOME_ITEM_PRODUZIDO as 'Item_Produzido',
             tudm.UNIDADE_MEDIDA_NAME as 'Unidade_Medida',
             tipc.QUANTIDADE_INSUMO as 'Quantidade',
@@ -972,7 +1010,10 @@ def GET_VALORACAO_PRODUCAO(data_inicio, data_fim):
         LEFT JOIN T_EMPRESAS te ON (tip.FK_EMPRESA = te.ID)
         LEFT JOIN T_INSUMOS_NIVEL_1 tin ON (tip.FK_INSUMO_NIVEL_1 = tin.ID)
         LEFT JOIN T_UNIDADES_DE_MEDIDAS tudm ON (tip.FK_UNIDADE_MEDIDA = tudm.ID)
-        WHERE tipc.DATA_CONTAGEM >= '{data_inicio}'
+        LEFT JOIN T_AGRUPAMENTO_CONTAGENS tac ON tipc.FK_AGRUPAMENTO_CONTAGENS = tac.ID
+        LEFT JOIN T_AGRUPAMENTO_INVENTARIO tai ON tac.FK_AGRUPAMENTO_INVENTARIO = tai.ID
+        WHERE (tipc.FK_AGRUPAMENTO_CONTAGENS IS NULL OR tac.FK_ESTOQUE_TIPO_CONTAGEM = 103)
+        AND tipc.DATA_CONTAGEM >= '{data_inicio}'
         AND tipc.DATA_CONTAGEM <= '{data_fim}'
     ''')
 
