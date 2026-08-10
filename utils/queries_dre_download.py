@@ -900,6 +900,21 @@ def DRE_AUT_CONSUMO_FUNCIONARIOS(ids_casa):
 
 @st.cache_data
 def DRE_AUT_INSUMOS_PRODUCAO(ids_casa):
+  # Reescrita 2026-08-10: mesmo bug de GET_VALORACAO_PRODUCAO (queries_cmv.py, fix de
+  # 2026-08-07, commit 91c74da) — aqui alimentando a aba Aut_Insumos_Producao do
+  # download de DRE, cujas colunas D/H/J são somadas por SUMIFS na aba CMV_Manual
+  # (linhas 19-20, "Fechamento Produção Cozinha/Bar"), então a ordem/nome das colunas
+  # abaixo não pode mudar. Antes, o JOIN em T_ITENS_PRODUCAO era encadeado a partir de
+  # tipv (T_ITENS_PRODUCAO_VALORACAO), com essa exigindo uma valoração casada no MESMO
+  # mês da contagem — item contado sem essa valoração casada virava NULL em cascata
+  # (Casa, Nivel_1 etc.) e desaparecia silenciosamente do WHERE te.ID IN (...), mesmo
+  # tendo VALOR_TOTAL já calculado pela ficha técnica em T_ITENS_PRODUCAO_CONTAGEM.
+  # Agora: JOIN T_ITENS_PRODUCAO direto a partir de tipc; Valor_Unidade_Medida/
+  # Valor_Total preferem PRECO_MEDIO/VALOR_TOTAL de T_ITENS_PRODUCAO_CONTAGEM quando
+  # existirem (>0); sem eles, cai para o ÚLTIMO preço conhecido do item em
+  # T_ITENS_PRODUCAO_VALORACAO até a própria DATA_CONTAGEM da linha (subquery
+  # correlacionada — não uma única data de referência como em GET_VALORACAO_PRODUCAO,
+  # porque esta aba traz o histórico inteiro da casa, não uma data de fechamento só).
   return dataframe_query(f'''
   SELECT
     tipc.ID as 'ID_Contagem_Producao',
@@ -910,11 +925,32 @@ def DRE_AUT_INSUMOS_PRODUCAO(ids_casa):
     tudm.UNIDADE_MEDIDA_NAME as 'Unidade_Medida',
     tipc.QUANTIDADE_INSUMO as 'Quantidade',
     tin.DESCRICAO as 'Nivel_1',
-    tipv.VALOR as 'Valor_Unidade_Medida',
-    ROUND(tipc.QUANTIDADE_INSUMO * tipv.VALOR, 2) as 'Valor_Total'
+    CASE
+        WHEN tipc.PRECO_MEDIO > 0
+            THEN ROUND(tipc.PRECO_MEDIO, 2)
+        ELSE (
+            SELECT tipv2.VALOR
+            FROM T_ITENS_PRODUCAO_VALORACAO tipv2
+            WHERE tipv2.FK_ITEM_PRODUZIDO = tipc.FK_ITEM_PRODUZIDO
+              AND DATE(tipv2.DATA_VALORACAO) <= DATE(tipc.DATA_CONTAGEM)
+            ORDER BY tipv2.DATA_VALORACAO DESC
+            LIMIT 1
+        )
+    END as 'Valor_Unidade_Medida',
+    CASE
+        WHEN tipc.VALOR_TOTAL > 0
+            THEN ROUND(tipc.VALOR_TOTAL, 2)
+        ELSE ROUND(tipc.QUANTIDADE_INSUMO * (
+            SELECT tipv2.VALOR
+            FROM T_ITENS_PRODUCAO_VALORACAO tipv2
+            WHERE tipv2.FK_ITEM_PRODUZIDO = tipc.FK_ITEM_PRODUZIDO
+              AND DATE(tipv2.DATA_VALORACAO) <= DATE(tipc.DATA_CONTAGEM)
+            ORDER BY tipv2.DATA_VALORACAO DESC
+            LIMIT 1
+        ), 2)
+    END as 'Valor_Total'
   FROM T_ITENS_PRODUCAO_CONTAGEM tipc
-  LEFT JOIN T_ITENS_PRODUCAO_VALORACAO tipv ON (tipc.FK_ITEM_PRODUZIDO = tipv.FK_ITEM_PRODUZIDO) AND (DATE_FORMAT(tipc.DATA_CONTAGEM, '%m/%Y') = DATE_FORMAT(tipv.DATA_VALORACAO, '%m/%Y'))
-  LEFT JOIN T_ITENS_PRODUCAO tip ON (tipv.FK_ITEM_PRODUZIDO = tip.ID)
+  JOIN T_ITENS_PRODUCAO tip ON (tip.ID = tipc.FK_ITEM_PRODUZIDO)
   LEFT JOIN T_EMPRESAS te ON (tip.FK_EMPRESA = te.ID)
   LEFT JOIN T_INSUMOS_NIVEL_1 tin ON (tip.FK_INSUMO_NIVEL_1 = tin.ID)
   LEFT JOIN T_UNIDADES_DE_MEDIDAS tudm ON (tip.FK_UNIDADE_MEDIDA = tudm.ID)
