@@ -677,8 +677,14 @@ def DRE_AUT_ENDIVIDAMENTOS(ids_casa):
 
 @st.cache_data
 def DRE_AUT_CONTAGEM(ids_casa):
+  # Fix 2026-08-10 (mesma sessão do fix em scripts/queries/23_aut_contagem.sql do
+  # script standalone): o filtro "dia 1" olhava só T_AGRUPAMENTO_CONTAGENS.
+  # DATA_AGRUPAMENTO (tac) para contagem agrupada — quando o nível acima
+  # (T_AGRUPAMENTO_INVENTARIO, tai) está vinculado e cai no dia 1 mas tac não (achado
+  # real: Bar Léo - Centro, jul/2026, tac=31/07 e tai=01/08), a linha inteira ficava
+  # fora desta aba de auditoria.
   return dataframe_query(f'''
-  SELECT 
+  SELECT
     tci.ID as 'ID_Contagem',
     te.ID as 'ID_Loja',
     tci.DATA_CONTAGEM as 'Data_Contagem',
@@ -688,7 +694,7 @@ def DRE_AUT_CONTAGEM(ids_casa):
     tci.QUANTIDADE_INSUMO as 'Quantidade',
     tudm.UNIDADE_MEDIDA as 'Unidade_Medida',
     DATE_FORMAT(tci.DATA_CONTAGEM, '%m/%Y') AS Mes_Texto
-  FROM T_CONTAGEM_INSUMOS tci 
+  FROM T_CONTAGEM_INSUMOS tci
   INNER JOIN T_EMPRESAS te ON (tci.FK_EMPRESA = te.ID)
   LEFT JOIN T_INSUMOS_NIVEL_5 tin5 ON (tci.FK_INSUMO = tin5.ID)
   LEFT JOIN T_INSUMOS_NIVEL_4 tin4 ON (tin5.FK_INSUMOS_NIVEL_4 = tin4.ID)
@@ -697,9 +703,10 @@ def DRE_AUT_CONTAGEM(ids_casa):
   LEFT JOIN T_INSUMOS_NIVEL_1 tin1 ON (tin2.FK_INSUMOS_NIVEL_1 = tin1.ID)
   LEFT JOIN T_UNIDADES_DE_MEDIDAS tudm ON (tin5.FK_UNIDADE_MEDIDA = tudm.ID)
   LEFT JOIN T_AGRUPAMENTO_CONTAGENS tac ON (tci.FK_AGRUPAMENTO_CONTAGENS = tac.ID)
+  LEFT JOIN T_AGRUPAMENTO_INVENTARIO tai ON (tac.FK_AGRUPAMENTO_INVENTARIO = tai.ID)
   WHERE (
     (tci.FK_AGRUPAMENTO_CONTAGENS IS NULL AND DAY(tci.DATA_CONTAGEM) = 1)
-    OR (tci.FK_AGRUPAMENTO_CONTAGENS IS NOT NULL AND DAY(tac.DATA_AGRUPAMENTO) = 1 AND tac.FK_ESTOQUE_TIPO_CONTAGEM = 103)
+    OR (tci.FK_AGRUPAMENTO_CONTAGENS IS NOT NULL AND DAY(COALESCE(tai.DATA_AGRUPAMENTO, tac.DATA_AGRUPAMENTO)) = 1 AND tac.FK_ESTOQUE_TIPO_CONTAGEM = 103)
   )
   AND te.ID IN ({ids_casa})
   AND STR_TO_DATE(tci.DATA_CONTAGEM, '%Y-%m-%d') >= '2025-12-01 00:00:00';
@@ -734,6 +741,20 @@ def DRE_AUT_PRECOS_INSUMOS(ids_casa):
 
 @st.cache_data
 def DRE_AUT_VALOR_ESTOQUE(ids_casa):
+  # Fix 2026-08-10 (mesma sessão do fix em brands/fabrica-de-bares/scripts/queries/
+  # 26_aut_valor_estoque.sql do script standalone, query/decisão fornecida pelo
+  # Gabriel): Data_Contagem/Mes_Texto usavam só T_AGRUPAMENTO_CONTAGENS.DATA_AGRUPAMENTO
+  # (tac) para contagem agrupada — nível intermediário que pode divergir da data
+  # "oficial" do inventário consolidado em T_AGRUPAMENTO_INVENTARIO (tai). Essa aba
+  # alimenta a linha "Estoque Final/Inicial" da DRE baixada via SUMIFS por Mes_Texto na
+  # aba CMV_Manual — se Mes_Texto sair errado (ex.: contagem agrupada datada 31/07 vira
+  # "06/2026" em vez de "07/2026", por causa do DATE_SUB de 1 mês sobre um dia que não é
+  # o 1º), o valor de estoque inteiro daquele mês some/vai para o mês errado no
+  # download. Agora usa 2 níveis IGNORANDO tac de propósito (mesma decisão já aplicada
+  # em 26/30_aut_insumos_producao.sql do script standalone): tai.DATA_AGRUPAMENTO quando
+  # vinculado, senão cai direto para tci.DATA_CONTAGEM. Achado real: Bar Léo - Centro
+  # (ID_Casa=116), fechamento jul/2026 — tac=31/07 (Mes_Texto errado, "06/2026"),
+  # tai=01/08 (Mes_Texto correto, "07/2026").
   return dataframe_query(f'''
   # Nova Query Valor de Estoque (considerando data de agrupamento das contagens)
   SELECT DISTINCT
@@ -741,8 +762,8 @@ def DRE_AUT_VALOR_ESTOQUE(ids_casa):
     te.ID as 'ID_Loja',
     te.NOME_FANTASIA as 'Loja',
     CASE
-      WHEN tci.FK_AGRUPAMENTO_CONTAGENS IS NOT NULL
-        THEN tac.DATA_AGRUPAMENTO
+      WHEN tai.DATA_AGRUPAMENTO IS NOT NULL
+        THEN tai.DATA_AGRUPAMENTO
       ELSE tci.DATA_CONTAGEM
     END as 'Data_Contagem',
     tci.FK_INSUMO as 'ID_Insumo',
@@ -752,8 +773,8 @@ def DRE_AUT_VALOR_ESTOQUE(ids_casa):
     tudm.UNIDADE_MEDIDA as 'Unidade_Medida',
     tin1.DESCRICAO as 'Categoria_Insumo',
     CASE
-      WHEN tci.FK_AGRUPAMENTO_CONTAGENS IS NOT NULL
-        THEN DATE_FORMAT(DATE_SUB(tac.DATA_AGRUPAMENTO, INTERVAL 1 MONTH), '%m/%Y')
+      WHEN tai.DATA_AGRUPAMENTO IS NOT NULL
+        THEN DATE_FORMAT(DATE_SUB(tai.DATA_AGRUPAMENTO, INTERVAL 1 MONTH), '%m/%Y')
       ELSE DATE_FORMAT(DATE_SUB(tci.DATA_CONTAGEM, INTERVAL 1 MONTH), '%m/%Y')
     END as 'Mes_Texto',
     tve.PRECO_MEDIO_PAGO_NO_MES as 'Preco_Medio_Pago_no_Mes',
@@ -773,6 +794,7 @@ def DRE_AUT_VALOR_ESTOQUE(ids_casa):
   INNER JOIN T_INSUMOS_NIVEL_1 tin1 ON (tin2.FK_INSUMOS_NIVEL_1 = tin1.ID)
   LEFT JOIN T_UNIDADES_DE_MEDIDAS tudm ON (tin5.FK_UNIDADE_MEDIDA = tudm.ID)
   LEFT JOIN T_AGRUPAMENTO_CONTAGENS tac ON (tci.FK_AGRUPAMENTO_CONTAGENS = tac.ID)
+  LEFT JOIN T_AGRUPAMENTO_INVENTARIO tai ON (tac.FK_AGRUPAMENTO_INVENTARIO = tai.ID)
   WHERE te.ID IN ({ids_casa})
   ORDER BY tci.DATA_CONTAGEM DESC, tve.VALOR_EM_ESTOQUE DESC;
   ''')
@@ -780,19 +802,27 @@ def DRE_AUT_VALOR_ESTOQUE(ids_casa):
 
 @st.cache_data
 def DRE_AUT_VALOR_ESTOQUE_LOVE(ids_casa):
+  # Fix defensivo 2026-08-10 (mesma decisão do fix em DRE_AUT_VALOR_ESTOQUE acima):
+  # Data_Contagem/Mes_Texto ganham o nível tai (T_AGRUPAMENTO_INVENTARIO) antes de
+  # tci.DATA_CONTAGEM cru, mesmo padrão "ignora tac de propósito". Love Cabaret não
+  # apresentava o gap em jul/2026 (agrupamento já batia com o dia 1), mas fica
+  # protegido caso aconteça em outro mês.
   return dataframe_query(f'''
   SELECT
     tve.FK_CONTAGEM as 'ID_Contagem',
     te.ID as 'ID_Loja',
     te.NOME_FANTASIA as 'Loja',
-    tci.DATA_CONTAGEM as 'Data_Contagem',
+    CASE WHEN tai.DATA_AGRUPAMENTO IS NOT NULL THEN tai.DATA_AGRUPAMENTO ELSE tci.DATA_CONTAGEM END as 'Data_Contagem',
     tci.FK_INSUMO as 'ID_Insumo',
     tin5.DESCRICAO as 'Insumo',
     tin4.ID as 'ID_Nivel_4',
     tci.QUANTIDADE_INSUMO as 'Quantidade',
     tudm.UNIDADE_MEDIDA as 'Unidade_Medida',
     tin1.DESCRICAO as 'Categoria_Insumo',
-    DATE_FORMAT(DATE_SUB(tci.DATA_CONTAGEM, INTERVAL 1 MONTH), '%m/%Y') as 'Mes_Texto',
+    DATE_FORMAT(
+      DATE_SUB(CASE WHEN tai.DATA_AGRUPAMENTO IS NOT NULL THEN tai.DATA_AGRUPAMENTO ELSE tci.DATA_CONTAGEM END, INTERVAL 1 MONTH),
+      '%m/%Y'
+    ) as 'Mes_Texto',
     tve.PRECO_MEDIO_PAGO_NO_MES as 'Preco_Medio_Pago_no_Mes',
     tve.DATA_ULTIMA_COMPRA_LOCAL as 'Data_Ultima_Compra',
     tve.VALOR_ULTIMA_COMPRA_LOCAL as 'Valor_Ultima_Compra',
@@ -809,6 +839,7 @@ def DRE_AUT_VALOR_ESTOQUE_LOVE(ids_casa):
   INNER JOIN T_INSUMOS_NIVEL_1 tin1 ON (tin2.FK_INSUMOS_NIVEL_1 = tin1.ID)
   LEFT JOIN T_UNIDADES_DE_MEDIDAS tudm ON (tin5.FK_UNIDADE_MEDIDA = tudm.ID)
   LEFT JOIN T_AGRUPAMENTO_CONTAGENS tac ON (tci.FK_AGRUPAMENTO_CONTAGENS = tac.ID)
+  LEFT JOIN T_AGRUPAMENTO_INVENTARIO tai ON (tac.FK_AGRUPAMENTO_INVENTARIO = tai.ID)
   WHERE te.ID IN ({ids_casa})
   AND (tac.FK_ESTOQUE_TIPO_CONTAGEM IS NULL OR tac.FK_ESTOQUE_TIPO_CONTAGEM = 103)
   ORDER BY tci.DATA_CONTAGEM DESC, tve.VALOR_EM_ESTOQUE DESC;
@@ -851,22 +882,31 @@ def DRE_AUT_EVENTOS_AEB(ids_casa):
 
 @st.cache_data
 def DRE_AUT_TRANSFERENCIAS(ids_casa):
+  # Fix 2026-08-10 (mesma sessão do fix em GET_TRANSF_ESTOQUE/queries_cmv.py e
+  # scripts/queries/16_cmv_transferencias_insumos.sql do script standalone):
+  # transferência de ITEM PRODUZIDO (T_TRANSFERENCIAS_INSUMOS.FK_ITEM_PRODUCAO) vinha
+  # com FK_INSUMO_NIVEL_5 NULL — o INNER JOIN em T_INSUMOS_NIVEL_5 excluía a linha
+  # INTEIRA do resultado (nem aparecia na aba Aut_Transferencias do download). Virou
+  # LEFT JOIN + resolução paralela via T_ITENS_PRODUCAO/T_INSUMOS_NIVEL_1 (mesmo padrão
+  # de GET_TRANSF_ESTOQUE) — ID_Insumo/Nome_Insumo/Insumo_Nivel_4 ficam NULL quando é
+  # item produzido (não há níveis 2-5 para produção), mas Insumo_Nivel_1 (usada pelo
+  # SUMIFS de Alimentos/Bebidas na aba CMV_Manual) vem preenchida via COALESCE.
   return dataframe_query(f'''
   SELECT
     tti.ID as 'ID_Transferencia',
     te.NOME_FANTASIA as 'Empresa_Saida',
     te2.NOME_FANTASIA as 'Empresa_Entrada',
     tin5.ID as 'ID_Insumo',
-    tin5.DESCRICAO as 'Nome_Insumo',
+    COALESCE(tin5.DESCRICAO, tip.NOME_ITEM_PRODUZIDO) as 'Nome_Insumo',
     tin4.DESCRICAO as 'Insumo_Nivel_4',
-    tin1.DESCRICAO as 'Insumo_Nivel_1',
-    tudm.UNIDADE_MEDIDA as 'Unidade_Medida',
+    COALESCE(tin1.DESCRICAO, tin1_prod.DESCRICAO) as 'Insumo_Nivel_1',
+    COALESCE(tudm.UNIDADE_MEDIDA, tudm_prod.UNIDADE_MEDIDA_NAME) as 'Unidade_Medida',
     tti.QUANTIDADE as 'Quantidade',
     DATE_FORMAT(tti.DATA_TRANSFERENCIA, '%m/%Y') AS Mes_Texto,
     tti.VALOR_TRANSFERENCIA as 'Valor_da_Transferencia',
     tti.OBSERVACAO as 'Observacao'
   FROM T_TRANSFERENCIAS_INSUMOS tti
-  INNER JOIN T_INSUMOS_NIVEL_5 tin5 ON (tti.FK_INSUMO_NIVEL_5 = tin5.ID)
+  LEFT JOIN T_INSUMOS_NIVEL_5 tin5 ON (tti.FK_INSUMO_NIVEL_5 = tin5.ID)
   LEFT JOIN T_INSUMOS_NIVEL_4 tin4 ON (tin5.FK_INSUMOS_NIVEL_4 = tin4.ID)
   LEFT JOIN T_INSUMOS_NIVEL_3 tin3 ON (tin4.FK_INSUMOS_NIVEL_3 = tin3.ID)
   LEFT JOIN T_INSUMOS_NIVEL_2 tin2 ON (tin3.FK_INSUMOS_NIVEL_2 = tin2.ID)
@@ -874,6 +914,9 @@ def DRE_AUT_TRANSFERENCIAS(ids_casa):
   LEFT JOIN T_EMPRESAS te ON (tti.FK_EMRPESA_SAIDA = te.ID)
   LEFT JOIN T_EMPRESAS te2 ON (tti.FK_EMPRESA_ENTRADA = te2.ID)
   LEFT JOIN T_UNIDADES_DE_MEDIDAS tudm ON (tin5.FK_UNIDADE_MEDIDA = tudm.ID)
+  LEFT JOIN T_ITENS_PRODUCAO tip ON (tti.FK_ITEM_PRODUCAO = tip.ID)
+  LEFT JOIN T_INSUMOS_NIVEL_1 tin1_prod ON (tip.FK_INSUMO_NIVEL_1 = tin1_prod.ID)
+  LEFT JOIN T_UNIDADES_DE_MEDIDAS tudm_prod ON (tip.FK_UNIDADE_MEDIDA = tudm_prod.ID)
   WHERE (te.ID IN ({ids_casa}) OR te2.ID IN ({ids_casa}))
   AND STR_TO_DATE(tti.DATA_TRANSFERENCIA, '%Y-%m-%d') >= '2025-12-01 00:00:00';
   ''')
@@ -915,12 +958,26 @@ def DRE_AUT_INSUMOS_PRODUCAO(ids_casa):
   # T_ITENS_PRODUCAO_VALORACAO até a própria DATA_CONTAGEM da linha (subquery
   # correlacionada — não uma única data de referência como em GET_VALORACAO_PRODUCAO,
   # porque esta aba traz o histórico inteiro da casa, não uma data de fechamento só).
+  #
+  # Fix 2026-08-10 (mesma sessão, mesma decisão de 26/30_aut_insumos_producao.sql do
+  # script standalone): Mes_Texto usava só tipc.DATA_CONTAGEM cru — para contagem
+  # agrupada com fechamento fora do dia 1 (achado real: Bar Léo - Centro, jul/2026,
+  # agrupamento datado 31/07), DATE_SUB(...,1 MONTH) resolvia pro mês ANTERIOR errado
+  # ("06/2026" em vez de "07/2026"), e o SUMIFS por Mes_Texto na aba CMV_Manual
+  # atribuía a produção ao mês errado. Ganhou o mesmo nível tai (T_AGRUPAMENTO_
+  # INVENTARIO), ignorando tac de propósito — mesma convenção já usada nas outras Aut_*.
   return dataframe_query(f'''
   SELECT
     tipc.ID as 'ID_Contagem_Producao',
     te.NOME_FANTASIA as 'Casa',
     tipc.DATA_CONTAGEM as 'Data_Contagem',
-    DATE_FORMAT(DATE_SUB(tipc.DATA_CONTAGEM, INTERVAL 1 MONTH), '%m/%Y') AS Mes_Texto,
+    DATE_FORMAT(
+      DATE_SUB(
+        CASE WHEN tai.DATA_AGRUPAMENTO IS NOT NULL THEN tai.DATA_AGRUPAMENTO ELSE tipc.DATA_CONTAGEM END,
+        INTERVAL 1 MONTH
+      ),
+      '%m/%Y'
+    ) AS Mes_Texto,
     tip.NOME_ITEM_PRODUZIDO as 'Nome_Item_Produzido',
     tudm.UNIDADE_MEDIDA_NAME as 'Unidade_Medida',
     tipc.QUANTIDADE_INSUMO as 'Quantidade',
@@ -954,6 +1011,8 @@ def DRE_AUT_INSUMOS_PRODUCAO(ids_casa):
   LEFT JOIN T_EMPRESAS te ON (tip.FK_EMPRESA = te.ID)
   LEFT JOIN T_INSUMOS_NIVEL_1 tin ON (tip.FK_INSUMO_NIVEL_1 = tin.ID)
   LEFT JOIN T_UNIDADES_DE_MEDIDAS tudm ON (tip.FK_UNIDADE_MEDIDA = tudm.ID)
+  LEFT JOIN T_AGRUPAMENTO_CONTAGENS tac ON (tipc.FK_AGRUPAMENTO_CONTAGENS = tac.ID)
+  LEFT JOIN T_AGRUPAMENTO_INVENTARIO tai ON (tac.FK_AGRUPAMENTO_INVENTARIO = tai.ID)
   WHERE te.ID IN ({ids_casa});
   ''')
 
