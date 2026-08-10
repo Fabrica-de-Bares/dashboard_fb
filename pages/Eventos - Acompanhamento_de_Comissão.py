@@ -265,10 +265,10 @@ def main():
                         df_recebimentos_gerente_priceless = calcular_comissao_gerente_priceless(df_recebimentos_total_mes_outros_vendedores, vendedor, id_casa, meta_atingida)
                         df_vendedor = pd.concat([df_vendedor, df_recebimentos_gerente_priceless], ignore_index=True)
 
-                    if 110 in ids_casas_vendedor:
-                        df_recebimentos_total_mes_outros_vendedores = df_recebimentos_total_mes[(df_recebimentos_total_mes['ID Casa'] == 110)].copy()
-                        df_recebimentos_gerente_blue_note = calcular_comissao_blue_note(df_recebimentos_total_mes, vendedor, id_casa)
-                        df_vendedor = pd.concat([df_vendedor, df_recebimentos_gerente_blue_note], ignore_index=True)
+                    for id_casa_regra_blue_note in IDS_REGRA_COMISSAO_BLUE_NOTE:
+                        if id_casa_regra_blue_note in ids_casas_vendedor:
+                            df_recebimentos_gerente_blue_note = calcular_comissao_blue_note(df_recebimentos_total_mes, vendedor, id_casa, id_casa_regra_blue_note)
+                            df_vendedor = pd.concat([df_vendedor, df_recebimentos_gerente_blue_note], ignore_index=True)
 
                     df_vendedor['Valor Líquido'] = df_vendedor['Valor da Parcela'] - df_vendedor['Dedução Imposto']
                         
@@ -367,16 +367,16 @@ def main():
             with col2:
                 kpi_card("Faturamento do Mês", f"R$ {format_brazilian(total_recebido_mes)}", "rgb(30, 58, 138)", "white", "white")
             with col3:
-                if id_casa == 110:
+                if id_casa in IDS_REGRA_COMISSAO_BLUE_NOTE:
                     meta_atingida = total_liquido >= orcamento_mes
                     porcentagem_atingimento = (total_liquido / orcamento_mes) * 100
-                    
+
                 if meta_atingida:
                     kpi_card("Atingimento da Meta", f"{format_brazilian(porcentagem_atingimento)} %", "rgb(30, 58, 138)", "white", "rgb(0, 255, 100)")
                 else:
                     kpi_card("Atingimento da Meta", f"{format_brazilian(porcentagem_atingimento)} %", "rgb(30, 58, 138)", "white", "rgb(255, 30, 30)")
             with col4:
-                if id_casa == 110:
+                if id_casa in IDS_REGRA_COMISSAO_BLUE_NOTE:
                     total_vendido = total_liquido
                 else:
                     total_vendido = total_recebido_mes

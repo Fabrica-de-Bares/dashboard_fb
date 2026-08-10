@@ -86,9 +86,12 @@ def calcular_comissao_gerente_priceless(df_recebimentos_total_mes, id_responsave
     return df_recebimentos_total_mes
 
 
-def calcular_comissao_blue_note(df_recebimentos_total_mes, vendedor, id_casa):
-    if id_casa in [110, -1]:
-        df_recebimentos_total_mes = df_recebimentos_total_mes[df_recebimentos_total_mes['ID Casa'] == 110].copy()
+IDS_REGRA_COMISSAO_BLUE_NOTE = [110, 178, 180]  # casas que seguem a mesma regra de comissão por faixa de total recebido
+
+
+def calcular_comissao_blue_note(df_recebimentos_total_mes, vendedor, id_casa, id_casa_regra):
+    if id_casa in [id_casa_regra, -1]:
+        df_recebimentos_total_mes = df_recebimentos_total_mes[df_recebimentos_total_mes['ID Casa'] == id_casa_regra].copy()
 
         if not df_recebimentos_total_mes.empty:
             # Calcula imposto em relação à parcela
