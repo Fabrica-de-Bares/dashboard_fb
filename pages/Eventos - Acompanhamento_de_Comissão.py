@@ -196,7 +196,7 @@ def main():
             elif df_recebimentos.empty:
                 st.error("Não há dados disponíveis de recebimentos para o mês e casa selecionados.")
                 st.stop()
-            elif df_orcamentos.empty:
+            elif df_orcamentos.empty and id_casa != 173 and mes != '07' and ano != 2026:
                 st.error("Não há dados disponíveis de orçamentos para o mês e casa selecionados.")
                 st.stop()
 
@@ -222,6 +222,8 @@ def main():
             meta_atingida = False
             if total_recebido_mes >= orcamento_mes:
                 meta_atingida = True
+            if id_casa == 173 and mes == '07' and ano == 2026:
+                meta_atingida = False
 
             # Calcula a comissão total para o mês, casa e vendedor(es) selecionados (menos para o Blue Note, pois possui o cálculo de comissão diferente) - considera apenas comissões por atingimento de meta/orçamento
             df_comissoes_por_meta = calcular_comissao(df_recebimentos, orcamento_mes, meta_atingida)
