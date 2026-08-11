@@ -77,6 +77,7 @@ with st.container(border=True):
     # elif casa == 'Bar Brahma - Paulista': ids_casa_delivery = [] # A definir
     elif casa == 'Jacaré': ids_casa_delivery = [139]
     elif casa == 'Orfeu': ids_casa_delivery = [112]
+    elif casa == 'Girondino - Consolidado': ids_casa_delivery = [181]
     else: ids_casa_delivery = None
 
     if st.button('Atualizar e baixar arquivo', type='secondary', icon=":material/progress_activity:"):
@@ -131,7 +132,7 @@ with st.container(border=True):
         }
 
         # Casos específicos
-        if casa in ['Bar Brahma - Centro', 'Bar Brahma - Granja', 'Bar Léo - Centro', 'Jacaré', 'Orfeu']: # Delivery - Incluir 'Bar Brahma - Paulista'
+        if casa in ['Bar Brahma - Centro', 'Bar Brahma - Granja', 'Bar Léo - Centro', 'Jacaré', 'Orfeu', 'Girondino - Consolidado']: # Delivery - Incluir 'Bar Brahma - Paulista'
             ids_casa_delivery = ",".join(map(str, ids_casa_delivery))
             abas['Aut_Faturamento_Zig_Delivery'] = DRE_AUT_FATURAMENTO_ZIG_DELIVERY(ids_casa_delivery)
 
