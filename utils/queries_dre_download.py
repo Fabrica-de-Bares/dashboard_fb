@@ -755,6 +755,14 @@ def DRE_AUT_VALOR_ESTOQUE(ids_casa):
   # vinculado, senão cai direto para tci.DATA_CONTAGEM. Achado real: Bar Léo - Centro
   # (ID_Casa=116), fechamento jul/2026 — tac=31/07 (Mes_Texto errado, "06/2026"),
   # tai=01/08 (Mes_Texto correto, "07/2026").
+  #
+  # BUG CORRIGIDO 2026-08-11 (achado do usuário, mesma classe de bug de
+  # DRE_AUT_INSUMOS_PRODUCAO): esta versão "geral" não filtrava por tipo de contagem
+  # agrupada — a irmã DRE_AUT_VALOR_ESTOQUE_LOVE (abaixo) já tinha o filtro certo desde
+  # 2026-08-10, mas essa versão ficou sem. Confirmado no Blue Note (IDs 110/131):
+  # contagens tipo 101/102/105 (não-INVENTARIO) presentes em T_CONTAGEM_INSUMOS entre
+  # mai-jul/2026. Adicionado o mesmo filtro já usado em DRE_AUT_VALOR_ESTOQUE_LOVE
+  # (`FK_ESTOQUE_TIPO_CONTAGEM IS NULL OR = 103`).
   return dataframe_query(f'''
   # Nova Query Valor de Estoque (considerando data de agrupamento das contagens)
   SELECT DISTINCT
@@ -796,6 +804,7 @@ def DRE_AUT_VALOR_ESTOQUE(ids_casa):
   LEFT JOIN T_AGRUPAMENTO_CONTAGENS tac ON (tci.FK_AGRUPAMENTO_CONTAGENS = tac.ID)
   LEFT JOIN T_AGRUPAMENTO_INVENTARIO tai ON (tac.FK_AGRUPAMENTO_INVENTARIO = tai.ID)
   WHERE te.ID IN ({ids_casa})
+  AND (tac.FK_ESTOQUE_TIPO_CONTAGEM IS NULL OR tac.FK_ESTOQUE_TIPO_CONTAGEM = 103)
   ORDER BY tci.DATA_CONTAGEM DESC, tve.VALOR_EM_ESTOQUE DESC;
   ''')
 
@@ -966,6 +975,16 @@ def DRE_AUT_INSUMOS_PRODUCAO(ids_casa):
   # ("06/2026" em vez de "07/2026"), e o SUMIFS por Mes_Texto na aba CMV_Manual
   # atribuía a produção ao mês errado. Ganhou o mesmo nível tai (T_AGRUPAMENTO_
   # INVENTARIO), ignorando tac de propósito — mesma convenção já usada nas outras Aut_*.
+  #
+  # BUG CORRIGIDO 2026-08-11 (achado do usuário, mesmo fix de GET_VALORACAO_PRODUCAO em
+  # queries_cmv.py/queries_forecast.py, commit 91c74da): esta função não filtrava por
+  # tipo de contagem agrupada — trazia junto contagens de DESPERDICIO
+  # (FK_ESTOQUE_TIPO_CONTAGEM = 105), quando só tipo INVENTARIO (103), ou contagens sem
+  # agrupamento algum, deveriam entrar na soma de Produção. Como esta aba alimenta o
+  # SUMIFS de "Fechamento Produção Cozinha/Bar" na CMV_Manual, o valor errado ia direto
+  # para o CMV baixado. Achado real: agrupamento ID 277 (Blue Note - São Paulo,
+  # jul/2026, tipo 105), 18 itens, R$ 11,87 de Valor_Total somado. Adicionado filtro
+  # `(FK_AGRUPAMENTO_CONTAGENS IS NULL OR tac.FK_ESTOQUE_TIPO_CONTAGEM = 103)` ao WHERE.
   return dataframe_query(f'''
   SELECT
     tipc.ID as 'ID_Contagem_Producao',
@@ -1013,7 +1032,8 @@ def DRE_AUT_INSUMOS_PRODUCAO(ids_casa):
   LEFT JOIN T_UNIDADES_DE_MEDIDAS tudm ON (tip.FK_UNIDADE_MEDIDA = tudm.ID)
   LEFT JOIN T_AGRUPAMENTO_CONTAGENS tac ON (tipc.FK_AGRUPAMENTO_CONTAGENS = tac.ID)
   LEFT JOIN T_AGRUPAMENTO_INVENTARIO tai ON (tac.FK_AGRUPAMENTO_INVENTARIO = tai.ID)
-  WHERE te.ID IN ({ids_casa});
+  WHERE te.ID IN ({ids_casa})
+  AND (tipc.FK_AGRUPAMENTO_CONTAGENS IS NULL OR tac.FK_ESTOQUE_TIPO_CONTAGEM = 103);
   ''')
 
 
