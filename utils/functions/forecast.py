@@ -802,8 +802,17 @@ def config_faturamento_bruto_zig(df, data_inicio, data_fim, casa):
 
 
 def config_compras(data_inicio, data_fim, loja):
-    df1 = GET_INSUMOS_AGRUPADOS_BLUE_ME_POR_CATEG_SEM_PEDIDO()  
+    df1 = GET_INSUMOS_AGRUPADOS_BLUE_ME_POR_CATEG_SEM_PEDIDO()
     df1 = df1.rename(columns={'Loja':'Casa'})
+    # Fix 2026-08-11 (mesmo achado/fix de GET_INSUMOS_AGRUPADOS_BLUE_ME_POR_CATEG_COM_
+    # PEDIDO_PERIODO_LOJA acima): esta query "sem pedido" também não canonicaliza casa
+    # agregada — diferente da versão usada pela aba CMV Real (utils/functions/cmv.py::
+    # substituicao_ids), que já resolve isso. Sem esse fix, itens "sem pedido" da empresa
+    # 131/178 (Blue Note SP Novo/Sala 2) ficavam fora da soma de Compras do Forecast.
+    df1['Casa'] = df1['Casa'].replace({
+        'Blue Note SP (Novo)': 'Blue Note - São Paulo',
+        'Blue Note SP (Sala 2)': 'Blue Note - São Paulo',
+    })
     df1['Primeiro_Dia_Mes'] = pd.to_datetime(df1['Primeiro_Dia_Mes'], errors='coerce')
     df1['Mes_Ano'] = df1['Primeiro_Dia_Mes'].dt.strftime('%Y-%m')
     

@@ -63,7 +63,9 @@ with st.container(border=True):
     #     st.code(traceback.format_exc())
 
     # Casas com mais de um place
-    if casa == 'Blue Note - São Paulo': ids_casa_query = [110, 131]
+    # Fix 2026-08-11: faltava 178 (Blue Note SP - Sala 2), 3ª empresa bruta do Blue Note
+    # agregado (ver transform.CASAS_NORMALIZADAS do script standalone: 110+131+178).
+    if casa == 'Blue Note - São Paulo': ids_casa_query = [110, 131, 178]
     elif casa in ['Priceless', 'Terraço Notie']: ids_casa_query = [149, 161, 162, 179]
     elif casa == 'Girondino - Consolidado': ids_casa_query = [156, 160]
     else: ids_casa_query = [id_casa]

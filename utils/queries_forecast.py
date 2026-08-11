@@ -1214,6 +1214,12 @@ def GET_AUT_BLUE_ME_COM_PEDIDO(): # Nova versão - considerando data de recebime
 
 
 def GET_INSUMOS_AGRUPADOS_BLUE_ME_POR_CATEG_COM_PEDIDO_PERIODO_LOJA():
+  # Fix 2026-08-11 (achado real: Blue Note - São Paulo, jul/2026 — R$44.467,46 de
+  # Compras Bebidas "com pedido" da empresa 131 "Blue Note SP (Novo)" ficavam de fora do
+  # CMV da aba Forecast, porque esta função (diferente da versão usada pela aba CMV Real,
+  # que já canonicaliza via 'Blue Note - Agregado') não tinha NENHUM mapeamento de casa
+  # agregada — te.ID/te.NOME_FANTASIA cru. Mesmo padrão de canonicalização já usado em
+  # GET_ITENS_VENDIDOS_DIA neste arquivo, aplicado aqui também.
   return dataframe_query(f'''
     SELECT
       q.ID_Casa,
@@ -1228,8 +1234,16 @@ def GET_INSUMOS_AGRUPADOS_BLUE_ME_POR_CATEG_COM_PEDIDO_PERIODO_LOJA():
     FROM (
       SELECT
         tdr.ID AS tdr_ID,
-        te.ID AS ID_Casa,
-        te.NOME_FANTASIA AS Casa,
+        CASE
+          WHEN te.ID = 131 THEN 110 -- Blue Note
+          WHEN te.ID = 178 THEN 110 -- Blue Note
+          ELSE te.ID
+        END AS ID_Casa,
+        CASE
+          WHEN te.NOME_FANTASIA = 'Blue Note SP (Novo)' THEN 'Blue Note - São Paulo'
+          WHEN te.NOME_FANTASIA = 'Blue Note SP (Sala 2)' THEN 'Blue Note - São Paulo'
+          ELSE te.NOME_FANTASIA
+        END AS Casa,
         tdr.VALOR_LIQUIDO AS Valor_Liquido,
         SUM(tdri.VALOR) AS Valor_Insumos,
         CASE
