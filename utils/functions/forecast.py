@@ -934,6 +934,19 @@ def config_valoracao_estoque_ou_producao(tipo, data_inicio, data_fim, loja):
        (df_valoracao['Categoria'].isin(['ALIMENTOS', 'BEBIDAS']))
     ].copy()
 
+    if tipo == 'estoque':
+        # Fix 2026-08-11 (mesmo achado/fix de queries_cmv.py::config_valoracao_estoque —
+        # ver ali para o caso real): GET_VALORACAO_ESTOQUE traz a linha crua sem dedupe —
+        # um reenvio duplicado da mesma contagem (mesma loja+insumo+quantidade+valor)
+        # soma 2x o estoque no mês em que cai. Diferente do CMV Real (1 data só), aqui o
+        # dado cobre um intervalo de meses — dedupe inclui DATA_CONTAGEM (a data efetiva
+        # já resolvida pela query, antes do truncamento p/ 1º dia do mês feito abaixo)
+        # para não remover coincidências legítimas do mesmo insumo/quantidade/valor em
+        # meses diferentes.
+        df_valoracao = df_valoracao.drop_duplicates(
+            subset=['ID_Loja', 'ID_Insumo', 'Quantidade', col_valor, col_data]
+        )
+
     # Fix 2026-08-10: contagens recentes (lag de consolidação — mesmo fenômeno já
     # documentado nos fixes de GET_VALORACAO_PRODUCAO/DRE_AUT_INSUMOS_PRODUCAO) chegam
     # com o horário exato de submissão em vez de meia-noite, e a query de estoque
