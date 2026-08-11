@@ -37,7 +37,7 @@ def get_casas_delivery():
 				ELSE te.ID_ZIGPAY 
 			END AS 'ID Zigpay'
 		FROM T_EMPRESAS te
-		WHERE te.ID IN (103, 112, 117, 118, 139, 169)								 
+		WHERE te.ID IN (103, 112, 117, 118, 139, 169, 181)								 
 		"""
 	)
     df_casas_delivery = pd.DataFrame(result, columns=column_names)

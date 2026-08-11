@@ -33,6 +33,8 @@ def input_selecao_casas(lista_casas_retirar, key, adicionar_delivery=None, agreg
             df_permissao_casas = pd.concat([df_permissao_casas, df_casas_delivery[df_casas_delivery['ID Loja'] == 112]])
         if 105 in lista_ids_casas_permissao: # Jacaré
             df_permissao_casas = pd.concat([df_permissao_casas, df_casas_delivery[df_casas_delivery['ID Loja'] == 139]])
+        if 156 in lista_ids_casas_permissao: # Girondino
+            df_permissao_casas = pd.concat([df_permissao_casas, df_casas_delivery[df_casas_delivery['ID Loja'] == 181]])
     
     lista_casas_validas = df_permissao_casas['Loja'].unique().tolist()
     lista_casas_validas.sort()
@@ -163,6 +165,8 @@ def input_multiselecao_casas(lista_casas_retirar, key, adicionar_delivery=None):
             lista_ids_casas_acesso.append(169)
         if 116 in lista_ids_casas_acesso: # Bar Léo
             lista_ids_casas_acesso.append(103)
+        if 156 in lista_ids_casas_acesso: # Girondino
+            lista_ids_casas_acesso.append(181)
     
     df_casas = df_casas[df_casas["ID_Casa"].isin(lista_ids_casas_acesso)].sort_values(by="Casa").reset_index(drop=True)
     lista_casas_validas = df_casas["Casa"].to_list()

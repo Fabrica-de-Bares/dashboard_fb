@@ -131,6 +131,7 @@ def GET_CASAS_VALIDAS_ANALISE_PRODUTOS():
         "Delivery Fabrica de Bares",
         "Delivery Jacaré",
         "Delivery Orfeu",
+        "Delivery Girondino"
     ]
     df_validas = pd.DataFrame(lista_casas_validas, columns=["Casa"])
     df = df_casas.merge(df_validas, on="Casa", how="inner")
