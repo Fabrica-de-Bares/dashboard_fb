@@ -499,7 +499,7 @@ def GET_FATURAM_ZIG_ALIM_BEB_MENSAL(data_inicio, data_fim):
     te.NOME_FANTASIA AS Loja,
     tivc2.DESCRICAO AS Categoria,
     CASE 
-      WHEN te.ID IN (103, 112, 118, 139, 169) THEN 1
+      WHEN te.ID IN (103, 112, 118, 139, 169, 181) THEN 1
       ELSE 0 
     END AS Delivery,
     cast(date_format(cast(tivd.EVENT_DATE AS date), '%Y-%m-01') AS date) AS Primeiro_Dia_Mes,
@@ -526,7 +526,7 @@ def GET_FATURAM_ZIG_ALIM_BEB_MENSAL(data_inicio, data_fim):
     te.NOME_FANTASIA AS Loja,
     tivc2.DESCRICAO AS Categoria,
     CASE 
-      WHEN te.ID IN (103, 112, 118, 139, 169) THEN 1
+      WHEN te.ID IN (103, 112, 118, 139, 169, 181) THEN 1
       ELSE 0 
     END AS Delivery,
     cast(date_format(cast(tivd.EVENT_DATE AS date), '%Y-%m-01') AS date) AS Primeiro_Dia_Mes,
@@ -543,7 +543,7 @@ def GET_FATURAM_ZIG_ALIM_BEB_MENSAL(data_inicio, data_fim):
   WHERE cast(tivd.EVENT_DATE AS date) >= '{data_inicio}'
     AND cast(tivd.EVENT_DATE AS date) <= '{data_fim}'
     AND tivc2.DESCRICAO IN ('Serviço')
-    AND te.ID IN (103, 112, 118, 139, 169)
+    AND te.ID IN (103, 112, 118, 139, 169, 181)
   GROUP BY 
     ID_Loja,
     Categoria,

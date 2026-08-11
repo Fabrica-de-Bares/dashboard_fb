@@ -22,7 +22,8 @@ def substituicao_ids(df, colNome, colID):
     110: 131,
     178: 131,
     160: 156,
-    177: 176
+    177: 176,
+    181: 156
   }
 
   substituicoesNomes = {
@@ -42,6 +43,7 @@ def substituicao_ids(df, colNome, colID):
     'Blue Note SP (Sala 2)': 'Blue Note - Agregado',
     'Girondino - CCBB': 'Girondino - Agregado',
     'Girondino': 'Girondino - Agregado',
+    'Delivery Girondino': 'Girondino - Agregado',
     'The Cavern': 'The Cavern - Agregado',
     'The Cavern - Almoço': 'The Cavern - Agregado'
   }
@@ -335,6 +337,21 @@ def config_valoracao_estoque(data_inicio, data_fim, loja):
     loja = 'Priceless'
 
   df_valoracao_estoque = GET_VALORACAO_ESTOQUE(loja, data_inicio_nova)
+
+  # Fix 2026-08-11 (achado real: Blue Note - São Paulo, jul/2026 — "LA CAMPANA SELECCION
+  # DE TERROIR 750ML", 3un, R$604,32, ID_Contagem 99745 e 103983 — mesma contagem
+  # reenviada 2x). GET_VALORACAO_ESTOQUE traz a linha crua de T_VALORACAO_ESTOQUE/
+  # T_CONTAGEM_INSUMOS sem dedupe — um reenvio duplicado da mesma contagem (mesma
+  # loja+insumo+quantidade+valor) soma 2x o estoque daquele item, inflando "Estoque
+  # Atual"/"Estoque Mes Anterior" e o CMV% calculado nesta página. Mesmo fix já aplicado
+  # no lado do script standalone (transform.calcular_variacao_estoque, 2026-08) — não
+  # dedupe por FK_CONTAGEM/ID_Contagem (cada reenvio tem um ID diferente), e sim pela
+  # tupla loja+insumo+quantidade+valor, que é o que identifica a MESMA contagem física
+  # reenviada. Casas agregadas (>1 loja bruta contando o mesmo insumo com o mesmo
+  # valor) continuam somando normalmente, pois ID_Loja também entra na chave.
+  df_valoracao_estoque = df_valoracao_estoque.drop_duplicates(
+    subset=['ID_Loja', 'ID_Insumo', 'Quantidade', 'Valor_em_Estoque']
+  )
 
   df_valoracao_estoque.drop(['DATA_CONTAGEM'], axis=1, inplace=True)
 

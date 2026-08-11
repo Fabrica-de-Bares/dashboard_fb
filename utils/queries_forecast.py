@@ -58,6 +58,7 @@ def GET_ITENS_VENDIDOS_DIA():
         WHEN tivd.FK_CASA = 169 THEN 148
         WHEN tivd.FK_CASA = 139 THEN 105
         WHEN tivd.FK_CASA = 112 THEN 104
+        WHEN tivd.FK_CASA = 181 THEN 156
         WHEN te.ID IN (161, 162, 179) THEN 149 -- Priceless
         WHEN te.ID = 131 THEN 110 -- Blue Note
         WHEN te.ID = 177 THEN 176 -- The Cavern                                    
@@ -69,14 +70,15 @@ def GET_ITENS_VENDIDOS_DIA():
         WHEN tivd.FK_CASA = 169 THEN 'Bar Brahma - Granja'
         WHEN tivd.FK_CASA = 139 THEN 'Jacaré'
         WHEN tivd.FK_CASA = 112 THEN 'Orfeu'
+        WHEN tivd.FK_CASA = 181 THEN 'Girondino'
         WHEN te.NOME_FANTASIA IN ('Terraço Notie', 'Notiê - Priceless') THEN 'Priceless'
         WHEN te.NOME_FANTASIA = 'Blue Note SP (Novo)' THEN 'Blue Note - São Paulo'
         WHEN te.NOME_FANTASIA = 'The Cavern - Almoço' THEN 'The Cavern'                                    
         ELSE te.NOME_FANTASIA
       END AS 'Casa',
       CASE
-      	WHEN te.ID IN (103, 112, 118, 139, 169) THEN 'Delivery'
-        ELSE tivc2.DESCRICAO 
+      	WHEN te.ID IN (103, 112, 118, 139, 169, 181) THEN 'Delivery'
+        ELSE tivc2.DESCRICAO
       END AS Categoria,
           DATE(tivd.EVENT_DATE) AS 'Data Evento',
           SUM(tivd.DESCONTO) AS 'Desconto',
