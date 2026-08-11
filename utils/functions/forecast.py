@@ -815,7 +815,22 @@ def config_compras(data_inicio, data_fim, loja):
     })
     df1['Primeiro_Dia_Mes'] = pd.to_datetime(df1['Primeiro_Dia_Mes'], errors='coerce')
     df1['Mes_Ano'] = df1['Primeiro_Dia_Mes'].dt.strftime('%Y-%m')
-    
+    # Fix 2026-08-11 (correção do fix acima): a canonicalização de nome por si só não
+    # reagrupa — Blue Note passou a ter 2 linhas com o mesmo 'Casa' (uma por empresa
+    # bruta, 110 e 131), e o merge abaixo (chave Casa+Mes_Ano+Primeiro_Dia_Mes) casava
+    # CADA uma delas contra a mesma linha já agregada de df2, duplicando (contando 2x)
+    # o valor "com pedido" — achado real: CMV Real subiu de 24,37% (faltando compras) p/
+    # 61,91% (compras "com pedido" contadas em dobro) no mesmo período. Agrega df1 por
+    # Casa/Mes antes do merge, mesmo problema resolvido no lado SQL de df2 pelo GROUP BY
+    # já usar as colunas canonicalizadas.
+    df1 = df1.groupby(['Casa', 'Primeiro_Dia_Mes', 'Mes_Ano'], as_index=False).agg({
+        'BlueMe_Sem_Pedido_Valor': 'sum',
+        'BlueMe_Sem_Pedido_Alimentos': 'sum',
+        'BlueMe_Sem_Pedido_Bebidas': 'sum',
+        'BlueMe_Sem_Pedido_Descart_Hig_Limp': 'sum',
+        'BlueMe_Sem_Pedido_Outros': 'sum',
+    })
+
     df_aut_blue_me_com_pedido = GET_AUT_BLUE_ME_COM_PEDIDO()
     df2 = GET_INSUMOS_AGRUPADOS_BLUE_ME_POR_CATEG_COM_PEDIDO_PERIODO_LOJA()
     df2['Primeiro_Dia_Mes'] = pd.to_datetime(df2['Primeiro_Dia_Mes'], errors='coerce')
