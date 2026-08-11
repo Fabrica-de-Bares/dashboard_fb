@@ -22,7 +22,8 @@ def substituicao_ids(df, colNome, colID):
     110: 131,
     178: 131,
     160: 156,
-    177: 176
+    177: 176,
+    181: 156
   }
 
   substituicoesNomes = {
@@ -42,6 +43,7 @@ def substituicao_ids(df, colNome, colID):
     'Blue Note SP (Sala 2)': 'Blue Note - Agregado',
     'Girondino - CCBB': 'Girondino - Agregado',
     'Girondino': 'Girondino - Agregado',
+    'Delivery Girondino': 'Girondino - Agregado',
     'The Cavern': 'The Cavern - Agregado',
     'The Cavern - Almoço': 'The Cavern - Agregado'
   }
