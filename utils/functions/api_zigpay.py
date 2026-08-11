@@ -16,9 +16,9 @@ def get_compradores_zigpay_api(data_inicio, data_fim, id_zigpay):
     url = "https://api.zigcore.com.br/integration/erp/compradores"
     df = pd.DataFrame()
     
-    params = {          
-        "dtinicio": pd.to_datetime(data_inicio).strftime("%Y-%m-%dT%H:%M:%S"),
-        "dtfim": pd.to_datetime(data_fim).strftime("%Y-%m-%dT%H:%M:%S"),
+    params = {
+        "dtinicio": pd.to_datetime(data_inicio).strftime("%Y-%m-%d"),
+        "dtfim": pd.to_datetime(data_fim).strftime("%Y-%m-%d"),
         "loja": f"{id_zigpay}"
     }
     response = requests.get(url, headers=headers, params=params)
@@ -53,6 +53,9 @@ def df_compradores_zigpay_mes(mes, ano, id_zigpay):
             print(data_inicio_requisicao, data_fim_requisicao)
             df_resultado = get_compradores_zigpay_api(data_inicio_requisicao, data_fim_requisicao, id_zigpay)
             df = pd.concat([df, df_resultado], ignore_index=True)
+
+    if df.empty:
+        df = pd.DataFrame(columns=["userDocument", "userName", "transactionId"])
 
     return df
 
