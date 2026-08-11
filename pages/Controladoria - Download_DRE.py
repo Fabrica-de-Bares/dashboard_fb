@@ -104,6 +104,18 @@ with st.container(border=True):
         df_aut_precos_insumos = DRE_AUT_PRECOS_INSUMOS(ids_casa_query)
         if casa == 'Love Cabaret': df_aut_valor_estoque = DRE_AUT_VALOR_ESTOQUE_LOVE(ids_casa_query)
         else: df_aut_valor_estoque = DRE_AUT_VALOR_ESTOQUE(ids_casa_query)
+        # Fix 2026-08-11 (mesmo achado/fix de utils/functions/cmv.py::config_valoracao_
+        # estoque — caso real: Blue Note - São Paulo, jul/2026, "LA CAMPANA SELECCION DE
+        # TERROIR 750ML", R$604,32 contado 2x, IDs de contagem 99745/103983): as duas
+        # queries trazem a linha crua sem dedupe — um reenvio duplicado da mesma contagem
+        # soma 2x. Como esta aba alimenta o SUMIFS de "Estoque Inicial/Final" por
+        # Mes_Texto na aba CMV_Manual, o duplicado ia direto para o CMV baixado. Dedupe
+        # inclui Mes_Texto (não só loja+insumo+quantidade+valor) porque esta aba traz o
+        # histórico inteiro da casa, não um fechamento só — evita remover coincidências
+        # legítimas do mesmo insumo/quantidade/valor em meses diferentes.
+        df_aut_valor_estoque = df_aut_valor_estoque.drop_duplicates(
+            subset=['ID_Loja', 'ID_Insumo', 'Quantidade', 'Valor_em_Estoque', 'Mes_Texto']
+        )
         df_aut_precos_consolidados = DRE_AUT_PRECOS_CONSOLIDADOS(ids_casa_query)
         df_aut_eventos_aeb = DRE_AUT_EVENTOS_AEB(ids_casa_query)
         df_aut_transferencias = DRE_AUT_TRANSFERENCIAS(ids_casa_query)
