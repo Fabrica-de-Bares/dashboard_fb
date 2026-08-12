@@ -38,6 +38,7 @@ def formata_duracao(minutos):
 COR_TICKET_MEDIO_PERIODO = '#2a78d6'      # azul
 COR_TICKET_MEDIO_DIA_SEMANA = '#eb6834'   # laranja
 COR_PERMANENCIA = '#1baf7a'               # água
+COR_NUMERO_CLIENTES = '#eda100'           # amarelo
 
 COR_GRID = '#e1e0d9'
 COR_EIXO = '#c3c2b7'
@@ -148,6 +149,16 @@ with st.container(border=True):
         st.caption('Evolução do ticket médio diário no período selecionado')
         st_echarts(options=options_ticket_medio, height="400px", key='echarts_ticket_medio_periodo')
 
+        options_numero_clientes = opcoes_grafico_linha(
+            df_ticket_medio_ordenado['Data Evento'].astype(str).tolist(),
+            df_ticket_medio_ordenado['Número de Clientes'].tolist(),
+            'Número de Clientes',
+            COR_NUMERO_CLIENTES,
+            'Nº de Clientes',
+        )
+        st.caption('Evolução do número de clientes no período selecionado')
+        st_echarts(options=options_numero_clientes, height="400px", key='echarts_numero_clientes_periodo')
+
         with st.expander(f'Ver outliers identificados ({len(df_outliers)})'):
             if df_outliers.empty:
                 st.caption('Nenhum outlier identificado no período selecionado.')
@@ -165,7 +176,7 @@ with st.container(border=True):
                 st.dataframe(df_outliers_tabela, hide_index=True, width='stretch')
 
         with st.expander('Ver dados em tabela'):
-            df_ticket_medio_tabela = df_ticket_medio_ordenado[['Data Evento', 'Dia Semana', 'Ticket Médio']].copy()
+            df_ticket_medio_tabela = df_ticket_medio_ordenado[['Data Evento', 'Dia Semana', 'Ticket Médio', 'Número de Clientes']].copy()
             df_ticket_medio_tabela['Ticket Médio'] = df_ticket_medio_tabela['Ticket Médio'].apply(lambda v: f'R$ {format_brazilian(v)}')
             col_vazio, col_download = st.columns([5, 1])
             with col_download:
