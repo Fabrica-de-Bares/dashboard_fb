@@ -60,6 +60,7 @@ ABAS = {
     145: {'nome_aba': "👥 Headcount de Pessoas", 'page_link': 'pages/Planejamento - Headcount_Pessoas.py'},
     146: {'nome_aba': "👥 Headcount de Pessoas e Remuneração", 'page_link': 'pages/Planejamento - Headcount_Pessoas_Remuneracao.py'},
     150: {'nome_aba': "⚠️ Lançamentos Fora do Prazo", 'page_link': 'pages/Fluxo_de_Caixa - Lançamentos_Fora_do_Prazo.py'},
+    151: {'nome_aba': '👥 Clientes e Ticket Médio', 'page_link': 'pages/Faturamento - Clientes e Ticket Médio.py'},
 }
 
 def main():
