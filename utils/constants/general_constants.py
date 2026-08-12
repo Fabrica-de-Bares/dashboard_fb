@@ -60,7 +60,8 @@ casas_validas = [
     'Tempus Fugit  Ltda ', 
     # 'The Cavern',
     # 'The Cavern - Almoço',
-    'Ultra Evil Premium Ltda '
+    'Ultra Evil Premium Ltda ',
+    'Nuv Gastrobar'
 ]
 
 

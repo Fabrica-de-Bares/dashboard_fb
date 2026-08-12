@@ -57,7 +57,7 @@ with col1: # Seletor de casa
     if tipo_formatacao == 'Bilheteria':
         casas = [casa for casa in casas_validas if casa in ['Bar Brahma - Centro', 'Bar Brahma - Granja', 'Ultra Evil Premium Ltda ']] # Revisar
     else:
-        casas = [casa for casa in casas_validas if casa not in ['Blue Note SP (Novo)', 'Blue Note SP (Sala 2)', 'Edificio Rolim', 'Sanduiche comunicação LTDA ', 'Tempus Fugit  Ltda ']]
+        casas = [casa for casa in casas_validas if casa not in ['Blue Note SP (Novo)', 'Edificio Rolim', 'Sanduiche comunicação LTDA ', 'Tempus Fugit  Ltda ']]
     
     casa = st.selectbox("Selecione a casa referente ao arquivo", casas)
 
