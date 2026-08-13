@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 from utils.queries_conciliacao import *
 from utils.functions.general_functions_conciliacao import *
-from utils.constants.general_constants import cores_casas
+from utils.constants.general_constants import cores_casas, COR_CASA_FALLBACK
 from decimal import Decimal
 from streamlit_echarts import st_echarts
 
@@ -101,7 +101,7 @@ def grafico_ajustes_todas_casas(casas_validas, nomes_meses, lista_ajustes_casas)
             "type": "bar",
             "barGap": "10%",
             "data": lista_ajustes_casas[i],
-            "itemStyle": {"color": cores_casas[i]}
+            "itemStyle": {"color": cores_casas.get(nome, COR_CASA_FALLBACK)}
         }
         for i, nome in enumerate(casas_validas)
     ]

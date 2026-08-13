@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import datetime
 from utils.functions.general_functions_conciliacao import *
-from utils.constants.general_constants import cores_casas
+from utils.constants.general_constants import cores_casas, COR_CASA_FALLBACK
 from utils.functions.conciliacoes import *
 from utils.functions.farol_conciliacao import *
 from utils.queries_conciliacao import *
@@ -241,7 +241,7 @@ def grafico_dias_nao_conciliados(casas_validas, nomes_meses, lista_casas):
             "type": "bar",
             "barGap": "10%",
             "data": lista_casas[i],
-            "itemStyle": {"color": cores_casas[i]}
+            "itemStyle": {"color": cores_casas.get(nome, COR_CASA_FALLBACK)}
         }
         for i, nome in enumerate(casas_validas)
     ]
@@ -312,10 +312,10 @@ def grafico_dias_nao_conciliados_mes(casas_validas, lista_casas, mes_selecionado
             "backgroundStyle": {
                 "color": 'rgba(180, 180, 180, 0.2)'
             },
-            "itemStyle": {"color": cores_casas[i]},
+            "itemStyle": {"color": cores_casas.get(nome, COR_CASA_FALLBACK)},
             "label": {
                 "show": True,
-                "position": "top" 
+                "position": "top"
             }
         }
         for i, nome in enumerate(casas_validas)
@@ -459,7 +459,7 @@ def grafico_dias_nao_conciliados_trim(df_conciliacao_farol, casas_validas, trime
                 "show": True,
                 "position": "top" 
             },
-            "itemStyle": {"color": cores_casas[i]}
+            "itemStyle": {"color": cores_casas.get(nome, COR_CASA_FALLBACK)}
         }
         for i, nome in enumerate(casas_validas)
     ]

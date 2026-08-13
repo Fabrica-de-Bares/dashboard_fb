@@ -65,29 +65,37 @@ casas_validas = sorted([
 ])
 
 
-cores_casas = [
-    "#582310", # Arcos
-    "#DF2526", # Bar Brahma - Centro
-    "#84161f", # Bar Brahma - Granja
-    "#1C6EBA", # Bar Brahma - Paulista
-    "#E9A700", # Bar Leo - Centro
-    "#081F5C", # Blue Note São Paulo
-    "#004080", # Blue Note (Novo)
-    "#336699", # Edificio Rolim
-    "#6699CC", # Escritorio FB
-    "#4A5129", # Girondino
-    "#8CA706", # Girondino CCBB
-    "#0CA22E", # Jacaré
-    "#E799BB", # Love Cabaret
-    "#006E77", # Orfeu
-    "#000000", # Priceless
-    "#C2185B", # Riviera
-    "#FF6600", # Sanduiche
-    "#9933CC", # Tempus
-    # "#03420D", # The Cavern
-    # "#D6B98C", # The Cavern - Almoço
-    "#3D5771", # Ultra Evil
-]
+# Dicionário (não lista posicional!) para não depender da ordem/tamanho de casas_validas.
+# Toda casa nova adicionada em casas_validas precisa ganhar uma entrada aqui também.
+cores_casas = {
+    "Arcos": "#582310",
+    "Bar Brahma - Centro": "#DF2526",
+    "Bar Brahma - Granja": "#84161f",
+    "Bar Brahma - Paulista": "#1C6EBA",
+    "Bar Léo - Centro": "#E9A700",
+    "Blue Note - São Paulo": "#081F5C",
+    "Blue Note SP (Novo)": "#004080",
+    "Blue Note SP (Sala 2)": "#5DADE2",
+    "Edificio Rolim": "#336699",
+    "Escritório Fabrica de Bares": "#6699CC",
+    "Girondino": "#4A5129",
+    "Girondino - CCBB": "#8CA706",
+    "Jacaré": "#0CA22E",
+    "Love Cabaret": "#E799BB",
+    "Nuv Gastrobar": "#B8860B",
+    "Orfeu": "#006E77",
+    "Priceless": "#000000",
+    "Riviera Bar": "#C2185B",
+    "Sanduiche comunicação LTDA ": "#FF6600",
+    "Tempus Fugit  Ltda ": "#9933CC",
+    # "The Cavern": "#03420D",
+    # "The Cavern - Almoço": "#D6B98C",
+    "Ultra Evil Premium Ltda ": "#3D5771",
+}
+
+# Cor de fallback para casa sem entrada em cores_casas (evita IndexError/KeyError se
+# uma casa nova for adicionada em casas_validas sem cor cadastrada aqui)
+COR_CASA_FALLBACK = "#999999"
 
 
 # Mapeamentos manuais: fornecedor da despesa:descrição do extrato
