@@ -37,6 +37,35 @@ def GET_CASAS():
 
 
 @st.cache_data
+def GET_CASAS_INPUT_SISTEMA():
+    df_casas = dataframe_query('''
+      WITH empresas_normalizadas AS (
+        SELECT
+          CASE 
+            WHEN ID IN (161, 162, 179) THEN 149
+            WHEN ID = 177 THEN 176    
+            WHEN ID = 175 THEN 114                                 
+            ELSE ID
+          END AS ID_Casa_Normalizada,
+          NOME_FANTASIA,
+          FK_GRUPO_EMPRESA,
+          BIT_SOCIOS_EXTERNOS
+        FROM T_EMPRESAS
+      )
+      SELECT
+        te.ID_Casa_Normalizada AS ID_Casa,
+        te2.NOME_FANTASIA AS Casa,
+        te.BIT_SOCIOS_EXTERNOS as Bit_Socios_Externos
+      FROM empresas_normalizadas te
+      LEFT JOIN T_EMPRESAS te2 ON te.ID_Casa_Normalizada = te2.ID
+      WHERE te.FK_GRUPO_EMPRESA = 100
+      GROUP BY te.ID_Casa_Normalizada, te2.NOME_FANTASIA
+      ORDER BY te2.NOME_FANTASIA
+      ''')
+    return df_casas
+
+
+@st.cache_data
 def GET_EXTRATO_ZIG():
     df_extrato_zig = dataframe_query('''
       WITH extrato_normalizado AS (

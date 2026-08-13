@@ -38,31 +38,31 @@ lojasAgrupadas = [
 
 
 # Todas as casas de df_casas menos 'All bar'
-casas_validas = [
-    'Arcos', 
-    'Bar Brahma - Centro', 
-    'Bar Brahma - Granja', 
-    'Bar Brahma - Paulista', 
-    'Bar Léo - Centro', 
-    'Blue Note - São Paulo', 
-    'Blue Note SP (Novo)', 
+casas_validas = sorted([
+    'Arcos',
+    'Bar Brahma - Centro',
+    'Bar Brahma - Granja',
+    'Bar Brahma - Paulista',
+    'Bar Léo - Centro',
+    'Blue Note - São Paulo',
+    'Blue Note SP (Novo)',
     'Blue Note SP (Sala 2)',
-    'Edificio Rolim', 
-    'Escritório Fabrica de Bares', 
-    'Girondino', 
-    'Girondino - CCBB', 
-    'Jacaré', 
-    'Love Cabaret', 
-    'Orfeu', 
-    'Priceless', 
-    'Riviera Bar', 
-    'Sanduiche comunicação LTDA ', 
-    'Tempus Fugit  Ltda ', 
+    'Edificio Rolim',
+    'Escritório Fabrica de Bares',
+    'Girondino',
+    'Girondino - CCBB',
+    'Jacaré',
+    'Love Cabaret',
+    'Orfeu',
+    'Priceless',
+    'Riviera Bar',
+    'Sanduiche comunicação LTDA ',
+    'Tempus Fugit  Ltda ',
     # 'The Cavern',
     # 'The Cavern - Almoço',
     'Ultra Evil Premium Ltda ',
-    'Nuv Gastrobar'
-]
+    'Nuv Gastrobar',
+])
 
 
 cores_casas = [

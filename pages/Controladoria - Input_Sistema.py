@@ -3,7 +3,7 @@ import pandas as pd
 from utils.functions.general_functions import config_sidebar, mysql_connection_fb
 from utils.functions.controladoria_descontos_dre import limpeza_linhas
 from utils.functions.controladoria_input_sistema import prepara_partes_headcount, prepara_colunas_real_dre
-from utils.queries_conciliacao import GET_CASAS
+from utils.queries_conciliacao import GET_CASAS_INPUT_SISTEMA
 from utils.queries_controladoria import GET_PLATAFORMAS_BILHETERIA
 from utils.components import button_download, seletor_ano, seletor_mes
 from utils.constants.general_constants import casas_validas
@@ -51,7 +51,7 @@ else:
     col1, col2 = st.columns(2)
 
 with col1: # Seletor de casa
-    df_casas = GET_CASAS()
+    df_casas = GET_CASAS_INPUT_SISTEMA()
     casas = df_casas['Casa'].tolist()
 
     if tipo_formatacao == 'Bilheteria':
