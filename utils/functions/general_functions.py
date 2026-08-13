@@ -238,6 +238,7 @@ def config_sidebar():
         127: "KPI's de Resultado Operacional",
         128: "KPI's de Resultado Operacional",
         129: "KPI's de Resultado Operacional",
+        152: "KPI's de Resultado Operacional",
         130: "KPI's de Resultado Operacional - Suprimentos",
         131: "KPI's de Resultado Operacional - Suprimentos",
         132: "KPI's de Resultado Operacional - Suprimentos",
@@ -282,7 +283,7 @@ def config_sidebar():
         ordem_abas = { # Ordena abas nas seções por id
             "KPI's de Faturamento": [100, 101, 102, 103, 104, 105, 151],
             "KPI's de Faturamento - Eventos": [106, 107, 108, 109, 147, 111, 113, 112, 114, 115, 116],
-            "KPI's de Resultado Operacional": [124, 125, 126, 128, 127, 129],
+            "KPI's de Resultado Operacional": [124, 125, 126, 128, 127, 152, 129],
             "KPI's de Resultado Operacional - Suprimentos": [131, 130, 132],
             "Conciliação": [122, 121, 123],
             "Fluxo de Caixa": [118, 120, 119, 150],
