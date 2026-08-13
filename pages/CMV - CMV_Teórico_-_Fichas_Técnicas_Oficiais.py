@@ -253,8 +253,7 @@ def main():
                     kpi_card_cmv_teorico('Custo do Item', f"R$ {format_brazilian(linha_prato['Custo_Unitario_Ficha'])}", background_color="#FFFFFF", title_color="#333", value_color="#000", height=90)
                 with col3:
                     cmv_pct_prato = round(linha_prato['CMV_Percent'] * 100, 2) if pd.notna(linha_prato['CMV_Percent']) else 0
-                    cor_cmv_prato = cor_porcentagem_cmv(cmv_pct_prato)
-                    kpi_card_cmv_teorico('CMV %', f'{format_brazilian(cmv_pct_prato)} %', background_color="#FFFFFF", title_color="#333", value_color="#000", valor_percentual=f'{cmv_pct_prato}', color_percentual=cor_cmv_prato, height=90)
+                    kpi_card_cmv_teorico('CMV %', f'{format_brazilian(cmv_pct_prato)} %', background_color="#FFFFFF", title_color="#333", value_color="#000", height=90)
 
                 st.write('')
                 st.markdown(f'### Composição — {produto_selecionado}')
