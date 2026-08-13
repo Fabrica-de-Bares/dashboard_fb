@@ -246,15 +246,18 @@ def main():
                 id_ficha_selecionada = int(produto_selecionado.split(' - ')[0])
                 linha_prato = df_mix[df_mix['ID_Ficha_Tecnica'] == id_ficha_selecionada].iloc[0]
 
+                # st.metric (não o kpi_card_cmv_teorico usado nas outras seções) — o card
+                # customizado tem 120px de altura fixa no componente compartilhado (usado em
+                # outras páginas também, não dá pra encolher só aqui); aqui é só uma referência
+                # rápida antes da composição, sem precisar do card grande.
                 col1, col2, col3 = st.columns([1, 1, 1], vertical_alignment='center')
                 with col1:
-                    kpi_card_cmv_teorico('Preço de Venda (médio)', f"R$ {format_brazilian(linha_prato['Preco_Medio'])}", background_color="#FFFFFF", title_color="#333", value_color="#000")
+                    st.metric('Preço de Venda (médio)', f"R$ {format_brazilian(linha_prato['Preco_Medio'])}")
                 with col2:
-                    kpi_card_cmv_teorico('Custo do Item', f"R$ {format_brazilian(linha_prato['Custo_Unitario_Ficha'])}", background_color="#FFFFFF", title_color="#333", value_color="#000")
+                    st.metric('Custo do Item', f"R$ {format_brazilian(linha_prato['Custo_Unitario_Ficha'])}")
                 with col3:
                     cmv_pct_prato = round(linha_prato['CMV_Percent'] * 100, 2) if pd.notna(linha_prato['CMV_Percent']) else 0
-                    cor_cmv_prato = cor_porcentagem_cmv(cmv_pct_prato)
-                    kpi_card_cmv_teorico('CMV %', f'{format_brazilian(cmv_pct_prato)} %', background_color="#FFFFFF", title_color="#333", value_color="#000", valor_percentual=f'{cmv_pct_prato}', color_percentual=cor_cmv_prato)
+                    st.metric('CMV %', f'{format_brazilian(cmv_pct_prato)} %')
 
                 st.write('')
                 st.markdown(f'### Composição — {produto_selecionado}')
