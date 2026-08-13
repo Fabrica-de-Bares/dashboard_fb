@@ -35,7 +35,7 @@ def main():
 
     col1, col2 = st.columns([6, 2], vertical_alignment="center")
     with col1:
-        st.title("🧪 CMV Teórico - Fichas Técnicas Oficiais (Piloto)")
+        st.title("🧪 CMV Teórico - Fichas Técnicas Oficiais")
     with col2:
         st.button(label='Atualizar', key='atualizar', on_click=st.cache_data.clear, icon='🔄', width='stretch')
     st.divider()
