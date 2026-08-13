@@ -244,7 +244,19 @@ def main():
             else:
                 produto_selecionado = st.selectbox('Selecione um prato para ver a composição da ficha técnica', lista_produtos, key='drilldown_fichas_oficiais')
                 id_ficha_selecionada = int(produto_selecionado.split(' - ')[0])
+                linha_prato = df_mix[df_mix['ID_Ficha_Tecnica'] == id_ficha_selecionada].iloc[0]
 
+                col1, col2, col3 = st.columns([1, 1, 1], vertical_alignment='center')
+                with col1:
+                    kpi_card_cmv_teorico('Preço de Venda (médio)', f"R$ {format_brazilian(linha_prato['Preco_Medio'])}", background_color="#FFFFFF", title_color="#333", value_color="#000")
+                with col2:
+                    kpi_card_cmv_teorico('Custo do Item', f"R$ {format_brazilian(linha_prato['Custo_Unitario_Ficha'])}", background_color="#FFFFFF", title_color="#333", value_color="#000")
+                with col3:
+                    cmv_pct_prato = round(linha_prato['CMV_Percent'] * 100, 2) if pd.notna(linha_prato['CMV_Percent']) else 0
+                    cor_cmv_prato = cor_porcentagem_cmv(cmv_pct_prato)
+                    kpi_card_cmv_teorico('CMV %', f'{format_brazilian(cmv_pct_prato)} %', background_color="#FFFFFF", title_color="#333", value_color="#000", valor_percentual=f'{cmv_pct_prato}', color_percentual=cor_cmv_prato)
+
+                st.write('')
                 st.markdown(f'### Composição — {produto_selecionado}')
 
                 df_insumos_prato = df_painel_insumos[df_painel_insumos['ID_Ficha_Tecnica'] == id_ficha_selecionada][
