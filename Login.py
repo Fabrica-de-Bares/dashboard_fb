@@ -23,7 +23,10 @@ ABAS = {
     107: {'nome_aba': '📆 Calendário de Eventos Confirmados', 'page_link': 'pages/Eventos - Calendário_de_Eventos_Confirmados.py'},
     106: {'nome_aba': '📆 Calendário Geral de Eventos', 'page_link': 'pages/Eventos - Calendário_Geral_de_Eventos.py'},
     128: {'nome_aba': '⚖️ CMV Real', 'page_link': 'pages/CMV - CMV_Real.py'},
-    127: {'nome_aba': '📋 CMV Teórico - Análise de Fichas Técnicas', 'page_link': 'pages/CMV - CMV_Teórico_-_Análise_de_Fichas_Técnicas.py'},
+    # 127 (CMV Teórico - Análise de Fichas Técnicas) escondida a pedido do Gabriel em
+    # 13/08/2026 — substituída pela 152. Arquivo da página continua em pages/, só não
+    # está mais registrado aqui (não aparece no menu, não recebe permissão de cargo).
+    152: {'nome_aba': '🧪 CMV Teórico - Fichas Técnicas Oficiais', 'page_link': 'pages/CMV - CMV_Teórico_-_Fichas_Técnicas_Oficiais.py'},
     121: {'nome_aba': '💰 Conciliação por Casa', 'page_link': 'pages/Conciliação - Conciliações.py'},
     110: {'nome_aba': '↔️ Contas a Receber - Conciliação de Parcelas de Eventos', 'page_link': 'pages/Eventos - Conciliação_de_Parcelas_Eventos.py'},
     125: {'nome_aba': '💸 Controle de Despesas Gerais', 'page_link': 'pages/Financeiro - Despesas.py'},

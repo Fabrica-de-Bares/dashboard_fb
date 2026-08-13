@@ -399,7 +399,7 @@ def kpi_card(title, value, background_color="#FFFFFF", title_color="#333", value
     st.markdown(html, unsafe_allow_html=True)
 
 
-def kpi_card_cmv_teorico(title, value, background_color="#FFFFFF", title_color="#333", value_color="#000", valor_percentual=None, color_percentual=None):
+def kpi_card_cmv_teorico(title, value, background_color="#FFFFFF", title_color="#333", value_color="#000", valor_percentual=None, color_percentual=None, height=120):
 
     if color_percentual:
         if color_percentual == 'verde':
@@ -422,7 +422,7 @@ def kpi_card_cmv_teorico(title, value, background_color="#FFFFFF", title_color="
             border: 1px solid rgba(49, 51, 63, 0.2);
             border-radius: 10px;
             padding: 16px;
-            height: 120px;
+            height: {height}px;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -457,7 +457,7 @@ def kpi_card_cmv_teorico(title, value, background_color="#FFFFFF", title_color="
             border: 1px solid rgba(49, 51, 63, 0.2);
             border-radius: 10px;
             padding: 16px;
-            height: 120px;
+            height: {height}px;
             display: flex;
             flex-direction: column;
             align-items: center;
