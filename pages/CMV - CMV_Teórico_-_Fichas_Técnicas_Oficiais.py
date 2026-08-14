@@ -91,23 +91,43 @@ def main():
     # ==========================================================================
     # SEÇÃO 1 — KPIs
     # ==========================================================================
+    # Linha 1 — Visão Geral (todos os pratos vendidos no período, sem depender de cadastro
+    # de ficha técnica: Faturamento/Desconto são sempre corretos, vêm direto da venda).
     faturamento_bruto = float(df_mix['Faturamento_Bruto'].sum())
     desconto = float(df_mix['Desconto'].sum())
-    custo_total = float(df_mix['Custo_Total_Vendido'].sum())
-    cmv_percent_geral = round((custo_total / faturamento_bruto * 100), 2) if faturamento_bruto else 0
+    faturamento_liquido = float(df_mix['Faturamento_Liquido'].sum())
 
-    col1, col2, col3, col4 = st.columns([1, 1, 1, 1], vertical_alignment='center')
+    col1, col2, col3 = st.columns([1, 1, 1], vertical_alignment='center')
     with col1:
         kpi_card_cmv_teorico('Faturamento Bruto', f'R$ {format_brazilian(faturamento_bruto)}', background_color="#FFFFFF", title_color="#333", value_color="#000")
     with col2:
         kpi_card_cmv_teorico('Desconto', f'R$ {format_brazilian(desconto)}', background_color="#FFFFFF", title_color="#333", value_color="#000")
     with col3:
-        kpi_card_cmv_teorico('Custo Total (CMV Teórico)', f'R$ {format_brazilian(custo_total)}', background_color="#FFFFFF", title_color="#333", value_color="#000")
-    with col4:
-        cor_cmv = cor_porcentagem_cmv(cmv_percent_geral)
-        kpi_card_cmv_teorico('CMV % (sobre Faturamento Bruto)', f'{format_brazilian(cmv_percent_geral)} %', background_color="#FFFFFF", title_color="#333", value_color="#000", valor_percentual=f'{cmv_percent_geral}', color_percentual=cor_cmv)
+        kpi_card_cmv_teorico('Faturamento Líquido', f'R$ {format_brazilian(faturamento_liquido)}', background_color="#FFFFFF", title_color="#333", value_color="#000")
 
-    st.caption('CMV% calculado apenas sobre os pratos com ficha técnica única e preço resolvido (status ✅ OK) — pratos sem ficha, com ficha ambígua ou sem preço não entram no numerador nem no denominador acima.')
+    # Linha 2 — CMV Real: só pratos ✅ OK (custo validado) entram no numerador E no
+    # denominador — antes o denominador somava TODOS os pratos (inclusive pendências, cujo
+    # custo é 0 por regra de nunca inventar número), o que diluía o CMV% para baixo sem
+    # nenhuma indicação visual disso. Cobertura explicita quanto do faturamento está de fato
+    # coberto por esse cálculo (achado corrigido em 14/08/2026, mesma correção replicada no
+    # relatório HTML de diretoria).
+    df_mix_ok = df_mix[df_mix['Status'] == '✅ OK']
+    faturamento_bruto_ok = float(df_mix_ok['Faturamento_Bruto'].sum())
+    custo_total_ok = float(df_mix_ok['Custo_Total_Vendido'].sum())
+    cmv_percent_geral = round((custo_total_ok / faturamento_bruto_ok * 100), 2) if faturamento_bruto_ok else 0
+    cobertura_percent = round((faturamento_bruto_ok / faturamento_bruto * 100), 1) if faturamento_bruto else 0
+
+    col1, col2, col3 = st.columns([1, 1, 1], vertical_alignment='center')
+    with col1:
+        kpi_card_cmv_teorico('Custo Total (só pratos com custo validado)', f'R$ {format_brazilian(custo_total_ok)}', background_color="#FFFFFF", title_color="#333", value_color="#000")
+    with col2:
+        cor_cmv = cor_porcentagem_cmv(cmv_percent_geral)
+        kpi_card_cmv_teorico('CMV % (só pratos com custo validado)', f'{format_brazilian(cmv_percent_geral)} %', background_color="#FFFFFF", title_color="#333", value_color="#000", valor_percentual=f'{cmv_percent_geral}', color_percentual=cor_cmv)
+    with col3:
+        cor_cobertura = 'verde' if cobertura_percent >= 80 else 'amarelo' if cobertura_percent >= 60 else 'vermelho'
+        kpi_card_cmv_teorico('Cobertura do Faturamento', f'{format_brazilian(cobertura_percent)} %', background_color="#FFFFFF", title_color="#333", value_color="#000", valor_percentual=cobertura_percent, color_percentual=cor_cobertura)
+
+    st.caption('CMV% e Custo Total desta linha somam apenas os pratos com ficha técnica única e preço resolvido (status ✅ OK) — pratos sem ficha, com ficha ambígua ou sem preço ficam fora do numerador e do denominador. Cobertura do Faturamento mostra quanto do Faturamento Bruto (linha acima) está de fato representado nesse cálculo.')
 
     qtde_total = len(df_mix)
     qtde_ok = int((df_mix['Status'] == '✅ OK').sum())
