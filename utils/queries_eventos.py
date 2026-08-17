@@ -5,19 +5,24 @@ from utils.functions.general_functions import dataframe_query, execute_query
 
 @st.cache_data
 def get_casas_validas():
+    # Casa é considerada válida quando pertence ao grupo Fábrica de Bares
+    # (FK_GRUPO_EMPRESA = 100) e teve faturamento nas últimas 4 semanas —
+    # isso já exclui automaticamente holdings/entidades jurídicas sem
+    # faturamento e casas fechadas, sem precisar de lista de nomes fixa.
     result, column_names = execute_query("""
-		SELECT
+		SELECT DISTINCT
 			te.ID AS ID_Casa,
 			te.NOME_FANTASIA AS Casa,
 			te.ID_ZIGPAY AS ID_Zigpay
 		FROM T_EMPRESAS te
+		INNER JOIN T_ZIG_FATURAMENTO tzf ON tzf.FK_LOJA = te.ID
+		WHERE te.FK_GRUPO_EMPRESA = 100
+			AND tzf.DATA >= DATE_SUB(CURDATE(), INTERVAL 4 WEEK)
+			AND tzf.VALOR > 0
 		"""
 	)
     df_casas = pd.DataFrame(result, columns=column_names)
-    lista_casas_validas = ['Priceless', 'Arcos', 'Bar Brahma - Centro', 'Bar Brahma - Granja', 'Bar Brahma - Paulista', 'Bar Léo - Centro', 'Bar Léo - Vila Madalena', 'Blue Note - São Paulo', 'Blue Note SP (Novo)', 'Edificio Rolim', 'Escritório Fabrica de Bares', 'Girondino', 'Girondino - CCBB', 'Jacaré', 'Love Cabaret', 'Orfeu', 'Riviera Bar', 'Sanduiche comunicação LTDA ', 'Tempus Fugit  Ltda ', 'The Cavern', 'The Cavern - Almoço', 'Ultra Evil Premium Ltda ', 'Blue Note SP (Sala 2)', 'Terraço Notie', 'Delivery Jacaré', 'Delivery Brahma Centro', 'Hotel Maraba', 'Delivery Orfeu', 'Delivery Brahma Granja Viana', 'Delivery Bar Leo Centro', 'Terraço Notie Novo']
-    df_validas = pd.DataFrame(lista_casas_validas, columns=["Casa"])
-    df = df_casas.merge(df_validas, on="Casa", how="inner")
-    return df
+    return df_casas
 
 
 @st.cache_data
