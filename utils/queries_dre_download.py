@@ -168,7 +168,6 @@ def DRE_AUT_RECEITAS_EXTRAORD(ids_casa):
           vpa.ID AS 'ID_receita',
           CASE
               WHEN te.ID IN (149, 161, 162, 179) THEN 'Priceless'
-              WHEN te.ID = 178 THEN 'Blue Note - São Paulo'                                                             
               ELSE te.NOME_FANTASIA
           END AS 'Casa',
           trec.NOME AS 'Cliente',

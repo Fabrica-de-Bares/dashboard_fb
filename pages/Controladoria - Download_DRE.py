@@ -34,16 +34,19 @@ st.divider()
 with st.container(border=True): 
     # Seletor de casa
     df_casas = GET_CASAS()
-    casas = [casa for casa in casas_validas if casa not in ['Blue Note SP (Novo)', 'Blue Note SP (Sala 2)', 'Escritório Fabrica de Bares', 'Edificio Rolim', 'Girondino', 'Girondino - CCBB', 'Priceless', 'Sanduiche comunicação LTDA ', 'Tempus Fugit  Ltda ']]
+    casas = [casa for casa in casas_validas if casa not in ['Blue Note SP (Novo)', 'Escritório Fabrica de Bares', 'Edificio Rolim', 'Girondino', 'Girondino - CCBB', 'Priceless', 'Sanduiche comunicação LTDA ', 'Tempus Fugit  Ltda ']]
     casas.append('Girondino - Consolidado')
     casas.append('Terraço Notie')
     casas.sort()
     casa = st.selectbox("Selecione uma casa", casas)
     mapeamento_casas = dict(zip(df_casas["Casa"], df_casas["ID_Casa"])) # Recupera id da casa
-        
+
     if casa == 'Girondino - Consolidado': id_casa = 156
     elif casa == 'Terraço Notie': id_casa = 149
-    else: id_casa = mapeamento_casas[casa] 
+    # GET_CASAS normaliza ID 178 para 110 (mesma empresa bruta), então não existe linha
+    # própria para 178 em df_casas/mapeamento_casas — precisa do hardcode aqui.
+    elif casa == 'Blue Note SP (Sala 2)': id_casa = 178
+    else: id_casa = mapeamento_casas[casa]
 
 
     ###################### EXPORTANDO DRE EM EXCEL ###################### 
@@ -63,9 +66,9 @@ with st.container(border=True):
     #     st.code(traceback.format_exc())
 
     # Casas com mais de um place
-    # Fix 2026-08-11: faltava 178 (Blue Note SP - Sala 2), 3ª empresa bruta do Blue Note
-    # agregado (ver transform.CASAS_NORMALIZADAS do script standalone: 110+131+178).
-    if casa == 'Blue Note - São Paulo': ids_casa_query = [110, 131, 178]
+    # 2026-08-14: Blue Note SP (Sala 2) (178) separado do Blue Note - São Paulo (110+131)
+    # para ter DRE próprio — antes as 3 empresas brutas eram agregadas num único download.
+    if casa == 'Blue Note - São Paulo': ids_casa_query = [110, 131]
     elif casa in ['Priceless', 'Terraço Notie']: ids_casa_query = [149, 161, 162, 179]
     elif casa == 'Girondino - Consolidado': ids_casa_query = [156, 160]
     else: ids_casa_query = [id_casa]
@@ -154,7 +157,7 @@ with st.container(border=True):
             abas['BD_Eventos_Concierge'] = DRE_EVENTOS_CONCIERGE(ids_casa_query)
             abas['BD_Eventos Geral'] = DRE_BD_EVENTOS_GERAL_PRICELESS()
 
-        if casa not in ['Arcos', 'Blue Note - São Paulo', 'Love Cabaret']: # Cartão Black - Adicionar 'Ultra Evil Premium Ltda '
+        if casa not in ['Arcos', 'Blue Note - São Paulo', 'Blue Note SP (Sala 2)', 'Love Cabaret']: # Cartão Black - Adicionar 'Ultra Evil Premium Ltda '
             abas['Aut_Consumo_Cartao_Black'] = DRE_CONSUMO_CARTAO_BLACK(ids_casa_query)
 
         if casa in ['Love Cabaret', 'Ultra Evil Premium Ltda ']: # Bilheteria Automatizada - Adicionar casas restantes
