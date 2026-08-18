@@ -93,6 +93,7 @@ def GET_FICHAS_OFICIAIS_VENDAS_MES(ids_brutos: tuple, ano: int, mes: int) -> pd.
     return dataframe_query(f'''
         SELECT
             tivd.FK_CASA,
+            te.NOME_FANTASIA AS Casa,
             tivd.PRODUCT_ID,
             tivd.PRODUCT_NAME AS Produto,
             tivc2.DESCRICAO AS Categoria,
@@ -105,9 +106,10 @@ def GET_FICHAS_OFICIAIS_VENDAS_MES(ids_brutos: tuple, ano: int, mes: int) -> pd.
         LEFT JOIN T_ITENS_VENDIDOS_CADASTROS tivc ON tivc.ID_ZIGPAY = tivd.PRODUCT_ID
         LEFT JOIN T_ITENS_VENDIDOS_CATEGORIAS tivc2 ON tivc2.ID = tivc.FK_CATEGORIA
         LEFT JOIN T_ITENS_VENDIDOS_TIPOS tivt ON tivt.ID = tivc.FK_TIPO
+        LEFT JOIN T_EMPRESAS te ON te.ID = tivd.FK_CASA
         WHERE tivd.FK_CASA IN ({_in_clause(ids_brutos)})
             AND tivd.EVENT_DATE >= '{periodo_inicio}' AND tivd.EVENT_DATE < '{periodo_fim_exclusivo}'
-        GROUP BY tivd.FK_CASA, tivd.PRODUCT_ID, tivd.PRODUCT_NAME, tivc2.DESCRICAO, tivt.DESCRICAO;
+        GROUP BY tivd.FK_CASA, te.NOME_FANTASIA, tivd.PRODUCT_ID, tivd.PRODUCT_NAME, tivc2.DESCRICAO, tivt.DESCRICAO;
     ''')
 
 
