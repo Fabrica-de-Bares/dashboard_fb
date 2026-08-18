@@ -15,10 +15,12 @@ def get_casas_validas():
 			te.NOME_FANTASIA AS Casa,
 			te.ID_ZIGPAY AS ID_Zigpay
 		FROM T_EMPRESAS te
-		INNER JOIN T_ZIG_FATURAMENTO tzf ON tzf.FK_LOJA = te.ID
+		LEFT JOIN T_ZIG_FATURAMENTO tzf ON tzf.FK_LOJA = te.ID
 		WHERE te.FK_GRUPO_EMPRESA = 100
-			AND tzf.DATA >= DATE_SUB(CURDATE(), INTERVAL 4 WEEK)
-			AND tzf.VALOR > 0
+			AND (
+				(tzf.DATA >= DATE_SUB(CURDATE(), INTERVAL 4 WEEK) AND tzf.VALOR > 0)
+				OR te.ID = 149
+			)
 		"""
 	)
     df_casas = pd.DataFrame(result, columns=column_names)
