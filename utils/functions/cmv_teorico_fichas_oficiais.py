@@ -260,6 +260,11 @@ def montar_mix_venda(df_vendas: pd.DataFrame, df_fichas: pd.DataFrame, df_custo_
       cadastro no BlueMe ser corrigido.
     - Sem_Preco_Ficha: ficha única, mas algum insumo/item de produção da composição está
       sem preço resolvido (nem MEDIA_MES nem ULTIMA_LOCAL disponíveis).
+
+    Coluna Casa (T_EMPRESAS.NOME_FANTASIA da FK_CASA da venda) identifica de qual loja
+    física veio cada linha — relevante em casa agregada, onde cada loja tem catálogo
+    ZigPay próprio e um mesmo prato (ex.: "Pão de Queijo") pode estar com ficha técnica
+    cadastrada em uma loja e não na outra, sem ser duplicata nem prato fantasma.
     """
     if df_vendas.empty:
         return df_vendas
@@ -273,12 +278,26 @@ def montar_mix_venda(df_vendas: pd.DataFrame, df_fichas: pd.DataFrame, df_custo_
     if df.empty:
         return df
 
+    # Casa (T_EMPRESAS.NOME_FANTASIA da FK_CASA) NÃO entra na chave de agrupamento — em
+    # casa agregada um mesmo PRODUCT_ID pode aparecer em mais de uma loja bruta (ex.:
+    # Girondino/156 e Delivery Girondino/181 compartilham o catálogo ZigPay; já
+    # Girondino - CCBB/160 tem catálogo próprio) e fragmentar a linha mudaria qtde_total/
+    # curva ABC/Mix de Venda que já estavam certos. Em vez disso, guarda-se à parte quais
+    # casas venderam cada PRODUCT_ID e reatribui como coluna informativa após o agrupamento
+    # (achado 18/08/2026: "Pão de Queijo" tinha ID_ZIGPAY diferente em Girondino e
+    # Girondino - CCBB, e só a ficha do Girondino estava cadastrada — sem essa coluna
+    # parecia prato "sem ficha" sem pista de qual loja precisa do cadastro no BlueMe).
+    casas_por_produto = df.groupby("PRODUCT_ID")["Casa"].agg(
+        lambda s: " + ".join(sorted(pd.unique(s.dropna())))
+    )
+
     agg = df.groupby(["PRODUCT_ID", "Produto", "Categoria"], dropna=False).agg(
         Quantidade=("Quantidade", "sum"),
         Faturamento_Bruto=("Faturamento_Bruto", "sum"),
         Desconto=("Desconto", "sum"),
         Faturamento_Liquido=("Faturamento_Liquido", "sum"),
     ).reset_index()
+    agg["Casa"] = agg["PRODUCT_ID"].map(casas_por_produto)
     agg["Preco_Medio"] = agg["Faturamento_Bruto"] / agg["Quantidade"].replace(0, pd.NA)
 
     fichas = df_fichas.copy()

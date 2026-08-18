@@ -154,8 +154,9 @@ def main():
     st.caption('Ordenado por faturamento — priorize corrigir no BlueMe pelos itens do topo de cada lista.')
 
     with st.expander(f'🚫 Pratos sem Ficha Técnica ({qtde_sem_ficha})', expanded=False):
+        st.caption('Casa mostra de qual loja física veio a venda — em casa agregada, cada loja tem catálogo ZigPay próprio: o mesmo prato pode ter a ficha cadastrada em uma loja e não na outra (não é duplicata nem prato fantasma).')
         df_sem_ficha = df_mix[df_mix['Sem_Ficha_Tecnica'] == 1][
-            ['Produto', 'PRODUCT_ID', 'Categoria', 'Quantidade', 'Faturamento_Bruto']
+            ['Produto', 'PRODUCT_ID', 'Casa', 'Categoria', 'Quantidade', 'Faturamento_Bruto']
         ].rename(columns={'PRODUCT_ID': 'ID Zigpay', 'Faturamento_Bruto': 'Faturamento Bruto'})
         if not df_sem_ficha.empty:
             button_download(df_sem_ficha, f'sem_ficha_{casa}'[:31], f'sem_ficha_{casa}'[:31])
@@ -165,7 +166,7 @@ def main():
 
     with st.expander(f'⚠️ Fichas Técnicas Ambíguas ({qtde_ambigua})', expanded=False):
         df_ambiguas = df_mix[df_mix['Ficha_Ambigua'] == 1][
-            ['Produto', 'PRODUCT_ID', 'N_Fichas_Ambiguas', 'Faturamento_Bruto']
+            ['Produto', 'PRODUCT_ID', 'Casa', 'N_Fichas_Ambiguas', 'Faturamento_Bruto']
         ].rename(columns={'PRODUCT_ID': 'ID Zigpay', 'N_Fichas_Ambiguas': 'Nº Fichas Ativas', 'Faturamento_Bruto': 'Faturamento Bruto'})
         if not df_ambiguas.empty:
             button_download(df_ambiguas, f'ambiguas_{casa}'[:31], f'ambiguas_{casa}'[:31])
@@ -181,7 +182,7 @@ def main():
 
     with st.expander(f'❓ Fichas com Preço Incompleto ({qtde_sem_preco})', expanded=False):
         df_sem_preco = df_mix[df_mix['Sem_Preco_Ficha'] == 1][
-            ['Produto', 'PRODUCT_ID', 'ID_Ficha_Tecnica', 'Faturamento_Bruto']
+            ['Produto', 'PRODUCT_ID', 'Casa', 'ID_Ficha_Tecnica', 'Faturamento_Bruto']
         ].rename(columns={'PRODUCT_ID': 'ID Zigpay', 'ID_Ficha_Tecnica': 'ID Ficha Técnica', 'Faturamento_Bruto': 'Faturamento Bruto'})
         if not df_sem_preco.empty:
             button_download(df_sem_preco, f'sem_preco_{casa}'[:31], f'sem_preco_{casa}'[:31])
@@ -214,7 +215,7 @@ def main():
         & df_mix['ABC'].isin(abc_selecionados)
     ]
 
-    colunas_exibir = ['Produto', 'PRODUCT_ID', 'Categoria', 'ABC', 'Status', 'Quantidade',
+    colunas_exibir = ['Produto', 'PRODUCT_ID', 'Casa', 'Categoria', 'ABC', 'Status', 'Quantidade',
                        'Preco_Medio', 'Faturamento_Bruto', 'Desconto', 'Faturamento_Liquido',
                        'Custo_Unitario_Ficha', 'Custo_Total_Vendido', 'CMV_Percent',
                        'Meta_CMV_Percent', 'Delta_CMV_PP']
