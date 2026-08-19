@@ -16,6 +16,7 @@ from utils.functions.cmv_teorico_fichas_oficiais import (
     montar_mix_venda,
     montar_painel_insumos,
     montar_painel_producao,
+    identificar_pares_fichas_ambiguas,
 )
 
 st.set_page_config(
@@ -171,11 +172,18 @@ def main():
         if not df_ambiguas.empty:
             button_download(df_ambiguas, f'ambiguas_{casa}'[:31], f'ambiguas_{casa}'[:31])
             st.dataframe(format_columns_brazilian(df_ambiguas, ['Faturamento Bruto']), width='stretch', hide_index=True)
-            st.caption('Detalhe das fichas conflitantes por prato — desativar no BlueMe todas menos a correta:')
-            ids_zigpay_ambiguos = df_ambiguas['ID Zigpay'].unique().tolist()
-            df_fichas_conflitantes = df_fichas[df_fichas['ID_ZIGPAY'].astype(str).isin(ids_zigpay_ambiguos)][
-                ['ID_ZIGPAY', 'ID_Ficha_Tecnica', 'Ficha_Tecnica', 'PRECO_VENDA', 'Custo_Total_Cadastrado']
-            ].sort_values(['ID_ZIGPAY', 'ID_Ficha_Tecnica'])
+            st.caption('Detalhe das fichas conflitantes por prato e empresa — desativar no BlueMe todas menos a correta. Duas fichas com o mesmo ID Zigpay em empresas diferentes não aparecem aqui (não são conflito, ver coluna Casa acima).')
+            # Restringe ao par (ID_ZIGPAY, FK_EMPRESA) de fato ambíguo — não a todo ID_ZIGPAY
+            # (mesma regra de identificar_pares_fichas_ambiguas usada em montar_mix_venda).
+            pares_ambiguos = identificar_pares_fichas_ambiguas(df_fichas)
+            mapa_casa = df_vendas.drop_duplicates('FK_CASA').set_index('FK_CASA')['Casa']
+            df_fichas_conflitantes = df_fichas.assign(ID_ZIGPAY=df_fichas['ID_ZIGPAY'].astype(str)).merge(
+                pares_ambiguos[['ID_ZIGPAY', 'FK_EMPRESA']], on=['ID_ZIGPAY', 'FK_EMPRESA'], how='inner'
+            )
+            df_fichas_conflitantes['Casa'] = df_fichas_conflitantes['FK_EMPRESA'].map(mapa_casa).fillna(df_fichas_conflitantes['FK_EMPRESA'].astype(str))
+            df_fichas_conflitantes = df_fichas_conflitantes[
+                ['ID_ZIGPAY', 'Casa', 'ID_Ficha_Tecnica', 'Ficha_Tecnica', 'PRECO_VENDA', 'Custo_Total_Cadastrado']
+            ].sort_values(['ID_ZIGPAY', 'Casa', 'ID_Ficha_Tecnica'])
             st.dataframe(df_fichas_conflitantes, width='stretch', hide_index=True)
         else:
             st.write('Nenhuma ficha ambígua.')
