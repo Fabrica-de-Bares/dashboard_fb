@@ -243,8 +243,31 @@ def montar_custo_por_ficha(df_insumos_c: pd.DataFrame, df_producao_c: pd.DataFra
 # MIX DE VENDA — custo/CMV% por prato, curva ABC, flags de pendência de cadastro
 # ===========================================================================
 
+def identificar_pares_fichas_ambiguas(df_fichas: pd.DataFrame) -> pd.DataFrame:
+    """Pares (ID_ZIGPAY, FK_EMPRESA) com mais de 1 ficha técnica ATIVA simultânea —
+    fan-out de cadastro DENTRO DA MESMA empresa/loja (ex.: "Cookie do Dia" cadastrado
+    com 4 fichas ativas, uma por sabor do dia, em vez de 1 ficha só sendo atualizada).
+
+    Duas fichas com o mesmo ID_ZIGPAY em empresas DIFERENTES não entram aqui — não é
+    ambiguidade de cadastro, é coincidência de ID_ZIGPAY entre catálogos ZigPay de lojas
+    distintas, cada ficha correta na sua casa (achado 19/08/2026: "Macchiato Duplo" tinha
+    ficha própria no Girondino e outra na Girondino - CCBB, mesmo ID_ZIGPAY nas duas).
+
+    df_fichas precisa ter ID_ZIGPAY e FK_EMPRESA (saída de
+    GET_FICHAS_OFICIAIS_FICHAS_TECNICAS). Retorna 1 linha por par ambíguo com
+    N_Fichas_Ativas (para exibição — ex.: "4 fichas ativas para este ID_ZIGPAY nesta
+    empresa")."""
+    if df_fichas.empty:
+        return pd.DataFrame(columns=["ID_ZIGPAY", "FK_EMPRESA", "N_Fichas_Ativas"])
+    fichas = df_fichas.copy()
+    fichas["ID_ZIGPAY"] = fichas["ID_ZIGPAY"].astype(str)
+    contagem = fichas.groupby(["ID_ZIGPAY", "FK_EMPRESA"])["ID_Ficha_Tecnica"].nunique()
+    return contagem[contagem > 1].rename("N_Fichas_Ativas").reset_index()
+
+
 def montar_mix_venda(df_vendas: pd.DataFrame, df_fichas: pd.DataFrame, df_custo_ficha: pd.DataFrame) -> pd.DataFrame:
-    """1 linha por prato vendido no mês, com custo/CMV% e curva ABC por Faturamento Bruto.
+    """1 linha por prato vendido no mês (por ficha técnica distinta — ver Ficha_Ambigua
+    abaixo), com custo/CMV% e curva ABC por Faturamento Bruto.
 
     CMV% sobre Faturamento BRUTO, não Líquido: desconto dado por gerente de casa é uma
     linha própria de custo/despesa na DRE da casa, não deve reduzir o denominador do CMV
@@ -252,11 +275,11 @@ def montar_mix_venda(df_vendas: pd.DataFrame, df_fichas: pd.DataFrame, df_custo_
     colunas de referência (padrão Bruto/Líquido flanqueando Desconto da brand).
 
     3 flags de pendência de cadastro, mutuamente exclusivas:
-    - Sem_Ficha_Tecnica: nenhuma ficha técnica ativa vinculada ao ID_ZIGPAY do prato.
-    - Ficha_Ambigua: mais de 1 ficha técnica ATIVA simultânea no mesmo ID_ZIGPAY (ex.:
-      "Cookie do Dia" cadastrado com 4 fichas ativas, uma por sabor do dia, em vez de 1
-      ficha só sendo atualizada). Nesse caso não dá para saber qual ficha é a "certa" —
-      a linha NÃO é duplicada (fan-out), fica marcada e sem custo calculado, até o
+    - Sem_Ficha_Tecnica: nenhuma ficha técnica ativa vinculada ao (ID_ZIGPAY, empresa) do
+      prato naquela loja.
+    - Ficha_Ambigua: mais de 1 ficha técnica ATIVA simultânea no mesmo (ID_ZIGPAY,
+      empresa) — ver identificar_pares_fichas_ambiguas. Nesse caso não dá para saber
+      qual ficha é a "certa" — a linha fica marcada e sem custo calculado, até o
       cadastro no BlueMe ser corrigido.
     - Sem_Preco_Ficha: ficha única, mas algum insumo/item de produção da composição está
       sem preço resolvido (nem MEDIA_MES nem ULTIMA_LOCAL disponíveis).
@@ -265,6 +288,16 @@ def montar_mix_venda(df_vendas: pd.DataFrame, df_fichas: pd.DataFrame, df_custo_
     física veio cada linha — relevante em casa agregada, onde cada loja tem catálogo
     ZigPay próprio e um mesmo prato (ex.: "Pão de Queijo") pode estar com ficha técnica
     cadastrada em uma loja e não na outra, sem ser duplicata nem prato fantasma.
+
+    Match ficha <-> venda é feito por linha (par PRODUCT_ID + FK_CASA da venda <->
+    ID_ZIGPAY + FK_EMPRESA da ficha), não só por PRODUCT_ID/ID_ZIGPAY — necessário porque
+    o mesmo ID_ZIGPAY pode ter fichas DIFERENTES (custo diferente) em empresas diferentes
+    da mesma casa agregada (caso Macchiato Duplo acima). O agrupamento final do Mix de
+    Venda é por (PRODUCT_ID, ID_Ficha_Tecnica) — continua ignorando FK_CASA/loja de
+    propósito para não fragmentar Quantidade/curva ABC quando lojas compartilham
+    catálogo e ficha (ex.: Girondino + Delivery Girondino), mas abre 1 linha por ficha
+    técnica distinta quando o mesmo ID_ZIGPAY aponta pra fichas diferentes em casas
+    diferentes — a coluna Casa de cada linha já deixa evidente qual loja é qual.
     """
     if df_vendas.empty:
         return df_vendas
@@ -278,51 +311,60 @@ def montar_mix_venda(df_vendas: pd.DataFrame, df_fichas: pd.DataFrame, df_custo_
     if df.empty:
         return df
 
-    # Casa (T_EMPRESAS.NOME_FANTASIA da FK_CASA) NÃO entra na chave de agrupamento — em
-    # casa agregada um mesmo PRODUCT_ID pode aparecer em mais de uma loja bruta (ex.:
-    # Girondino/156 e Delivery Girondino/181 compartilham o catálogo ZigPay; já
-    # Girondino - CCBB/160 tem catálogo próprio) e fragmentar a linha mudaria qtde_total/
-    # curva ABC/Mix de Venda que já estavam certos. Em vez disso, guarda-se à parte quais
-    # casas venderam cada PRODUCT_ID e reatribui como coluna informativa após o agrupamento
-    # (achado 18/08/2026: "Pão de Queijo" tinha ID_ZIGPAY diferente em Girondino e
-    # Girondino - CCBB, e só a ficha do Girondino estava cadastrada — sem essa coluna
-    # parecia prato "sem ficha" sem pista de qual loja precisa do cadastro no BlueMe).
-    casas_por_produto = df.groupby("PRODUCT_ID")["Casa"].agg(
-        lambda s: " + ".join(sorted(pd.unique(s.dropna())))
-    )
-
-    agg = df.groupby(["PRODUCT_ID", "Produto", "Categoria"], dropna=False).agg(
-        Quantidade=("Quantidade", "sum"),
-        Faturamento_Bruto=("Faturamento_Bruto", "sum"),
-        Desconto=("Desconto", "sum"),
-        Faturamento_Liquido=("Faturamento_Liquido", "sum"),
-    ).reset_index()
-    agg["Casa"] = agg["PRODUCT_ID"].map(casas_por_produto)
-    agg["Preco_Medio"] = agg["Faturamento_Bruto"] / agg["Quantidade"].replace(0, pd.NA)
-
     fichas = df_fichas.copy()
     if not fichas.empty:
         fichas["ID_ZIGPAY"] = fichas["ID_ZIGPAY"].astype(str)
         fichas = fichas.merge(df_custo_ficha, on="ID_Ficha_Tecnica", how="left")
     else:
-        fichas = pd.DataFrame(columns=["ID_ZIGPAY", "ID_Ficha_Tecnica", "Ficha_Tecnica", "Categoria",
-                                        "Custo_Unitario_Ficha", "Sem_Preco_Ficha", "META_CMV_PERCENT"])
+        fichas = pd.DataFrame(columns=["ID_ZIGPAY", "FK_EMPRESA", "ID_Ficha_Tecnica", "Ficha_Tecnica",
+                                        "Categoria", "Custo_Unitario_Ficha", "Sem_Preco_Ficha", "META_CMV_PERCENT"])
 
-    contagem_por_zigpay = fichas.groupby("ID_ZIGPAY")["ID_Ficha_Tecnica"].nunique() if not fichas.empty else pd.Series(dtype=int)
-    ids_ambiguos = set(contagem_por_zigpay[contagem_por_zigpay > 1].index)
-    fichas_unicas = fichas[~fichas["ID_ZIGPAY"].isin(ids_ambiguos)]
+    pares_ambiguos = identificar_pares_fichas_ambiguas(fichas)
+    chave_ambigua = set(zip(pares_ambiguos["ID_ZIGPAY"], pares_ambiguos["FK_EMPRESA"]))
+    if chave_ambigua:
+        idx_fichas = pd.MultiIndex.from_arrays([fichas["ID_ZIGPAY"], fichas["FK_EMPRESA"]])
+        fichas_unicas = fichas[~idx_fichas.isin(chave_ambigua)]
+    else:
+        fichas_unicas = fichas
 
-    merged = agg.merge(
-        fichas_unicas[["ID_ZIGPAY", "ID_Ficha_Tecnica", "Ficha_Tecnica", "Custo_Unitario_Ficha", "Sem_Preco_Ficha", "META_CMV_PERCENT"]],
-        left_on="PRODUCT_ID", right_on="ID_ZIGPAY", how="left",
+    # Merge linha a linha (mantém FK_CASA) — precisa acontecer ANTES do agrupamento por
+    # PRODUCT_ID para respeitar qual ficha pertence a qual empresa.
+    linhas = df.merge(
+        fichas_unicas[["ID_ZIGPAY", "FK_EMPRESA", "ID_Ficha_Tecnica", "Ficha_Tecnica",
+                        "Custo_Unitario_Ficha", "Sem_Preco_Ficha", "META_CMV_PERCENT"]],
+        left_on=["PRODUCT_ID", "FK_CASA"], right_on=["ID_ZIGPAY", "FK_EMPRESA"], how="left",
     )
-    merged["Ficha_Ambigua"] = merged["PRODUCT_ID"].isin(ids_ambiguos).astype(int)
-    merged["N_Fichas_Ambiguas"] = merged["PRODUCT_ID"].map(contagem_por_zigpay).where(merged["Ficha_Ambigua"] == 1)
-    merged["Sem_Ficha_Tecnica"] = (merged["ID_Ficha_Tecnica"].isna() & (merged["Ficha_Ambigua"] == 0)).astype(int)
-    merged["Sem_Preco_Ficha"] = merged["Sem_Preco_Ficha"].fillna(0).astype(int)
-    merged["Custo_Unitario_Ficha"] = merged["Custo_Unitario_Ficha"].fillna(0.0)
+    if chave_ambigua:
+        idx_linhas = pd.MultiIndex.from_arrays([linhas["PRODUCT_ID"], linhas["FK_CASA"]])
+        linhas["Ficha_Ambigua"] = idx_linhas.isin(chave_ambigua).astype(int)
+        contagem_map = pares_ambiguos.set_index(["ID_ZIGPAY", "FK_EMPRESA"])["N_Fichas_Ativas"].to_dict()
+        linhas["N_Fichas_Ambiguas"] = idx_linhas.map(contagem_map)
+    else:
+        linhas["Ficha_Ambigua"] = 0
+        linhas["N_Fichas_Ambiguas"] = pd.NA
+    linhas["Sem_Ficha_Tecnica"] = (linhas["ID_Ficha_Tecnica"].isna() & (linhas["Ficha_Ambigua"] == 0)).astype(int)
+    linhas["Sem_Preco_Ficha"] = linhas["Sem_Preco_Ficha"].fillna(0).astype(int)
+    linhas["Custo_Unitario_Ficha"] = linhas["Custo_Unitario_Ficha"].fillna(0.0)
+    linhas["Custo_Total_Linha"] = linhas["Custo_Unitario_Ficha"] * linhas["Quantidade"]
 
-    merged["Custo_Total_Vendido"] = merged["Custo_Unitario_Ficha"] * merged["Quantidade"]
+    merged = linhas.groupby(["PRODUCT_ID", "Produto", "Categoria", "ID_Ficha_Tecnica"], dropna=False).agg(
+        Quantidade=("Quantidade", "sum"),
+        Faturamento_Bruto=("Faturamento_Bruto", "sum"),
+        Desconto=("Desconto", "sum"),
+        Faturamento_Liquido=("Faturamento_Liquido", "sum"),
+        Custo_Total_Vendido=("Custo_Total_Linha", "sum"),
+        Ficha_Tecnica=("Ficha_Tecnica", "first"),
+        Sem_Preco_Ficha=("Sem_Preco_Ficha", "max"),
+        Ficha_Ambigua=("Ficha_Ambigua", "max"),
+        Sem_Ficha_Tecnica=("Sem_Ficha_Tecnica", "max"),
+        N_Fichas_Ambiguas=("N_Fichas_Ambiguas", "max"),
+        META_CMV_PERCENT=("META_CMV_PERCENT", "first"),
+        Casa=("Casa", lambda s: " + ".join(sorted(pd.unique(s.dropna())))),
+    ).reset_index()
+
+    merged["Custo_Unitario_Ficha"] = (merged["Custo_Total_Vendido"] / merged["Quantidade"].replace(0, pd.NA)).fillna(0.0)
+    merged["Preco_Medio"] = merged["Faturamento_Bruto"] / merged["Quantidade"].replace(0, pd.NA)
+
     merged["CMV_Percent"] = merged["Custo_Total_Vendido"] / merged["Faturamento_Bruto"].replace(0, pd.NA)
     # META_CMV_PERCENT vem como inteiro percentual (30 = 30%) — precisa /100 para comparar
     # com CMV_Percent (fração). NaN = sem meta cadastrada (nunca preenchida com fillna).
