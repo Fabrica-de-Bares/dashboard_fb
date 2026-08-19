@@ -87,41 +87,100 @@ def calcular_comissao_gerente_priceless(df_recebimentos_total_mes, id_responsave
 
 
 IDS_REGRA_COMISSAO_BLUE_NOTE = [110, 178, 180]  # casas que seguem a mesma regra de comissão por faixa de total recebido
+COLUNAS_COMISSAO_BLUE_NOTE = ['ID Casa', 'Casa', 'ID Evento', 'Nome Evento', 'Data Vencimento', 'Data Recebimento', 'ID Parcela', 'Categoria Parcela', 'Valor da Parcela', 'Dedução Imposto', 'Valor Líquido', 'Comissão', '% Comissão']
+
+
+def _tabela_comissao_blue_note(df_recebimentos_total_mes, id_casa_regra):
+    """
+    Calcula, para todas as executivas de uma casa Blue Note, o imposto deduzido, o valor
+    líquido e a comissão por faixa de total recebido da casa no mês. Não filtra por vendedor.
+    """
+    df_recebimentos_total_mes = df_recebimentos_total_mes[df_recebimentos_total_mes['ID Casa'] == id_casa_regra].copy()
+
+    if not df_recebimentos_total_mes.empty:
+        # Calcula imposto em relação à parcela (sem imposto lançado = considera dedução 0)
+        df_recebimentos_total_mes['Dedução Imposto'] = ((df_recebimentos_total_mes['Valor da Parcela'] / df_recebimentos_total_mes['Valor Total Evento']) * df_recebimentos_total_mes['Valor Total Imposto']).fillna(0)
+        df_recebimentos_total_mes['Valor Líquido'] = df_recebimentos_total_mes['Valor da Parcela'] - df_recebimentos_total_mes['Dedução Imposto']
+
+        total_recebido = df_recebimentos_total_mes['Valor da Parcela'].sum() - df_recebimentos_total_mes['Dedução Imposto'].sum()
+        # Adiciona coluna de porcentagem da comissão de gerente
+        if total_recebido <= 100000:
+            df_recebimentos_total_mes['% Comissão'] = 1.5
+        elif total_recebido <= 250000:
+            df_recebimentos_total_mes['% Comissão'] = 1.75
+        elif total_recebido <= 500000:
+            df_recebimentos_total_mes['% Comissão'] = 2.0
+        else:
+            df_recebimentos_total_mes['% Comissão'] = 3.0
+
+        # Calcula a comissão para cada recebimento
+        df_recebimentos_total_mes['Comissão'] = ((df_recebimentos_total_mes['Valor da Parcela'] - df_recebimentos_total_mes['Dedução Imposto']) * df_recebimentos_total_mes['% Comissão'] / 100)
+
+    return df_recebimentos_total_mes
 
 
 def calcular_comissao_blue_note(df_recebimentos_total_mes, vendedor, id_casa, id_casa_regra):
+    df_comissao_vendedor = pd.DataFrame(columns=COLUNAS_COMISSAO_BLUE_NOTE)
+
     if id_casa in [id_casa_regra, -1]:
-        df_recebimentos_total_mes = df_recebimentos_total_mes[df_recebimentos_total_mes['ID Casa'] == id_casa_regra].copy()
+        tabela = _tabela_comissao_blue_note(df_recebimentos_total_mes, id_casa_regra)
 
-        if not df_recebimentos_total_mes.empty:
-            # Calcula imposto em relação à parcela
-            df_recebimentos_total_mes['Dedução Imposto'] = (df_recebimentos_total_mes['Valor da Parcela'] / df_recebimentos_total_mes['Valor Total Evento']) * df_recebimentos_total_mes['Valor Total Imposto']
-            df_recebimentos_total_mes['Valor Líquido'] = df_recebimentos_total_mes['Valor da Parcela'] - df_recebimentos_total_mes['Dedução Imposto']
-
-            total_recebido = df_recebimentos_total_mes['Valor da Parcela'].sum() - df_recebimentos_total_mes['Dedução Imposto'].sum()
-            # Adiciona coluna de porcentagem da comissão de gerente
-            if total_recebido <= 100000:
-                df_recebimentos_total_mes['% Comissão'] = 1.5
-            elif total_recebido <= 250000:
-                df_recebimentos_total_mes['% Comissão'] = 1.75
-            elif total_recebido <= 500000:
-                df_recebimentos_total_mes['% Comissão'] = 2.0
-            else:
-                df_recebimentos_total_mes['% Comissão'] = 3.0
-
-            # Calcula a comissão para cada recebimento
-            df_recebimentos_total_mes['Comissão'] = ((df_recebimentos_total_mes['Valor da Parcela'] - df_recebimentos_total_mes['Dedução Imposto']) * df_recebimentos_total_mes['% Comissão'] / 100)
-            
+        if not tabela.empty:
             # Filtra apenas eventos do vendedor
-            df_recebimentos_total_mes = df_recebimentos_total_mes[df_recebimentos_total_mes['ID - Responsavel'] == vendedor]
+            tabela = tabela[tabela['ID - Responsavel'] == vendedor]
 
             # Remove colunas desnecessárias
-            df_recebimentos_total_mes.drop(columns=['ID - Responsavel', 'Cargo', 'Comissão Com Meta Atingida', 'Comissão Sem Meta Atingida', 'Ano Recebimento', 'Mês Recebimento'], inplace=True)          
+            tabela = tabela.drop(columns=['ID - Responsavel', 'Cargo', 'Comissão Com Meta Atingida', 'Comissão Sem Meta Atingida', 'Ano Recebimento', 'Mês Recebimento'])
 
             # Ordem das colunas
-            df_recebimentos_total_mes = df_recebimentos_total_mes[['ID Casa', 'Casa', 'ID Evento', 'Nome Evento', 'Data Vencimento', 'Data Recebimento', 'ID Parcela', 'Categoria Parcela', 'Valor da Parcela', 'Dedução Imposto', 'Valor Líquido', 'Comissão', '% Comissão']]
+            df_comissao_vendedor = tabela[COLUNAS_COMISSAO_BLUE_NOTE]
 
-    return df_recebimentos_total_mes
+    return df_comissao_vendedor
+
+
+def calcular_comissao_gerente_blue_note(df_recebimentos_total_mes, vendedor, id_casa, id_casa_regra, ano, mes):
+    """
+    A partir de agosto/2026, a Gerente de Eventos do Blue Note recebe, além da própria
+    comissão por escalonamento, um bônus de 10% sobre a comissão (não sobre a venda) das
+    demais executivas da casa no mês.
+    """
+    regra_vigente = (int(ano) > 2026) or (int(ano) == 2026 and int(mes) >= 8)
+    df_bonus_gerente = pd.DataFrame(columns=COLUNAS_COMISSAO_BLUE_NOTE)
+
+    if id_casa in [id_casa_regra, -1] and regra_vigente:
+        df_recebimentos_total_mes = _tabela_comissao_blue_note(df_recebimentos_total_mes, id_casa_regra)
+
+        if not df_recebimentos_total_mes.empty:
+            # Mantém apenas as demais executivas (exclui a própria gerente e outras gerentes)
+            df_recebimentos_total_mes = df_recebimentos_total_mes[
+                (df_recebimentos_total_mes['ID - Responsavel'] != vendedor) &
+                (df_recebimentos_total_mes['Cargo'] != 'Gerente de Eventos')
+            ].copy()
+
+            # Descarta parcelas sem comissão (nada para bonificar)
+            df_recebimentos_total_mes = df_recebimentos_total_mes[df_recebimentos_total_mes['Comissão'] != 0]
+
+            if not df_recebimentos_total_mes.empty:
+                # Bônus da gerente: 10% sobre a comissão da executiva, não sobre a venda
+                df_recebimentos_total_mes['Comissão'] = df_recebimentos_total_mes['Comissão'] * 10 / 100
+                df_recebimentos_total_mes['% Comissão'] = 10.0
+
+                # Zera os valores de venda/imposto/líquido para não contar a venda da
+                # executiva novamente no total vendido/líquido da casa
+                df_recebimentos_total_mes['Valor da Parcela'] = 0.0
+                df_recebimentos_total_mes['Dedução Imposto'] = 0.0
+                df_recebimentos_total_mes['Valor Líquido'] = 0.0
+
+                # Identifica visualmente as linhas de bônus de gerência
+                df_recebimentos_total_mes['Nome Evento'] = '[Comissão Gerência] ' + df_recebimentos_total_mes['Nome Evento'].astype(str)
+
+                # Remove colunas desnecessárias
+                df_recebimentos_total_mes.drop(columns=['ID - Responsavel', 'Cargo', 'Comissão Com Meta Atingida', 'Comissão Sem Meta Atingida', 'Ano Recebimento', 'Mês Recebimento'], inplace=True)
+
+                # Ordem das colunas
+                df_bonus_gerente = df_recebimentos_total_mes[COLUNAS_COMISSAO_BLUE_NOTE]
+
+    return df_bonus_gerente
 
 def highlight_total_row(row):
     if row['Casa'] == 'Total':
