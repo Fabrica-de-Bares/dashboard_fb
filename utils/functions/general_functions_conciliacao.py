@@ -172,7 +172,28 @@ def formata_df(df):
     return df_formatado
 
 
-# Funções para colorir df de acordo com condições e exibir legenda 
+# Remove do Extrato Zig linhas "Antecipação" que duplicam um "Saque" já registrado
+# (mesma casa, mesmo dia, mesmo valor) — bug observado a partir de jul/2026, onde a
+# antecipação de recebíveis passou a gerar duas linhas para o mesmo movimento.
+# Antecipações sem par exato de Saque são mantidas (padrão histórico normal,
+# pré-jul/2026, em que Antecipação e Saque são movimentos distintos com valores
+# diferentes no mesmo dia).
+def remove_antecipacoes_duplicadas(df, col_casa="ID_Casa", col_data="Data_Liquidacao", col_valor="Valor", col_descricao="Descricao"):
+    if df.empty:
+        return df
+
+    mask_saque = df[col_descricao] == "Saque"
+    chaves_saque = set(
+        zip(df.loc[mask_saque, col_casa], df.loc[mask_saque, col_data], df.loc[mask_saque, col_valor])
+    )
+    chave_linha = list(zip(df[col_casa], df[col_data], df[col_valor]))
+    mask_antecipacao_duplicada = (df[col_descricao] == "Antecipação") & pd.Series(
+        [chave in chaves_saque for chave in chave_linha], index=df.index
+    )
+    return df[~mask_antecipacao_duplicada]
+
+
+# Funções para colorir df de acordo com condições e exibir legenda
 def colorir_conciliacao(row):
     if row['Conciliação'] != '0,00':
         return ['background-color: #e6937e; color: black;'] * len(row)
