@@ -125,7 +125,8 @@ with st.container(border=True):
         st.markdown('### 📈 Ticket Médio no Período')
     with col2:
         filtros_selecionados = st.pills(
-            label='',
+            label='Filtros do Ticket Médio no Período',
+            label_visibility='collapsed',
             options=['🚫 Remover outliers'],
             selection_mode='multi',
             key='pill_remover_outliers_ticket_medio'
@@ -220,7 +221,8 @@ with st.container(border=True):
         st.markdown('### 📅 Ticket Médio por Dia da Semana')
     with col2:
         filtros_selecionados_dia_semana = st.pills(
-                label='',
+                label='Filtros do Ticket Médio por Dia da Semana',
+                label_visibility='collapsed',
                 options=['🚫 Remover outliers'],
                 selection_mode='multi',
                 key='pill_remover_outliers_dia_semana'
