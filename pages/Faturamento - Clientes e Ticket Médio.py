@@ -93,6 +93,29 @@ data_inicio, data_fim = periodo
 
 st.divider()
 
+TIPOS_TICKET_MEDIO = {
+    'Recebimentos': {'valor': 'Valor Recebimentos', 'tkt_medio': 'Ticket Médio Recebimentos'},
+    'Líquido': {'valor': 'Valor Líquido', 'tkt_medio': 'Ticket Médio Líquido'},
+    'Produtos': {'valor': 'Valor Itens Vendidos', 'tkt_medio': 'Ticket Médio Produtos'},
+}
+
+tipo_selecionado = st.pills(
+    label='Tipo de Ticket Médio',
+    options=list(TIPOS_TICKET_MEDIO.keys()),
+    default='Líquido',
+    key='pill_tipo_ticket_medio',
+    help=(
+        '**Recebimentos:** itens vendidos + serviço − descontos − contas em aberto  \n'
+        '**Líquido:** itens vendidos + serviço − descontos  \n'
+        '**Produtos:** apenas itens vendidos'
+    ),
+) or 'Recebimentos'
+
+col_valor = TIPOS_TICKET_MEDIO[tipo_selecionado]['valor']
+col_tkt_medio = TIPOS_TICKET_MEDIO[tipo_selecionado]['tkt_medio']
+
+st.divider()
+
 # Seções 1 e 2 compartilham a mesma query de ticket médio
 df_ticket_medio = GET_TICKET_MEDIO_ZIGPAY(id_casa, data_inicio, data_fim)
 
@@ -111,20 +134,20 @@ with st.container(border=True):
     if df_ticket_medio.empty:
         st.warning('Sem dados de ticket médio para a casa e período selecionados.')
     else:
-        df_ticket_medio['Ticket Médio'] = pd.to_numeric(df_ticket_medio['Ticket Médio'], errors='coerce')
-        mediana_bruta = df_ticket_medio['Ticket Médio'].median()
+        df_ticket_medio[col_tkt_medio] = pd.to_numeric(df_ticket_medio[col_tkt_medio], errors='coerce')
+        mediana_bruta = df_ticket_medio[col_tkt_medio].median()
         limite_superior_outlier = mediana_bruta * 3
         limite_inferior_outlier = mediana_bruta * 0.2
 
         df_outliers = df_ticket_medio[
-            ~df_ticket_medio['Ticket Médio'].between(limite_inferior_outlier, limite_superior_outlier)
+            ~df_ticket_medio[col_tkt_medio].between(limite_inferior_outlier, limite_superior_outlier)
         ]
 
         # A remoção de outliers vale apenas para esta análise (Ticket Médio no Período) —
         # a seção de Ticket Médio por Dia da Semana usa sempre o df_ticket_medio original.
         if '🚫 Remover outliers' in (filtros_selecionados or []):
             df_ticket_medio_periodo = df_ticket_medio[
-                df_ticket_medio['Ticket Médio'].between(limite_inferior_outlier, limite_superior_outlier)
+                df_ticket_medio[col_tkt_medio].between(limite_inferior_outlier, limite_superior_outlier)
             ]
         else:
             df_ticket_medio_periodo = df_ticket_medio
@@ -133,20 +156,26 @@ with st.container(border=True):
             st.info('Todos os dias do período foram removidos como outliers.')
 
     if not df_ticket_medio.empty and not df_ticket_medio_periodo.empty:
-        media_periodo = df_ticket_medio_periodo['Ticket Médio'].mean()
+        soma_valor_periodo = df_ticket_medio_periodo[col_valor].sum()
+        soma_clientes_periodo = df_ticket_medio_periodo['Número de Clientes'].sum()
+        ticket_medio_real_periodo = soma_valor_periodo / soma_clientes_periodo if soma_clientes_periodo else None
         _, col_kpi_periodo, _ = st.columns([1, 1, 1])
         with col_kpi_periodo:
-            st.metric(label='Ticket Médio do Período', value=f'R$ {format_brazilian(media_periodo)}' if pd.notna(media_periodo) else '—', border=True)
+            st.metric(
+                label=f'Ticket Médio do Período — {tipo_selecionado}',
+                value=f'R$ {format_brazilian(ticket_medio_real_periodo)}' if ticket_medio_real_periodo is not None else '—',
+                border=True,
+            )
 
         df_ticket_medio_ordenado = df_ticket_medio_periodo.sort_values('Data Evento')
         options_ticket_medio = opcoes_grafico_linha(
             df_ticket_medio_ordenado['Data Evento'].astype(str).tolist(),
-            df_ticket_medio_ordenado['Ticket Médio'].round(2).tolist(),
-            'Ticket Médio',
+            df_ticket_medio_ordenado[col_tkt_medio].round(2).tolist(),
+            f'Ticket Médio {tipo_selecionado}',
             COR_TICKET_MEDIO_PERIODO,
             'R$',
         )
-        st.caption('Evolução do ticket médio diário no período selecionado')
+        st.caption(f'Evolução do ticket médio ({tipo_selecionado}) diário no período selecionado')
         st_echarts(options=options_ticket_medio, height="400px", key='echarts_ticket_medio_periodo')
 
         options_numero_clientes = opcoes_grafico_linha(
@@ -164,20 +193,20 @@ with st.container(border=True):
                 st.caption('Nenhum outlier identificado no período selecionado.')
             else:
                 st.write(escape_dolar(
-                    'Outliers: Dias em que o Ticket Médio foi maior que 300% da mediana ou menor que 20% '
+                    f'Outliers: Dias em que o Ticket Médio ({tipo_selecionado}) foi maior que 300% da mediana ou menor que 20% '
                     f'da mediana dos tickets médios do período (fora da faixa de R$ {format_brazilian(limite_inferior_outlier)} '
                     f'a R$ {format_brazilian(limite_superior_outlier)}).'
                 ))
-                df_outliers_tabela = df_outliers[['Data Evento', 'Dia Semana', 'Ticket Médio']].sort_values('Data Evento').copy()
-                df_outliers_tabela['Ticket Médio'] = df_outliers_tabela['Ticket Médio'].apply(lambda v: f'R$ {format_brazilian(v)}')
+                df_outliers_tabela = df_outliers[['Data Evento', 'Dia Semana', col_tkt_medio]].sort_values('Data Evento').copy()
+                df_outliers_tabela[col_tkt_medio] = df_outliers_tabela[col_tkt_medio].apply(lambda v: f'R$ {format_brazilian(v)}')
                 col_vazio, col_download = st.columns([5, 1])
                 with col_download:
                     button_download(df_outliers_tabela, 'outliers_ticket_medio_periodo', 'download_outliers_ticket_medio_periodo')
                 st.dataframe(df_outliers_tabela, hide_index=True, width='stretch')
 
         with st.expander('Ver dados em tabela'):
-            df_ticket_medio_tabela = df_ticket_medio_ordenado[['Data Evento', 'Dia Semana', 'Ticket Médio', 'Número de Clientes']].copy()
-            df_ticket_medio_tabela['Ticket Médio'] = df_ticket_medio_tabela['Ticket Médio'].apply(lambda v: f'R$ {format_brazilian(v)}')
+            df_ticket_medio_tabela = df_ticket_medio_ordenado[['Data Evento', 'Dia Semana', col_tkt_medio, 'Número de Clientes']].copy()
+            df_ticket_medio_tabela[col_tkt_medio] = df_ticket_medio_tabela[col_tkt_medio].apply(lambda v: f'R$ {format_brazilian(v)}')
             col_vazio, col_download = st.columns([5, 1])
             with col_download:
                 button_download(df_ticket_medio_tabela, 'ticket_medio_periodo', 'download_ticket_medio_periodo')
@@ -205,17 +234,17 @@ with st.container(border=True):
         if df_dia_semana.empty:
             st.warning(f'Sem dados de ticket médio para {dia_semana_selecionado} no período selecionado.')
         else:
-            mediana_dia_semana_bruta = df_dia_semana['Ticket Médio'].median()
+            mediana_dia_semana_bruta = df_dia_semana[col_tkt_medio].median()
             limite_superior_outlier_dia_semana = mediana_dia_semana_bruta * 3
             limite_inferior_outlier_dia_semana = mediana_dia_semana_bruta * 0.2
 
             df_outliers_dia_semana = df_dia_semana[
-                ~df_dia_semana['Ticket Médio'].between(limite_inferior_outlier_dia_semana, limite_superior_outlier_dia_semana)
+                ~df_dia_semana[col_tkt_medio].between(limite_inferior_outlier_dia_semana, limite_superior_outlier_dia_semana)
             ]
 
             if '🚫 Remover outliers' in (filtros_selecionados_dia_semana or []):
                 df_dia_semana_filtrado = df_dia_semana[
-                    df_dia_semana['Ticket Médio'].between(limite_inferior_outlier_dia_semana, limite_superior_outlier_dia_semana)
+                    df_dia_semana[col_tkt_medio].between(limite_inferior_outlier_dia_semana, limite_superior_outlier_dia_semana)
                 ]
             else:
                 df_dia_semana_filtrado = df_dia_semana
@@ -223,19 +252,25 @@ with st.container(border=True):
             if df_dia_semana_filtrado.empty:
                 st.info(f'Todos os dias de {dia_semana_selecionado} do período foram removidos como outliers.')
             else:
-                media_dia_semana = df_dia_semana_filtrado['Ticket Médio'].mean()
+                soma_valor_dia_semana = df_dia_semana_filtrado[col_valor].sum()
+                soma_clientes_dia_semana = df_dia_semana_filtrado['Número de Clientes'].sum()
+                ticket_medio_real_dia_semana = soma_valor_dia_semana / soma_clientes_dia_semana if soma_clientes_dia_semana else None
                 _, col_kpi_dia_semana, _ = st.columns([1, 1, 1])
                 with col_kpi_dia_semana:
-                    st.metric(label=f'Ticket Médio - {dia_semana_selecionado}', value=f'R$ {format_brazilian(media_dia_semana)}' if pd.notna(media_dia_semana) else '—', border=True)
+                    st.metric(
+                        label=f'Ticket Médio — {dia_semana_selecionado} ({tipo_selecionado})',
+                        value=f'R$ {format_brazilian(ticket_medio_real_dia_semana)}' if ticket_medio_real_dia_semana is not None else '—',
+                        border=True,
+                    )
 
                 options_ticket_medio_dia_semana = opcoes_grafico_linha(
                     df_dia_semana_filtrado['Data Evento'].astype(str).tolist(),
-                    df_dia_semana_filtrado['Ticket Médio'].round(2).tolist(),
-                    f'Ticket Médio - {dia_semana_selecionado}',
+                    df_dia_semana_filtrado[col_tkt_medio].round(2).tolist(),
+                    f'Ticket Médio {tipo_selecionado} - {dia_semana_selecionado}',
                     COR_TICKET_MEDIO_DIA_SEMANA,
                     'R$',
                 )
-                st.caption(f'Evolução do ticket médio às {dia_semana_selecionado}s no período selecionado')
+                st.caption(f'Evolução do ticket médio ({tipo_selecionado}) às {dia_semana_selecionado}s no período selecionado')
                 st_echarts(options=options_ticket_medio_dia_semana, height="400px", key='echarts_ticket_medio_dia_semana')
 
                 with st.expander(f'Ver outliers identificados ({len(df_outliers_dia_semana)})'):
@@ -243,20 +278,20 @@ with st.container(border=True):
                         st.caption('Nenhum outlier identificado para esse dia da semana no período selecionado.')
                     else:
                         st.write(escape_dolar(
-                            'Outliers: Dias em que o Ticket Médio foi maior que 300% da mediana ou menor que 20% '
+                            f'Outliers: Dias em que o Ticket Médio ({tipo_selecionado}) foi maior que 300% da mediana ou menor que 20% '
                             f'da mediana dos tickets médios de {dia_semana_selecionado} no período (fora da faixa de '
                             f'R$ {format_brazilian(limite_inferior_outlier_dia_semana)} a R$ {format_brazilian(limite_superior_outlier_dia_semana)}).'
                         ))
-                        df_outliers_dia_semana_tabela = df_outliers_dia_semana[['Data Evento', 'Dia Semana', 'Ticket Médio']].sort_values('Data Evento').copy()
-                        df_outliers_dia_semana_tabela['Ticket Médio'] = df_outliers_dia_semana_tabela['Ticket Médio'].apply(lambda v: f'R$ {format_brazilian(v)}')
+                        df_outliers_dia_semana_tabela = df_outliers_dia_semana[['Data Evento', 'Dia Semana', col_tkt_medio]].sort_values('Data Evento').copy()
+                        df_outliers_dia_semana_tabela[col_tkt_medio] = df_outliers_dia_semana_tabela[col_tkt_medio].apply(lambda v: f'R$ {format_brazilian(v)}')
                         col_vazio, col_download = st.columns([5, 1])
                         with col_download:
                             button_download(df_outliers_dia_semana_tabela, 'outliers_ticket_medio_dia_semana', 'download_outliers_ticket_medio_dia_semana')
                         st.dataframe(df_outliers_dia_semana_tabela, hide_index=True, width='stretch')
 
                 with st.expander('Ver dados em tabela'):
-                    df_dia_semana_tabela = df_dia_semana_filtrado[['Data Evento', 'Dia Semana', 'Ticket Médio']].copy()
-                    df_dia_semana_tabela['Ticket Médio'] = df_dia_semana_tabela['Ticket Médio'].apply(lambda v: f'R$ {format_brazilian(v)}')
+                    df_dia_semana_tabela = df_dia_semana_filtrado[['Data Evento', 'Dia Semana', col_tkt_medio]].copy()
+                    df_dia_semana_tabela[col_tkt_medio] = df_dia_semana_tabela[col_tkt_medio].apply(lambda v: f'R$ {format_brazilian(v)}')
                     col_vazio, col_download = st.columns([5, 1])
                     with col_download:
                         button_download(df_dia_semana_tabela, 'ticket_medio_dia_semana', 'download_ticket_medio_dia_semana')
