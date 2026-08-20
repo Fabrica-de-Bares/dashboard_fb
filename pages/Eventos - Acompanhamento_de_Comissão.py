@@ -135,7 +135,7 @@ def main():
             if casa_faturamento == "Todas as Casas":
                 montar_tabs_geral(df_parcelas_filtradas_por_data, casa_faturamento, lista_acessos_casas, filtro_data_categoria, df_orcamentos_faturamento)
             else:
-                df_parcelas_casa = df_filtrar_casa(df_parcelas_filtradas_por_data, casa_faturamento)
+                df_parcelas_casa = df_parcelas_filtradas_por_data[df_parcelas_filtradas_por_data['ID Casa'] == id_casa_faturamento]
                 if casa_faturamento == "Priceless":
                     montar_tabs_priceless(df_parcelas_casa, id_casa_faturamento, df_eventos_faturamento, filtro_data_categoria, df_orcamentos_faturamento)
                 else:
@@ -269,6 +269,11 @@ def main():
                         if id_casa_regra_blue_note in ids_casas_vendedor:
                             df_recebimentos_gerente_blue_note = calcular_comissao_blue_note(df_recebimentos_total_mes, vendedor, id_casa, id_casa_regra_blue_note)
                             df_vendedor = pd.concat([df_vendedor, df_recebimentos_gerente_blue_note], ignore_index=True)
+
+                            if cargo_vendedor == 'Gerente de Eventos':
+                                df_bonus_gerente_blue_note = calcular_comissao_gerente_blue_note(df_recebimentos_total_mes, vendedor, id_casa, id_casa_regra_blue_note, ano, mes)
+                                if not df_bonus_gerente_blue_note.empty:
+                                    df_vendedor = pd.concat([df_vendedor, df_bonus_gerente_blue_note], ignore_index=True)
 
                     df_vendedor['Valor Líquido'] = df_vendedor['Valor da Parcela'] - df_vendedor['Dedução Imposto']
                         

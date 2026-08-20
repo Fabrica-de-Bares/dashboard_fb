@@ -19,10 +19,9 @@ def get_casas_validas():
 		WHERE te.FK_GRUPO_EMPRESA = 100
 			AND (
 				(tzf.DATA >= DATE_SUB(CURDATE(), INTERVAL 4 WEEK) AND tzf.VALOR > 0)
-				OR te.ID = 149
+				OR te.ID IN (149, 162)
 			)
-		"""
-	)
+	""")
     df_casas = pd.DataFrame(result, columns=column_names)
     return df_casas
 

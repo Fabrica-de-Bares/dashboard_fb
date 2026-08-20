@@ -71,6 +71,11 @@ def _calcular_resumo_comparacao_ano(total_eventos, valores_orcamento):
     }
 
 
+def _chave_casas(lista_ids_casa):
+    """Sufixo estável para keys de gráficos, para forçar o remount quando a(s) casa(s) selecionada(s) mudam."""
+    return '-'.join(str(id_casa) for id_casa in sorted(lista_ids_casa, key=str))
+
+
 def _render_graficos_total_eventos(
     df_parcelas,
     tipo_data,
@@ -94,7 +99,7 @@ def _render_graficos_total_eventos(
         st.divider()
         st.markdown(titulo_painel_ano)
         painel_dashboard_comparacao_ano(
-            df_parcelas, tipo_data, df_orcamentos, lista_ids_casas, tipo_data
+            df_parcelas, tipo_data, df_orcamentos, lista_ids_casas, f"{tipo_data}_{_chave_casas(lista_ids_casas)}"
         )
 
 
@@ -430,7 +435,7 @@ def grafico_barras_total_eventos(df_parcelas, tipo_data, df_orcamentos, lista_id
         "click": "function(params) { return params.name; }"
     }
 
-    resultado_clique = st_echarts(option, events=events, height="320px", width="100%", key=f"chart_total_eventos_{tipo_data}")
+    resultado_clique = st_echarts(option, events=events, height="320px", width="100%", key=f"chart_total_eventos_{tipo_data}_{_chave_casas(lista_ids_casa)}")
     # st_echarts embrulha o retorno do evento num objeto tipo-dict (chave 'chart_event')
     # nessa versão do Streamlit; em versões mais antigas o retorno já vem "cru"
     mes_selecionado = resultado_clique.get('chart_event') if hasattr(resultado_clique, 'get') else resultado_clique

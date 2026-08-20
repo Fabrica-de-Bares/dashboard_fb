@@ -20,7 +20,12 @@ def GET_TICKET_MEDIO_ZIGPAY(id_casa, data_inicio, data_fim):
           WHEN DAYOFWEEK(tztc.DATA_EVENTO) = 6 THEN 'Sexta-feira'
           WHEN DAYOFWEEK(tztc.DATA_EVENTO) = 7 THEN 'Sábado'
         END AS 'Dia Semana',
-        tztc.TICKET_MEDIO AS 'Ticket Médio',
+        tztc.VALOR_RECEBIMENTOS AS 'Valor Recebimentos',
+        tztc.TKT_MEDIO_RECEBIMENTOS AS 'Ticket Médio Recebimentos',
+        tztc.VALOR_LIQUIDO AS 'Valor Líquido',
+        tztc.TKT_MEDIO_LIQUIDO AS 'Ticket Médio Líquido',
+        tztc.VALOR_ITENS_VENDIDOS AS 'Valor Itens Vendidos',
+        tztc.TKT_MEDIO_PRODUTOS AS 'Ticket Médio Produtos',
         tztc.NUM_CLIENTES AS 'Número de Clientes'
     FROM T_ZIG_TICKET_CLIENTES tztc
     INNER JOIN T_EMPRESAS te ON te.ID_ZIGPAY = tztc.LOJA_ID
