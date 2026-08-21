@@ -197,3 +197,51 @@ TAXA_DESPESAS_FINANCEIRAS_PADRAO = 0.0015  # 0,15%
 TAXA_DESPESAS_FINANCEIRAS_EXCECOES = {
     # 'Nome da Casa': taxa,  # preencher conforme o usuário for passando as exceções
 }
+
+
+# De-para Categoria (T_VALORES_REAIS_DRE) -> rótulo canônico do Orçamento/Revisão Orçamento
+# Operacional (Classificação Contábil 1 / linhas calculadas) - usado só na aba
+# "DRE Real + Revisão Orçamento" pra alinhar linhas entre as duas fontes. Confirmado via
+# SELECT DISTINCT CATEGORIA FROM T_VALORES_REAIS_DRE - não usar sem antes conferir mudanças
+# nos nomes de categoria caso a query pare de bater.
+MAPEAMENTO_CATEGORIA_REAL_ORCAMENTO = {
+    'Faturamento Bruto': 'FATURAMENTO BRUTO',
+    'Desconto sobre Venda': '(-) Desconto sobre Venda',
+    'Impostos sobre Venda': '(-) Impostos sobre Venda',
+    'RECEITA LÍQUIDA': 'RECEITA LÍQUIDA',
+    'Custo Mercadoria Vendida': '(-) Custo Mercadoria Vendida',
+    'Custos Artístico Geral': '(-) Custos Artístico Geral',
+    'Custos de Eventos': '(-) Custos Eventos',
+    'Gorjeta': '(-) Dedução da Gorjeta',
+    'Deduções sobre Venda': '(-) Deduções sobre Venda',
+    'PESSOAL': 'PESSOAL',
+    'MARGEM BRUTA DE CONTRIBUIÇÃO': 'MARGEM BRUTA DE CONTRIBUIÇÃO',
+    'Mão de Obra - PJ': 'PJ',
+    'Mão de Obra - Salários': 'MDO CLT - Salário',
+    'Mão de Obra - Extra': 'Mão de Obra Extra',
+    'Mão de Obra - Encargos e Provisões': 'Encargos e Provisões',
+    'Custo de Ocupação': 'Custo de Ocupação',
+    'Utilidades': 'Utilidades',
+    'Informática e TI': 'Informática e TI',
+    'Manutenção': 'Despesas Gerais',
+    'Marketing': 'Marketing',
+    'Serviços de Terceiros': 'Serviços de Terceiros',
+    'Locação de Equipamentos': 'Locação de Equipamentos',
+    'Sistema de Franquias': 'Sistema de Franquias',
+    'TOTAL - DESPESAS OPERATIVAS': 'TOTAL - DESPESAS OPERATIVAS',
+    'EBITDA': 'EBITDA',
+    'EBIT': 'EBIT',
+    'Receitas/Despesas Financeiras': '(+/-) Receitas/Despesas Financeiras',
+    'Resultado Antes do IR': 'Resultado Antes do IR',
+    'Imposto de Renda': '(-) Impostos',
+    'Resultado Líquido': 'Resultado Líquido',
+    'Investimento - CAPEX': '(-) CAPEX (Investimentos)',
+    'Outras variações no fluxo de caixa': '(+/-) Outras variações no fluxo de caixa',
+    'Total - Variações s/ Resultado Líquido': 'Total - Variações s/ Resultado Líquido',
+    'FCF': 'FCF',
+}
+
+# Casos sem mapeamento 1:1 direto (aba "DRE Real + Revisão Orçamento")
+CATEGORIAS_REAL_BENEFICIOS = ['Benefícios', 'Outros B']  # somam para 'Mão de Obra - Benefícios'
+CATEGORIA_REAL_PATROCINIO_RECEITA = '(+) Receitas de Patrocínio'
+CATEGORIA_REAL_PATROCINIO_DESPESA = '(-) Despesas de Patrocínio'  # Patrocínio líquido = receita - despesa
