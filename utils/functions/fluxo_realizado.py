@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-from utils.functions.general_functions_conciliacao import format_brazilian, remove_antecipacoes_duplicadas
+from utils.functions.general_functions_conciliacao import format_brazilian
 
 
 # Filtra df por casas selecionadas e data
@@ -99,7 +99,6 @@ def prepare_monthly_data(
     # receitas_zig['Valor'] = converte_string_float(receitas_zig, 'Valor') # transforma valores em float
     receitas_zig['Valor'] = pd.to_numeric(receitas_zig['Valor'], errors='coerce')
 
-    receitas_zig = remove_antecipacoes_duplicadas(receitas_zig)
     mask_extrato_zig = receitas_zig['Descricao'].isin(["Saque", "Antecipação"])
     receitas_zig = receitas_zig[mask_extrato_zig]
     receitas_zig['Valor'] = receitas_zig['Valor'] * (-1)  # Saques são negativos no Zig → positivo = caixa recebido

@@ -155,9 +155,8 @@ def conciliacao_inicial(id_casa, casa, start_date, end_date, tab):
         # Colunas 
         # Extrato Zig (Saques) #
         if 'Extrato Zig (Saques)' not in df_conciliacao.columns:
-            df_extrato_zig_dedup = remove_antecipacoes_duplicadas(df_extrato_zig_filtrada)
             df_conciliacao['Extrato Zig (Saques)'] = somar_por_data(
-                df_extrato_zig_dedup[df_extrato_zig_dedup['Descricao'].isin(["Saque", "Antecipação"])],
+                df_extrato_zig_filtrada[df_extrato_zig_filtrada['Descricao'].isin(["Saque", "Antecipação"])],
                 "Data_Liquidacao", "Valor", datas
             ) * (-1)
 
