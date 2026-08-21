@@ -25,9 +25,8 @@ def conciliacao_casa(df, casa, datas_completas):
     df_extrato_zig = GET_EXTRATO_ZIG()
     df_extrato_zig_farol = df_extrato_zig[df_extrato_zig['Casa'] == casa]
     if 'Extrato Zig (Saques)' not in df_copia.columns:
-        df_extrato_zig_farol_dedup = remove_antecipacoes_duplicadas(df_extrato_zig_farol)
         df_copia['Extrato Zig (Saques)'] = somar_por_data(
-            df_extrato_zig_farol_dedup[df_extrato_zig_farol_dedup['Descricao'].isin(["Saque", "Antecipação"])],
+            df_extrato_zig_farol[df_extrato_zig_farol['Descricao'].isin(["Saque", "Antecipação"])],
             "Data_Liquidacao", "Valor", datas_completas
         ) * (-1)
 

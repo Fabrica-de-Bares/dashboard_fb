@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 from utils.functions.general_functions import dataframe_query
 from utils.constants.general_constants import casas_validas
+from utils.functions.general_functions_conciliacao import remove_antecipacoes_duplicadas
 
 
 @st.cache_data
@@ -94,8 +95,11 @@ def GET_EXTRATO_ZIG():
       INNER JOIN T_EMPRESAS te ON en.ID_Loja_Normalizada = te.ID_ZIGPAY
       ORDER BY te.NOME_FANTASIA ASC, en.DATA_LIQUIDACAO DESC
       ''')
-    df_extrato_zig['Data_Liquidacao'] = pd.to_datetime(df_extrato_zig['Data_Liquidacao']) 
-    df_extrato_zig['Data_Transacao'] = pd.to_datetime(df_extrato_zig['Data_Transacao']) 
+    df_extrato_zig['Data_Liquidacao'] = pd.to_datetime(df_extrato_zig['Data_Liquidacao'])
+    df_extrato_zig['Data_Transacao'] = pd.to_datetime(df_extrato_zig['Data_Transacao'])
+    # A partir de 01/07/2026 a linha "Antecipação" duplica o "Saque" correspondente —
+    # removida na origem para não aparecer em nenhuma tela/soma que consome este df.
+    df_extrato_zig = remove_antecipacoes_duplicadas(df_extrato_zig)
     return df_extrato_zig
     
 
