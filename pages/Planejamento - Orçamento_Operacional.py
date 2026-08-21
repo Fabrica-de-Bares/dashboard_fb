@@ -405,11 +405,11 @@ def renderiza_dre_real_revisao(df_historico_real_dre, df_revisao_orcamento_opera
 
     if casa == 'Todas as Casas':
         st.write(
-            'Cada casa usa os valores da DRE Real nos meses que ela já fechou a DRE e valores do Orçamento Revisado nos '
+            'Cada casa usa os valores da DRE Final nos meses em que já existe DRE Final e valores do Orçamento Revisado nos '
             'demais meses. Casas diferentes podem contribuir com valores de DRE Real ou com valores de '
             'Orçamento no mesmo mês.'
         )
-        st.write('Cabeçalho: 🔵 Real (todas as casas fecharam) · 🟣 misto (só parte das casas fechou) · 🔴 Revisão de Orçamento.')
+        st.write('Cabeçalho: 🔵 Real (todas as casas com DRE Final) · 🟣 Misto (parte das casas com DRE Final) · 🔴 Revisão de Orçamento.')
     else:
         meses_fechados_casa_unica = resultados_por_casa[casa][2]
         if not meses_fechados_casa_unica:
@@ -479,7 +479,7 @@ def renderiza_dre_real_revisao(df_historico_real_dre, df_revisao_orcamento_opera
 
     height = (len(df_final) + 1) * 35
 
-    st.subheader(f'Resumo do Orçamento (DRE Real + Revisão) - {ano}')
+    st.subheader(f'Resumo do Orçamento (DRE Final + Revisão) - {ano}')
     df_final_styled = df_final.copy()
     df_final_styled.loc[df_final_styled['Categoria'] == 'Faturamento Bruto', 'Categoria'] = df_final_styled['Categoria'].str.upper()
     df_final_styled.loc[df_final_styled['Categoria'] == 'Imposto de Renda', 'Categoria'] = 'Impostos'
@@ -514,18 +514,18 @@ def renderiza_dre_real_revisao(df_historico_real_dre, df_revisao_orcamento_opera
             casas_abertas = sorted(c for c, s in status_casas.items() if s == 'aberto')
             linhas_por_mes.append({
                 'Mês': mes_nome,
-                'Casas com DRE Real': ', '.join(casas_reais) if casas_reais else '—',
+                'Casas com DRE Final': ', '.join(casas_reais) if casas_reais else '—',
                 'Casas sem faturamento orçado (fechadas)': ', '.join(casas_sem_orcamento) if casas_sem_orcamento else '—',
-                'Casas sem DRE Real (usando Revisão)': ', '.join(casas_abertas) if casas_abertas else '—',
+                'Casas sem DRE Final (usando Revisão)': ', '.join(casas_abertas) if casas_abertas else '—',
             })
         df_casas_fechamento = pd.DataFrame(linhas_por_mes)
-        with st.expander('Ver quais casas fecharam a DRE em cada mês'):
+        with st.expander('Ver casas com DRE Final/Orçamento em cada mês'):
             st.dataframe(df_casas_fechamento, hide_index=True, width='stretch')
 
 
 if tipo_valor == 'Orçamento Operacional':
     tab_original, tab_revisao, tab_real_revisao = st.tabs([
-        'Orçamento Operacional', 'Revisão Orçamento Operacional', 'DRE Real + Revisão Orçamento'
+        'Orçamento Operacional', 'Revisão Orçamento Operacional', 'DRE Final + Revisão Orçamento'
     ])
     with tab_original:
         renderiza_orcamento_operacional(df_orcamento_operacional, ano, casa)
