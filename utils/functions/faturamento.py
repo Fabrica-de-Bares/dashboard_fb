@@ -28,7 +28,7 @@ _COR_FATURAMENTO = '#FAC858'
 
 
 def _preparar_series_mensais_faturamento_eventos(df_parcelas, tipo_data, df_orcamentos, lista_ids_casa):
-    df_parcelas = df_parcelas.copy()
+    df_parcelas = df_parcelas[df_parcelas['ID Casa'].isin(lista_ids_casa)].copy()
     df_parcelas['Mes'] = df_parcelas[tipo_data].dt.month
 
     df_parcelas_agrupado = df_parcelas.groupby('Mes')['Valor Parcela'].sum().reset_index()
