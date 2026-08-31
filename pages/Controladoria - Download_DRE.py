@@ -126,8 +126,13 @@ with st.container(border=True):
         df_aut_transferencias = DRE_AUT_TRANSFERENCIAS(ids_casa_query)
         df_aut_consumo_func = DRE_AUT_CONSUMO_FUNCIONARIOS(ids_casa_query)
         df_aut_insumos_prod = DRE_AUT_INSUMOS_PRODUCAO(ids_casa_query)
+        ## Orçamento (alimenta a coluna ORÇADO da aba DRE via SUMIFS)
+        df_t_orcamentos = DRE_ORCAMENTO_OPERACIONAL(ids_casa_query)
+        df_t_headcount = DRE_HEADCOUNT_ORCADO(ids_casa_query)
 
         abas = {
+            'T_ORCAMENTOS': df_t_orcamentos,
+            'T_HEADCOUNT': df_t_headcount,
             'Aut_BlueMe_Sem_Pedido': df_aut_blue_me_sem_pedido,
             'Aut_BlueMe_Com_Pedido': df_aut_blue_me_com_pedido,
             'Aut_Faturamento_Zig': df_aut_faturamento_zig,
@@ -199,7 +204,8 @@ with st.container(border=True):
                 'Aut_Transferencias',
                 'Aut_Consumo_Funcionarios',
                 'Aut_Insumos_Producao',
-                'T_ORCAMENTOS', 
+                'T_ORCAMENTOS',
+                'T_HEADCOUNT',
                 'T_REAL'
             ]
 

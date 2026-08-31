@@ -1132,6 +1132,81 @@ def DRE_AJUSTES_MANUAIS(ids_casa):
 
 
 @st.cache_data
+def DRE_ORCAMENTO_OPERACIONAL(ids_casa):
+  # Alimenta a aba T_ORCAMENTOS do Base_DRE (antes preenchida com valores colados na mao).
+  # As 8 colunas e a ordem precisam bater com a aba: a coluna ORCADO da aba DRE le daqui
+  # por SUMIFS (Classif. Cont. 2 + Mes_Texto, e Casa nos arquivos consolidados).
+  #
+  # Dedup de revisao (padrao do skill orcamentos): T_ORCAMENTOS recebe orcamento original
+  # (TAG_REVISAO 0/NULL) e revisao (TAG_REVISAO = 1) como 2 linhas no mesmo grao
+  # (FK_EMPRESA + FK_CLASSIFICACAO_1 + FK_CLASSIFICACAO_2 + MES + ANO). Aqui a revisao
+  # vence quando existir (ROW_NUMBER ... ORDER BY TAG_REVISAO DESC, rn = 1).
+  #
+  # Filtro de plano de contas = FK_VERSAO_PLANO_CONTABIL = 103 (mesmo das demais queries
+  # deste arquivo). Nao existe tabela de versao no banco - "Versao Plano Cont." sai como
+  # constante so para manter a coluna da aba (nada a consome).
+  df = dataframe_query(f'''
+    WITH T_ORCAMENTOS_ATUAL AS (
+        SELECT t.*,
+            ROW_NUMBER() OVER (
+                PARTITION BY t.FK_EMPRESA, t.FK_CLASSIFICACAO_1, t.FK_CLASSIFICACAO_2, t.MES, t.ANO
+                ORDER BY t.TAG_REVISAO DESC
+            ) AS rn
+        FROM T_ORCAMENTOS t
+    )
+    SELECT
+        te.NOME_FANTASIA AS 'Casa',
+        tccg1.DESCRICAO AS 'Classif. Cont. 1',
+        tccg2.DESCRICAO AS 'Classif. Cont. 2',
+        DATE_FORMAT(STR_TO_DATE(CONCAT(to2.ANO, '-', LPAD(to2.MES, 2, '0'), '-01'), '%Y-%m-%d'), '%d/%m/%Y') AS 'Mês',
+        to2.VALOR AS 'Valor',
+        'Fabrica de Bares (2025)' AS 'Versão Plano Cont.',
+        (to2.IS_VALID = 0x01) AS 'Válido',
+        CONCAT(to2.MES, '/', to2.ANO) AS 'Mes_Texto'
+    FROM T_ORCAMENTOS_ATUAL to2
+    JOIN T_EMPRESAS te ON (to2.FK_EMPRESA = te.ID)
+    JOIN T_CLASSIFICACAO_CONTABIL_GRUPO_1 tccg1 ON (to2.FK_CLASSIFICACAO_1 = tccg1.ID)
+    JOIN T_CLASSIFICACAO_CONTABIL_GRUPO_2 tccg2 ON (to2.FK_CLASSIFICACAO_2 = tccg2.ID)
+    WHERE to2.rn = 1
+      AND to2.FK_EMPRESA IN ({ids_casa})
+      AND tccg1.FK_VERSAO_PLANO_CONTABIL = 103
+      AND to2.ANO >= 2026
+    ORDER BY te.NOME_FANTASIA, tccg1.DESCRICAO, tccg2.DESCRICAO, to2.ANO, to2.MES;
+  ''')
+  if not df.empty:
+    df['Válido'] = df['Válido'].astype(bool)
+  return df
+
+
+@st.cache_data
+def DRE_HEADCOUNT_ORCADO(ids_casa):
+  # Alimenta a aba T_HEADCOUNT do Base_DRE - as linhas de cargo da coluna ORCADO da aba
+  # DRE (secoes "PJ" e "Salarios") leem daqui por SUMIFS (Cargo + Mes_Texto + Modelo).
+  #
+  # T_HEADCOUNT_PESSOAS guarda, por cargo/mes/ano/modelo, DUAS linhas: TIPO_DADO
+  # "No COLABORADORES" (contagem) e "REMUNERACAO" (remuneracao per capita). O grao e
+  # unico (1 linha por combinacao), entao custo orcado do cargo = contagem * remuneracao.
+  return dataframe_query(f'''
+    SELECT
+        te.NOME_FANTASIA AS 'Casa',
+        thp.MODELO_CONTRATACAO AS 'Modelo',
+        thp.CARGO AS 'Cargo',
+        CONCAT(thp.MES, '/', thp.ANO) AS 'Mes_Texto',
+        ROUND(
+            MAX(CASE WHEN thp.TIPO_DADO LIKE 'N%COLABORADORES' THEN thp.VALOR END)
+            * MAX(CASE WHEN thp.TIPO_DADO LIKE 'REMUNERA%' THEN thp.VALOR END)
+        , 2) AS 'Valor'
+    FROM T_HEADCOUNT_PESSOAS thp
+    JOIN T_EMPRESAS te ON (thp.FK_EMPRESA = te.ID)
+    WHERE thp.FK_EMPRESA IN ({ids_casa})
+      AND thp.ANO >= 2026
+    GROUP BY te.NOME_FANTASIA, thp.MODELO_CONTRATACAO, thp.CARGO, thp.MES, thp.ANO
+    HAVING Valor IS NOT NULL AND Valor <> 0
+    ORDER BY te.NOME_FANTASIA, thp.MODELO_CONTRATACAO, thp.CARGO, thp.MES;
+  ''')
+
+
+@st.cache_data
 def DRE_CONSUMO_CARTAO_BLACK(ids_casa):
   return dataframe_query(f'''
     SELECT 
