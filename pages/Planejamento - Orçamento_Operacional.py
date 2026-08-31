@@ -70,7 +70,7 @@ def renderiza_orcamento_operacional(df_orcamento_operacional, ano, casa):
     elif casa == 'The Cavern' and (ano < 2026):
         st.warning(f'{casa} sem dados para {ano}.')
         return
-    elif casa == 'Bar Brahma - Paulista' and ano <= 2026:
+    elif casa == 'Bar Brahma - Paulista' and ano < 2026:
         st.warning(f'{casa} sem dados para {ano}.')
         return
 
@@ -255,7 +255,7 @@ def renderiza_dre_real_revisao(df_historico_real_dre, df_revisao_orcamento_opera
     elif casa == 'The Cavern' and (ano < 2026):
         st.warning(f'{casa} sem dados para {ano}.')
         return
-    elif casa == 'Bar Brahma - Paulista' and ano <= 2026:
+    elif casa == 'Bar Brahma - Paulista' and ano < 2026:
         st.warning(f'{casa} sem dados para {ano}.')
         return
 
