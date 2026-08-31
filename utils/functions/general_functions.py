@@ -171,6 +171,7 @@ def GET_LOJAS_USER_COM_DELIVERY(login):
         UNION ALL SELECT 148, 169
         UNION ALL SELECT 105, 139
         UNION ALL SELECT 104, 112
+        UNION ALL SELECT 156, 181
     )
 
     -- Query original
