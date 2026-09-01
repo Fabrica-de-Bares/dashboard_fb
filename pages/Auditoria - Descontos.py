@@ -330,15 +330,19 @@ else:
     })
 
     # Renomeia casas para formatar nome do arquivo excel
-    if casa == 'Bar Brahma - Centro': nome_casa = 'BBC'
-    elif casa == 'Bar Brahma - Granja': nome_casa = 'BBG'
-    elif casa == 'Bar Léo - Centro': nome_casa = 'Bar Léo'
-    elif casa == 'Blue Note - São Paulo': nome_casa = 'Blue Note SP'
-    elif casa == 'Edificio Rolim': nome_casa = 'Rolim'
-    elif casa == 'Girondino - CCBB': nome_casa = 'CCBB'
-    elif casa == 'Love Cabaret': nome_casa = 'Love'
-    elif casa == 'Riviera Bar': nome_casa = 'Riviera'
-    else: nome_casa = casa
+    NOMES_CASA_ARQUIVO = {
+        'Bar Brahma - Centro': 'BBC',
+        'Bar Brahma - Granja': 'BBG',
+        'Bar Brahma - Paulista': 'BBP',
+        'Bar Léo - Centro': 'Bar Léo',
+        'Blue Note - São Paulo': 'Blue Note SP',
+        'Edificio Rolim': 'Rolim',
+        'Girondino - CCBB': 'CCBB',
+        'Love Cabaret': 'Love',
+        'Riviera Bar': 'Riviera',
+        'Blue Note SP (Sala 2)': 'BNSP Sala 2',
+    }
+    nome_casa = NOMES_CASA_ARQUIVO.get(casa, casa)
     
     # Mostra o resultado
     col1, col2 = st.columns([4, 1])
