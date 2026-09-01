@@ -52,6 +52,10 @@ def main():
     # Obtém Serviço Zigpay da casa agregada
     df_eventos_zigpay = request_getEvents_zigpay(id_zigpay, mes_numero, ano)
 
+    if df_eventos_zigpay.empty:
+        st.warning(f'Ainda não há dados da Zigpay para {casa} em {mes_nome}/{ano}.')
+        return
+
     # Tratamento de dados
     df_eventos_zigpay['Casa'] = casa
     df_eventos_zigpay['begin'] = pd.to_datetime(df_eventos_zigpay['begin']).dt.date
@@ -76,7 +80,11 @@ def main():
             sources=None
         )
         df_produtos_eventos_zig = pd.concat([df_produtos_eventos_zig, df_produtos_evento_zig])
-    
+
+    if df_produtos_eventos_zig.empty or 'evento' not in df_produtos_eventos_zig.columns:
+        st.warning(f'Ainda não há dados da Zigpay para {casa} em {mes_nome}/{ano}.')
+        return
+
     # Agrupa faturamento por evento zig
     df_produtos_eventos_zig = df_produtos_eventos_zig.groupby(['evento']).agg({
         'valor_total': 'sum',
@@ -147,16 +155,28 @@ def main():
     df_merged_zig_bd.dropna(inplace=True)
     df_merged_zig_bd = format_columns_brazilian(df_merged_zig_bd, ['Faturamento Bruto Zigpay', 'Faturamento Líquido Zigpay', 'Faturamento Bruto T_ITENS_VENDIDOS', 'Faturamento Líquido T_ITENS_VENDIDOS', 'Desconto Zigpay', 'Desconto T_ITENS_VENDIDOS'])
     
-    st.markdown('## Faturamento Zigpay e T_ITENS_VENDIDOS')
+    col1, col2 = st.columns([4, 1], vertical_alignment='bottom')
+    with col1:
+        st.markdown('## Faturamento Zigpay e T_ITENS_VENDIDOS')
+    with col2:
+        button_download(df_merged_zig_bd, f"Faturamento Zigpay e T_ITENS_VENDIDOS - {casa} - {mes_nome}{ano}", 'download_faturamento_zig_itens_vendidos')
     st.dataframe(df_merged_zig_bd, width='stretch', hide_index=True)
 
     df_itens_sem_cadastro = GET_ITENS_SEM_CADASTRO()
     df_itens_sem_cadastro = df_itens_sem_cadastro[df_itens_sem_cadastro['ID Zigpay'] == id_zigpay]
-    st.markdown('## Itens sem cadastro')
+    col1, col2 = st.columns([4, 1], vertical_alignment='bottom')
+    with col1:
+        st.markdown('## Itens sem cadastro')
+    with col2:
+        button_download(df_itens_sem_cadastro, f"Itens sem cadastro - {casa} - {mes_nome}{ano}", 'download_itens_sem_cadastro')
     st.dataframe(df_itens_sem_cadastro, width='stretch', hide_index=True)
 
     df_itens_cadastro_duplicado = GET_ITENS_COM_CADASTRO_DUPLICADO()
-    st.markdown('## Itens com cadastro duplicado')
+    col1, col2 = st.columns([4, 1], vertical_alignment='bottom')
+    with col1:
+        st.markdown('## Itens com cadastro duplicado')
+    with col2:
+        button_download(df_itens_cadastro_duplicado, f"Itens com cadastro duplicado - {mes_nome}{ano}", 'download_itens_cadastro_duplicado')
     st.dataframe(df_itens_cadastro_duplicado)
 
     # Cards
