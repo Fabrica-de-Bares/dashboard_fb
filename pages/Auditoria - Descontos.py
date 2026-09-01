@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 from utils.functions.general_functions import config_sidebar
-from utils.queries_conciliacao import GET_CASAS
+from utils.queries_conciliacao import GET_OPERACOES
 from utils.components import button_download, seletor_mes, seletor_ano
 
 
@@ -39,13 +39,13 @@ st.write('Aba que categoriza e formata planilhas de Descontos ZigPay para inser�
 st.divider()
 
 # Seletores de casa e data
-df_casas = GET_CASAS()
+df_casas = GET_OPERACOES()
 
 col1, col2, col3 = st.columns(3)
 
 with col1:
     # casas = df_casas['Casa'].tolist()
-    casas = ['Arcos', 'Bar Brahma - Centro', 'Bar Brahma - Granja', 'Bar Léo - Centro', 'Blue Note - São Paulo', 'BNSP', 'Edificio Rolim', 'Girondino', 'Girondino - CCBB', 'Jacaré', 'Love Cabaret', 'Orfeu', 'Riviera Bar', 'Terraço Notiê', 'The Cavern']
+    casas = sorted(['Arcos', 'Bar Brahma - Centro', 'Bar Brahma - Granja', 'Bar Brahma - Paulista', 'Bar Léo - Centro', 'Blue Note - São Paulo', 'BNSP', 'Edificio Rolim', 'Girondino', 'Girondino - CCBB', 'Jacaré', 'Love Cabaret', 'Orfeu', 'Riviera Bar', 'Terraço Notiê', 'Blue Note SP (Sala 2)', 'Nuv Gastrobar'])
     casa = st.selectbox("Selecione a casa correspondente ao arquivo de Descontos:", casas)
     
     # Recupera id da casa
@@ -95,7 +95,7 @@ if casa == 'Arcos':
         '14': None
     }
 
-if casa == 'Bar Brahma - Centro':
+if casa in ['Bar Brahma - Centro', 'Bar Brahma - Paulista']:
     regras_categoria = {
         "gerencial|gerente|garçonete|garconete|gerencia|coord|vitorino|tia luiza|tua luiza|técnico|tecnico|almoço robson|almoço jéssica|chef|israel": "CONSUMO GERENCIAL",
         "aoas": "CONTA ASSINADA", 
@@ -131,7 +131,7 @@ if casa == 'Bar Léo - Centro':
         'dois por um|2p1|gumer|gulmer|kumer|goume|cps': 'PROMOÇÃO'
     }
 
-if casa == 'Blue Note - São Paulo' or casa == 'BNSP':
+if casa in ['Blue Note - São Paulo', 'BNSP', 'Blue Note SP (Sala 2)', 'Nuv Gastrobar']:
     regras_categoria = {
         'consumo coordenação|consumo gerência|consumo gerencia|consumos gerencia|coordenacao|coordenação|coordenador|chef|consumo mkt|alimentação mkt|gerente|alimentação gerencia': 'CONSUMO GERENCIAL',
         'socio|sócio': 'CONTA ASSINADA',

@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 from utils.functions.general_functions import config_sidebar
-from utils.queries_conciliacao import GET_CASAS
+from utils.queries_conciliacao import GET_OPERACOES
 from utils.components import button_download, seletor_mes, seletor_ano
 
 
@@ -39,7 +39,7 @@ st.title("📝 Promoções e Cartão Black - Input no Sistema")
 st.write('Aba que formata as planilhas de Promoções ZigPay e Cartão Black para inserção automática no EPM.')
 st.divider()
 
-df_casas = GET_CASAS()
+df_casas = GET_OPERACOES()
 
 # Seletor do tipo de formatação
 lista_formatacoes = ['Promoções ZigPay', 'Consumo - Cartão Black']
@@ -54,7 +54,7 @@ else:
 # Seletores de casa e data
 if tipo_formatacao == 'Promoções ZigPay':
     with col1:
-        casas = ['Arcos', 'Bar Brahma - Centro', 'Bar Brahma - Granja', 'Bar Léo - Centro', 'Blue Note - São Paulo', 'BNSP', 'Edificio Rolim', 'Girondino', 'Girondino - CCBB', 'Jacaré', 'Love Cabaret', 'Orfeu', 'Riviera Bar', 'Terraço Notiê', 'The Cavern']
+        casas = sorted(['Arcos', 'Bar Brahma - Centro', 'Bar Brahma - Granja', 'Bar Léo - Centro', 'Blue Note - São Paulo', 'BNSP', 'Edificio Rolim', 'Girondino', 'Girondino - CCBB', 'Jacaré', 'Love Cabaret', 'Orfeu', 'Riviera Bar', 'Terraço Notiê', 'Bar Brahma - Paulista', 'Blue Note SP (Sala 2)', 'Nuv Gastrobar'])
         casa = st.selectbox("Selecione a casa correspondente ao arquivo", casas)
         
         # Recupera id da casa
@@ -115,15 +115,19 @@ else: # Se arquivo adicionado, prossegue
         df_download = df_formatado.copy()
 
         # Renomeia casas para formatar nome do arquivo excel
-        if casa == 'Bar Brahma - Centro': nome_casa = 'BBC'
-        elif casa == 'Bar Brahma - Granja': nome_casa = 'BBG'
-        elif casa == 'Bar Léo - Centro': nome_casa = 'Bar Léo'
-        elif casa == 'Blue Note - São Paulo': nome_casa = 'Blue Note SP'
-        elif casa == 'Edificio Rolim': nome_casa = 'Rolim'
-        elif casa == 'Girondino - CCBB': nome_casa = 'CCBB'
-        elif casa == 'Love Cabaret': nome_casa = 'Love'
-        elif casa == 'Riviera Bar': nome_casa = 'Riviera'
-        else: nome_casa = casa
+        NOMES_CASA_ARQUIVO = {
+            'Bar Brahma - Centro': 'BBC',
+            'Bar Brahma - Granja': 'BBG',
+            'Bar Brahma - Paulista': 'BBP',
+            'Bar Léo - Centro': 'Bar Léo',
+            'Blue Note - São Paulo': 'Blue Note SP',
+            'Edificio Rolim': 'Rolim',
+            'Girondino - CCBB': 'CCBB',
+            'Love Cabaret': 'Love',
+            'Riviera Bar': 'Riviera',
+            'Blue Note SP (Sala 2)': 'BNSP Sala 2',
+        }
+        nome_casa = NOMES_CASA_ARQUIVO.get(casa, casa)
 
         # Mostra o resultado
         col1, col2 = st.columns(2, vertical_alignment='center')
