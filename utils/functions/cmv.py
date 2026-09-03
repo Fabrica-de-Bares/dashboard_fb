@@ -338,20 +338,17 @@ def config_valoracao_estoque(data_inicio, data_fim, loja):
 
   df_valoracao_estoque = GET_VALORACAO_ESTOQUE(loja, data_inicio_nova)
 
-  # Fix 2026-08-11 (achado real: Blue Note - São Paulo, jul/2026 — "LA CAMPANA SELECCION
-  # DE TERROIR 750ML", 3un, R$604,32, ID_Contagem 99745 e 103983 — mesma contagem
-  # reenviada 2x). GET_VALORACAO_ESTOQUE traz a linha crua de T_VALORACAO_ESTOQUE/
-  # T_CONTAGEM_INSUMOS sem dedupe — um reenvio duplicado da mesma contagem (mesma
-  # loja+insumo+quantidade+valor) soma 2x o estoque daquele item, inflando "Estoque
-  # Atual"/"Estoque Mes Anterior" e o CMV% calculado nesta página. Mesmo fix já aplicado
-  # no lado do script standalone (transform.calcular_variacao_estoque, 2026-08) — não
-  # dedupe por FK_CONTAGEM/ID_Contagem (cada reenvio tem um ID diferente), e sim pela
-  # tupla loja+insumo+quantidade+valor, que é o que identifica a MESMA contagem física
-  # reenviada. Casas agregadas (>1 loja bruta contando o mesmo insumo com o mesmo
-  # valor) continuam somando normalmente, pois ID_Loja também entra na chave.
-  df_valoracao_estoque = df_valoracao_estoque.drop_duplicates(
-    subset=['ID_Loja', 'ID_Insumo', 'Quantidade', 'Valor_em_Estoque']
-  )
+  # Fix 2026-08-11 revertido em 2026-09-02 (decisão do usuário): GET_VALORACAO_ESTOQUE
+  # traz a linha crua de T_VALORACAO_ESTOQUE/T_CONTAGEM_INSUMOS sem dedupe. Até aqui,
+  # linhas com mesma loja+insumo+quantidade+valor (achado real: Blue Note - São Paulo,
+  # jul/2026, "LA CAMPANA SELECCION DE TERROIR 750ML", ID_Contagem 99745/103983) eram
+  # tratadas como reenvio duplicado da mesma contagem e descartadas automaticamente
+  # antes de somar. Com múltiplas contagens por casa em pontos de estoque diferentes
+  # (BlueMe), essa combinação pode ser 2 contagens físicas legítimas, então decidir
+  # sozinho ficou arriscado demais — agora soma tudo como está. A checagem de duplicata
+  # continua existindo (script Mini_Gabu/BlueMe Dashboard, transform.
+  # flag_contagens_duplicadas); se for de fato reenvio, a correção é excluir a
+  # contagem errada em T_CONTAGEM_INSUMOS e reapurar.
 
   df_valoracao_estoque.drop(['DATA_CONTAGEM'], axis=1, inplace=True)
 
