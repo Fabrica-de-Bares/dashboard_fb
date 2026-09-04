@@ -946,6 +946,15 @@ def GET_VALORACAO_PRODUCAO(data_inicio, data_fim):
     # em T_ITENS_PRODUCAO_VALORACAO ate a propria DATA_CONTAGEM da linha (nao uma unica
     # data de referencia, pois esta funcao cobre um intervalo data_inicio/data_fim).
     #
+    # BUG CORRIGIDO 2026-09-04 (mesmo fix aplicado em DRE_AUT_INSUMOS_PRODUCAO,
+    # queries_dre_download.py — achado do usuário no download de DRE do Girondino
+    # Consolidado ago/2026): o teto do fallback de preço era a DATA_CONTAGEM crua. Numa
+    # contagem AGRUPADA a data efetiva do fechamento é tai.DATA_AGRUPAMENTO (dia 1 do mês
+    # seguinte) e a valoração do item só entra nessa data — com teto na DATA_CONTAGEM
+    # (31/08) a subquery não achava preço, o item ia a R$ 0 e a Produção saía
+    # subavaliada. Teto passou a ser a mesma data efetiva já usada em Data_Contagem/
+    # Mes_Texto, igualando queries_cmv.py::GET_VALORACAO_PRODUCAO.
+    #
     # Fix 2026-08-10 (mesma sessão, mesmo achado do fix em GET_VALORACAO_ESTOQUE acima):
     # Data_Contagem não tinha NENHUM arredondamento de contagem agrupada — uma produção
     # fechada via agrupamento fora do dia 1 (ex.: Bar Léo - Centro, jul/2026, 31/07)
@@ -990,8 +999,10 @@ def GET_VALORACAO_PRODUCAO(data_inicio, data_fim):
                     SELECT tipv2.VALOR
                     FROM T_ITENS_PRODUCAO_VALORACAO tipv2
                     WHERE tipv2.FK_ITEM_PRODUZIDO = tipc.FK_ITEM_PRODUZIDO
-                      AND DATE(tipv2.DATA_VALORACAO) <= DATE(tipc.DATA_CONTAGEM)
-                    ORDER BY tipv2.DATA_VALORACAO DESC
+                      AND DATE(tipv2.DATA_VALORACAO) <= DATE(
+                          CASE WHEN tai.DATA_AGRUPAMENTO IS NOT NULL THEN tai.DATA_AGRUPAMENTO ELSE tipc.DATA_CONTAGEM END
+                      )
+                    ORDER BY tipv2.DATA_VALORACAO DESC, tipv2.ID DESC
                     LIMIT 1
                 )
             END as 'Valor_Unidade_Medida',
@@ -1002,8 +1013,10 @@ def GET_VALORACAO_PRODUCAO(data_inicio, data_fim):
                     SELECT tipv2.VALOR
                     FROM T_ITENS_PRODUCAO_VALORACAO tipv2
                     WHERE tipv2.FK_ITEM_PRODUZIDO = tipc.FK_ITEM_PRODUZIDO
-                      AND DATE(tipv2.DATA_VALORACAO) <= DATE(tipc.DATA_CONTAGEM)
-                    ORDER BY tipv2.DATA_VALORACAO DESC
+                      AND DATE(tipv2.DATA_VALORACAO) <= DATE(
+                          CASE WHEN tai.DATA_AGRUPAMENTO IS NOT NULL THEN tai.DATA_AGRUPAMENTO ELSE tipc.DATA_CONTAGEM END
+                      )
+                    ORDER BY tipv2.DATA_VALORACAO DESC, tipv2.ID DESC
                     LIMIT 1
                 ), 2)
             END as 'Valor_Total'
