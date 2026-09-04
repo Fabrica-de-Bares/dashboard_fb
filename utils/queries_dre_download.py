@@ -975,6 +975,32 @@ def DRE_AUT_INSUMOS_PRODUCAO(ids_casa):
   # atribuía a produção ao mês errado. Ganhou o mesmo nível tai (T_AGRUPAMENTO_
   # INVENTARIO), ignorando tac de propósito — mesma convenção já usada nas outras Aut_*.
   #
+  # Desempate 2026-09-04 (mesma sessão do fix de teto acima): T_ITENS_PRODUCAO_VALORACAO
+  # aceita MAIS DE UMA valoração para o mesmo item na MESMA DATA_VALORACAO, com valores
+  # diferentes (105 pares assim na base FB em 04/09/2026). Sem desempate, o "último preço
+  # conhecido" era decidido arbitrariamente pelo MySQL — e a aba CMV Real (queries_cmv.py,
+  # ROW_NUMBER) e o download de DRE podiam escolher linhas diferentes para o MESMO item.
+  # Achado real: Girondino, MOLHO PESTO, 01/08/2026 — ID 12117 = R$ 54,22 (criado 11/08) e
+  # ID 12319 = R$ 84,00 (criado 14/08); R$ 147,11 de diferença no Estoque Inicial de
+  # Produção de ago/2026. Convenção adotada nos 4 lugares (queries_cmv, queries_forecast,
+  # aqui e brands/fabrica-de-bares/queries/30_aut_insumos_producao.sql): vence a
+  # DATA_VALORACAO mais recente e, no empate, o MAIOR ID (a valoração lançada por último).
+  #
+  # BUG CORRIGIDO 2026-09-04 (achado do usuário: CMV do download de DRE divergindo da aba
+  # CMV Real — Girondino Consolidado ago/2026, 28,75% no Excel vs. 28,40% na aba): o teto
+  # do fallback de preço (item contado sem PRECO_MEDIO/VALOR_TOTAL) era a DATA_CONTAGEM
+  # crua da linha. Numa contagem AGRUPADA, a data efetiva do fechamento é a do inventário
+  # (tai.DATA_AGRUPAMENTO, tipicamente o dia 1 do mês seguinte) e a valoração do item só
+  # é lançada nessa data — com teto na DATA_CONTAGEM (31/08) a subquery não achava nada,
+  # o item ia a R$ 0 e o Fechamento de Produção saía SUBAVALIADO, inflando o CMV. Achado
+  # real: Girondino, "CABEÇA DE FILÉ MIGNON PARA MENU EXECUTIVO" (contagem 31/08 23:28,
+  # agrupamento 384, valoração só em 01/09) — R$ 861,84 zerados, mais CARAMELO SALGADO e
+  # FAROFA DE PANKO, R$ 997,27 no total. Teto passou a ser a MESMA data efetiva já usada
+  # no Mes_Texto, igualando GET_VALORACAO_PRODUCAO (queries_cmv.py, que usa a data de
+  # fechamento como teto) e o padrão canônico de brands/fabrica-de-bares/queries/
+  # 30_aut_insumos_producao.sql, onde esse fix já estava. Mesmo fix aplicado em
+  # queries_forecast.py::GET_VALORACAO_PRODUCAO_PERIODO.
+  #
   # BUG CORRIGIDO 2026-08-11 (achado do usuário, mesmo fix de GET_VALORACAO_PRODUCAO em
   # queries_cmv.py/queries_forecast.py, commit 91c74da): esta função não filtrava por
   # tipo de contagem agrupada — trazia junto contagens de DESPERDICIO
@@ -1007,8 +1033,10 @@ def DRE_AUT_INSUMOS_PRODUCAO(ids_casa):
             SELECT tipv2.VALOR
             FROM T_ITENS_PRODUCAO_VALORACAO tipv2
             WHERE tipv2.FK_ITEM_PRODUZIDO = tipc.FK_ITEM_PRODUZIDO
-              AND DATE(tipv2.DATA_VALORACAO) <= DATE(tipc.DATA_CONTAGEM)
-            ORDER BY tipv2.DATA_VALORACAO DESC
+              AND DATE(tipv2.DATA_VALORACAO) <= DATE(
+                  CASE WHEN tai.DATA_AGRUPAMENTO IS NOT NULL THEN tai.DATA_AGRUPAMENTO ELSE tipc.DATA_CONTAGEM END
+              )
+            ORDER BY tipv2.DATA_VALORACAO DESC, tipv2.ID DESC
             LIMIT 1
         )
     END as 'Valor_Unidade_Medida',
@@ -1019,8 +1047,10 @@ def DRE_AUT_INSUMOS_PRODUCAO(ids_casa):
             SELECT tipv2.VALOR
             FROM T_ITENS_PRODUCAO_VALORACAO tipv2
             WHERE tipv2.FK_ITEM_PRODUZIDO = tipc.FK_ITEM_PRODUZIDO
-              AND DATE(tipv2.DATA_VALORACAO) <= DATE(tipc.DATA_CONTAGEM)
-            ORDER BY tipv2.DATA_VALORACAO DESC
+              AND DATE(tipv2.DATA_VALORACAO) <= DATE(
+                  CASE WHEN tai.DATA_AGRUPAMENTO IS NOT NULL THEN tai.DATA_AGRUPAMENTO ELSE tipc.DATA_CONTAGEM END
+              )
+            ORDER BY tipv2.DATA_VALORACAO DESC, tipv2.ID DESC
             LIMIT 1
         ), 2)
     END as 'Valor_Total'

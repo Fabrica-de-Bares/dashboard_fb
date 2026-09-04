@@ -1185,12 +1185,19 @@ def GET_VALORACAO_PRODUCAO(data):
   # desaparecia (mesmo caso real do Bar Léo - Centro que motivou o fix em
   # GET_VALORACAO_ESTOQUE: agrupamento datado 31/07 vs. data-alvo 01/08). Ganhou os
   # mesmos 2 níveis (tai > tac) e a restrição a tipo INVENTARIO (103), ausente antes.
+  # Desempate 2026-09-04: T_ITENS_PRODUCAO_VALORACAO aceita mais de uma valoração para o
+  # mesmo item na MESMA DATA_VALORACAO com valores diferentes (105 pares na base FB em
+  # 04/09/2026) — o ROW_NUMBER sem desempate escolhia arbitrariamente, e o download de DRE
+  # (queries_dre_download.py) podia escolher a OUTRA linha para o mesmo item. Achado real:
+  # Girondino, MOLHO PESTO, 01/08/2026 — R$ 54,22 (ID 12117) vs. R$ 84,00 (ID 12319),
+  # R$ 147,11 no Estoque Inicial de Produção de ago/2026. Agora empate resolve pelo MAIOR
+  # ID (valoração lançada por último), mesma convenção nos 4 lugares que replicam isto.
   return dataframe_query(f'''
   WITH UltimoValor AS (
     SELECT
         FK_ITEM_PRODUZIDO,
         VALOR,
-        ROW_NUMBER() OVER (PARTITION BY FK_ITEM_PRODUZIDO ORDER BY DATA_VALORACAO DESC) AS rn
+        ROW_NUMBER() OVER (PARTITION BY FK_ITEM_PRODUZIDO ORDER BY DATA_VALORACAO DESC, ID DESC) AS rn
     FROM T_ITENS_PRODUCAO_VALORACAO
     WHERE DATE(DATA_VALORACAO) <= '{data}'
   )
