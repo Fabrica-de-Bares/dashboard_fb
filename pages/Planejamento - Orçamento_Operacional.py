@@ -283,6 +283,11 @@ def renderiza_dre_real_revisao(df_historico_real_dre, df_revisao_orcamento_opera
     ]
     categorias_ocultas_resumo = ['Dividendos e Remunerações Variáveis', 'Endividamento']
 
+    # Classificação Contábil 2 usadas só pra restringir o denominador da % sobre Receita Bruta do
+    # CMV (mesma regra de controladoria_planejamento_anual.define_linhas_calculadas) - não viram
+    # linha própria na tabela final, só entram no cálculo interno do CMV%
+    subcategorias_receita_bruta_cmv = ['Alimentação', 'Bebida', 'Eventos A&B', 'Delivery']
+
     df_historico_real_dre = df_historico_real_dre.copy()
     df_historico_real_dre['Mês'] = pd.to_datetime(df_historico_real_dre['Mês'], errors='coerce')
 
@@ -290,6 +295,7 @@ def renderiza_dre_real_revisao(df_historico_real_dre, df_revisao_orcamento_opera
     # (Faturamento Bruto real != 0) - cada casa pode acabar contribuindo com uma fonte diferente
     # no mesmo mês (ex: Casa A já fechou Agosto, Casa B ainda não) ---
     resultados_por_casa = {}
+    subcategorias_revisao_cmv_por_casa = {}  # lado Revisão das subcategorias acima, por casa - Real vem de df_real_pivot_casa
     for casa_nome in casas_somar:
         df_revisao_filtrado = df_revisao_orcamento_operacional[
             (df_revisao_orcamento_operacional['Casa'] == casa_nome) &
@@ -297,6 +303,7 @@ def renderiza_dre_real_revisao(df_historico_real_dre, df_revisao_orcamento_opera
         ].copy()
 
         df_revisao_valores_casa = None
+        df_subcategorias_revisao_cmv_casa = None
         if not df_revisao_filtrado.empty:
             df_revisao_filtrado.drop(columns=['Ano', 'ID Casa'], inplace=True)
             df_revisao_filtrado["Mês"] = df_revisao_filtrado["Mês"].map(mapa_meses)
@@ -324,6 +331,13 @@ def renderiza_dre_real_revisao(df_historico_real_dre, df_revisao_orcamento_opera
             df_revisao_concatenados = df_revisao_concatenados[['Classificação Contábil 2'] + meses_ano]
             df_revisao_concatenados.rename(columns={'Classificação Contábil 2': 'Categoria'}, inplace=True)
 
+            df_subcategorias_revisao_cmv_casa = (
+                df_revisao_concatenados[df_revisao_concatenados['Categoria'].isin(subcategorias_receita_bruta_cmv)]
+                .drop_duplicates(subset='Categoria', keep='first')
+                .set_index('Categoria')
+                .reindex(subcategorias_receita_bruta_cmv, fill_value=0)[meses_ano]
+            )
+
             df_revisao_resumo = df_revisao_concatenados[
                 df_revisao_concatenados['Categoria'].isin(lista_categorias_dre) &
                 ~df_revisao_concatenados['Categoria'].isin(categorias_ocultas_resumo)
@@ -337,6 +351,8 @@ def renderiza_dre_real_revisao(df_historico_real_dre, df_revisao_orcamento_opera
             # Só as linhas de valor (as % são recalculadas depois de combinar com o Real, ver abaixo)
             df_revisao_valores_casa = df_revisao_resumo[~df_revisao_resumo['Categoria'].str.contains('%')].copy()
             df_revisao_valores_casa = df_revisao_valores_casa.drop_duplicates(subset='Categoria', keep='first').set_index('Categoria')[meses_ano]
+
+        subcategorias_revisao_cmv_por_casa[casa_nome] = df_subcategorias_revisao_cmv_casa
 
         df_real_casa = df_historico_real_dre[
             (df_historico_real_dre['Casa'] == casa_nome) & (df_historico_real_dre['Mês'].dt.year == ano)
@@ -420,7 +436,17 @@ def renderiza_dre_real_revisao(df_historico_real_dre, df_revisao_orcamento_opera
         st.caption('Cabeçalho: 🔵 Real · 🔴 Revisão de Orçamento.')
 
     # --- Combina cada casa (mês fechado usa Real, senão Revisão) e soma entre casas ---
+    def combina_por_mes(df_real_valores, df_revisao_valores, meses_fechados):
+        """Real se o mês estiver fechado pra essa casa, senão Revisão."""
+        df_combinado = pd.DataFrame(index=df_real_valores.index, columns=meses_ano, dtype=float)
+        for mes_num, mes_nome in enumerate(meses_ano, start=1):
+            df_combinado[mes_nome] = (
+                df_real_valores[mes_nome] if mes_num in meses_fechados else df_revisao_valores[mes_nome]
+            )
+        return df_combinado
+
     df_total_combinado = pd.DataFrame(0.0, index=ordem_categorias, columns=meses_ano)
+    df_subcategorias_cmv_total_combinado = pd.DataFrame(0.0, index=subcategorias_receita_bruta_cmv, columns=meses_ano)
     for casa_nome, (df_revisao_valores_casa, df_real_pivot_casa, meses_fechados_casa) in resultados_por_casa.items():
         if df_revisao_valores_casa is None and not meses_fechados_casa:
             continue  # casa sem nenhum dado (nem Real nem Revisão) - não contribui em nada
@@ -446,14 +472,29 @@ def renderiza_dre_real_revisao(df_historico_real_dre, df_revisao_orcamento_opera
             else pd.DataFrame(0.0, index=ordem_categorias, columns=meses_ano)
         )
 
-        df_combinado_casa = pd.DataFrame(index=ordem_categorias, columns=meses_ano, dtype=float)
-        for mes_num, mes_nome in enumerate(meses_ano, start=1):
-            if mes_num in meses_fechados_casa:
-                df_combinado_casa[mes_nome] = df_real_valores_casa[mes_nome]
-            else:
-                df_combinado_casa[mes_nome] = df_revisao_valores_casa_uso[mes_nome]
+        # Mesmas subcategorias de Faturamento Bruto usadas pra restringir o denominador do CMV%
+        # (ver subcategorias_receita_bruta_cmv) - combinadas com a mesma regra Real/Revisão acima
+        df_real_subcategorias_cmv_casa = pd.DataFrame({
+            sub: linha_real(sub) for sub in subcategorias_receita_bruta_cmv
+        }).T
+        df_real_subcategorias_cmv_casa.columns = [mapa_meses[c] for c in df_real_subcategorias_cmv_casa.columns]
+        df_real_subcategorias_cmv_casa = df_real_subcategorias_cmv_casa.reindex(subcategorias_receita_bruta_cmv, fill_value=0)
 
+        df_revisao_subcategorias_cmv_casa_uso = (
+            subcategorias_revisao_cmv_por_casa[casa_nome]
+            if subcategorias_revisao_cmv_por_casa[casa_nome] is not None
+            else pd.DataFrame(0.0, index=subcategorias_receita_bruta_cmv, columns=meses_ano)
+        )
+
+        df_combinado_casa = combina_por_mes(df_real_valores_casa, df_revisao_valores_casa_uso, meses_fechados_casa)
         df_total_combinado = df_total_combinado.add(df_combinado_casa, fill_value=0)
+
+        df_subcategorias_cmv_combinado_casa = combina_por_mes(
+            df_real_subcategorias_cmv_casa, df_revisao_subcategorias_cmv_casa_uso, meses_fechados_casa
+        )
+        df_subcategorias_cmv_total_combinado = df_subcategorias_cmv_total_combinado.add(
+            df_subcategorias_cmv_combinado_casa, fill_value=0
+        )
 
     df_valores_combinado = df_total_combinado.reset_index().rename(columns={'index': 'Categoria'})
 
@@ -466,14 +507,26 @@ def renderiza_dre_real_revisao(df_historico_real_dre, df_revisao_orcamento_opera
 
     colunas_totais = meses_ano + [f'Ano {ano}', '1º Trimestre', '2º Trimestre', '3º Trimestre', '4º Trimestre']
 
+    # Cria colunas de acumulado do ano e trimestres pro denominador restrito do CMV% (mesmo padrão
+    # aplicado acima a df_valores_combinado)
+    df_subcategorias_cmv_total_combinado[f'Ano {ano}'] = df_subcategorias_cmv_total_combinado[meses_ano].sum(axis=1)
+    df_subcategorias_cmv_total_combinado['1º Trimestre'] = df_subcategorias_cmv_total_combinado[['Janeiro', 'Fevereiro', 'Março']].sum(axis=1)
+    df_subcategorias_cmv_total_combinado['2º Trimestre'] = df_subcategorias_cmv_total_combinado[['Abril', 'Maio', 'Junho']].sum(axis=1)
+    df_subcategorias_cmv_total_combinado['3º Trimestre'] = df_subcategorias_cmv_total_combinado[['Julho', 'Agosto', 'Setembro']].sum(axis=1)
+    df_subcategorias_cmv_total_combinado['4º Trimestre'] = df_subcategorias_cmv_total_combinado[['Outubro', 'Novembro', 'Dezembro']].sum(axis=1)
+    receita_bruta_combinada_cmv = df_subcategorias_cmv_total_combinado[colunas_totais].sum()
+
     # % sobre Receita Bruta de cada categoria, recalculada sobre os valores já combinados (Real
     # tem linhas de % posicionais no banco, que dependem do Excel por casa e não seriam confiáveis
-    # numa ordem canônica única - por isso são recalculadas aqui em vez de vir de nenhuma das duas fontes)
+    # numa ordem canônica única - por isso são recalculadas aqui em vez de vir de nenhuma das duas fontes).
+    # CMV usa o denominador restrito (Alimentação+Bebida+Eventos A&B+Delivery), igual às outras abas -
+    # as demais categorias usam o Faturamento Bruto total.
     faturamento_bruto_combinado = df_valores_combinado[df_valores_combinado['Categoria'] == 'Faturamento Bruto'][colunas_totais].sum()
     df_final = df_valores_combinado.copy()
     for categoria in ordem_categorias:
         valores_categoria = df_final[df_final['Categoria'] == categoria][colunas_totais].sum()
-        porc_categoria = valores_categoria / faturamento_bruto_combinado
+        denominador = receita_bruta_combinada_cmv if categoria == 'Custo Mercadoria Vendida' else faturamento_bruto_combinado
+        porc_categoria = valores_categoria / denominador
         df_final = insere_nova_linha(df_final, colunas_totais, porc_categoria, categoria, 'Categoria', '% sobre Receita Bruta')
     df_final = df_final.fillna(0)
 
