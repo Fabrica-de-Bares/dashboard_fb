@@ -287,15 +287,16 @@ def limpeza_linhas(df, casa):
     df_transformado.loc[idx[1], 'Unnamed: 0'] = 'Insumos - Eventos A&B'
     df_transformado.loc[idx[1], 'Classificacao 1'] = 'Custo Mercadoria Vendida'
 
-    if casa == 'Blue Note - São Paulo': # Realoca essas duas categorias de Faturamento Bruto
+    if casa == 'Blue Note - São Paulo':
         condicao = df_transformado['Unnamed: 0'] == 'Viagens e Estadias' # Não excluí: Renomeia para mapear para a class. cont. 1
         df_transformado.loc[condicao, 'Unnamed: 0'] = 'Viagens e Estadias - Artístico'
 
+        # Rebate e Membership têm class. cont. 2 próprias (Membership existe desde 06/05/2026) - antes eram
+        # somadas em Eventos Locações / Outras Receitas, o que duplicava o valor com o orçamento original
         condicao = df_transformado['Unnamed: 0'] == 'Eventos Rebate Fornecedores - Premium Corp'
-        df_transformado.loc[condicao, 'Unnamed: 0'] = 'Eventos Locações'
+        df_transformado.loc[condicao, 'Unnamed: 0'] = 'Eventos Rebate Fornecedores'
 
-        condicao = df_transformado['Unnamed: 0'] == 'Membership'
-        df_transformado.loc[condicao, 'Unnamed: 0'] = 'Outras Receitas'
+        # Soma linhas que ficaram com o mesmo nome após as renomeações
         df_transformado = df_transformado.groupby('Unnamed: 0', as_index=False)[['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro']].sum()
     
     # Cria coluna de class. cont. 2

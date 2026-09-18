@@ -65,7 +65,12 @@ def prepara_partes_headcount(df, tipo_dado, ano):
         df = df.dropna(subset=['Unnamed: 13'])
         df = df.rename(columns={'Unnamed: 13': 'Cargo'})
 
-    df = df[~df['Cargo'].isin([tipo_dado, 'PJ', '  - Squad', 'Operação', 'Quadro/Função'])].copy() # Linhas desnecessárias
+    # Ignora linhas sem nome de cargo (ex.: 0 vindo de fórmula) e remove espaços do começo/fim do nome
+    df = df[df['Cargo'].apply(lambda cargo: isinstance(cargo, str))].copy()
+    df['Cargo'] = df['Cargo'].str.strip()
+    df = df[df['Cargo'] != '']
+
+    df = df[~df['Cargo'].isin([tipo_dado, 'PJ', '- Squad', 'Operação', 'Quadro/Função'])].copy() # Linhas desnecessárias
     df = df.fillna(0)
 
     for col in df.columns:
