@@ -899,6 +899,12 @@ def DRE_AUT_TRANSFERENCIAS(ids_casa):
   # de GET_TRANSF_ESTOQUE) — ID_Insumo/Nome_Insumo/Insumo_Nivel_4 ficam NULL quando é
   # item produzido (não há níveis 2-5 para produção), mas Insumo_Nivel_1 (usada pelo
   # SUMIFS de Alimentos/Bebidas na aba CMV_Manual) vem preenchida via COALESCE.
+  #
+  # Status da transferência (2026-09-19, decisão do Gabriel): mesmo filtro de
+  # GET_TRANSF_ESTOQUE/queries_cmv.py, onde está a explicação completa. Resumo: recusada
+  # (102) e cancelada (103) nunca contam, nos dois lados; a partir de 2026-09-01 só a
+  # aprovada (101) conta. Como o CMV aqui sai do SUMIFS da aba CMV_Manual sobre
+  # Aut_Transferencias, filtrar no SQL basta — os templates .xlsx não mudam.
   return dataframe_query(f'''
   SELECT
     tti.ID as 'ID_Transferencia',
@@ -914,6 +920,7 @@ def DRE_AUT_TRANSFERENCIAS(ids_casa):
     tti.VALOR_TRANSFERENCIA as 'Valor_da_Transferencia',
     tti.OBSERVACAO as 'Observacao'
   FROM T_TRANSFERENCIAS_INSUMOS tti
+  LEFT JOIN T_AGRUPAMENTO_TRANSFERENCIA_MERCADORIA ttm ON (tti.FK_AGRUPAMENTO = ttm.ID)
   LEFT JOIN T_INSUMOS_NIVEL_5 tin5 ON (tti.FK_INSUMO_NIVEL_5 = tin5.ID)
   LEFT JOIN T_INSUMOS_NIVEL_4 tin4 ON (tin5.FK_INSUMOS_NIVEL_4 = tin4.ID)
   LEFT JOIN T_INSUMOS_NIVEL_3 tin3 ON (tin4.FK_INSUMOS_NIVEL_3 = tin3.ID)
@@ -926,7 +933,9 @@ def DRE_AUT_TRANSFERENCIAS(ids_casa):
   LEFT JOIN T_INSUMOS_NIVEL_1 tin1_prod ON (tip.FK_INSUMO_NIVEL_1 = tin1_prod.ID)
   LEFT JOIN T_UNIDADES_DE_MEDIDAS tudm_prod ON (tip.FK_UNIDADE_MEDIDA = tudm_prod.ID)
   WHERE (te.ID IN ({ids_casa}) OR te2.ID IN ({ids_casa}))
-  AND STR_TO_DATE(tti.DATA_TRANSFERENCIA, '%Y-%m-%d') >= '2025-12-01 00:00:00';
+  AND STR_TO_DATE(tti.DATA_TRANSFERENCIA, '%Y-%m-%d') >= '2025-12-01 00:00:00'
+  AND COALESCE(ttm.FK_STATUS_TRANSFERENCIA, 0) NOT IN (102, 103)
+  AND (tti.DATA_TRANSFERENCIA < '2026-09-01' OR ttm.FK_STATUS_TRANSFERENCIA = 101);
   ''')
 
 

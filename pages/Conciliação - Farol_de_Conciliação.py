@@ -11,7 +11,9 @@ from utils.queries_conciliacao import *
 
 
 nomes_meses = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']
-# Blue Note SP (Sala 2) deixou de ser filtrada aqui em 2026-09-09: virou casa própria.
+# Blue Note SP (Sala 2) fica fora: na conciliação ela entra somada ao Blue Note - São Paulo
+# (ver queries_conciliacao.py). No resto do dashboard é casa própria.
+casas_validas = [casa for casa in casas_validas if casa != 'Blue Note SP (Sala 2)']
 
 st.set_page_config(
     page_title="Conciliação FB - Farol",

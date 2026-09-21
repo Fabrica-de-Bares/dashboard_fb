@@ -928,6 +928,23 @@ def GET_TRANSF_ESTOQUE():
   # Python ganham o fix automaticamente, sem precisar mudar o pandas. Achado real: Bar
   # Léo - Centro, transferência ID 3883 (PANCETA CROCATE, R$98,17, casa 114->116,
   # 18/07/2026).
+  #
+  # Status da transferência (2026-09-19, decisão do Gabriel — mesmo filtro aplicado em
+  # DRE_AUT_TRANSFERENCIAS/queries_dre_download.py, nas queries 16 e 27 do Mini_Gabu e
+  # nas cópias do blueme-dashboard/cmv-real-ci): transferência RECUSADA (102) ou
+  # CANCELADA (103) não aconteceu e tem que sumir do CMV dos DOIS lados — nem saída na
+  # casa que envia, nem entrada na casa que recebe. A partir de 2026-09-01
+  # (transferências que afetam o inventário de fim de setembro em diante) só a APROVADA
+  # (101) conta; antes dessa data continuam contando a PENDENTE (100) e o legado.
+  #
+  # O status não fica em T_TRANSFERENCIAS_INSUMOS: fica no documento que agrupa as linhas
+  # (T_AGRUPAMENTO_TRANSFERENCIA_MERCADORIA.FK_STATUS_TRANSFERENCIA -> 100 PENDENTE,
+  # 101 APROVADA, 102 RECUSADA, 103 CANCELADA). Não usar FK_STATUS nem ROW_STATE, que são
+  # colunas genéricas do EPM. LEFT JOIN é obrigatório: as linhas anteriores à criação do
+  # agrupamento (out/2024 a jul/2026) não têm documento, e um INNER JOIN as apagaria.
+  #
+  # Esta query alimenta CMV Real, Painel CMV (utils/functions/cmv_painel.py) e Forecast
+  # (utils/functions/forecast.py) — os três ganham o filtro de uma vez, sem mudar pandas.
   return dataframe_query(f'''
   SELECT
     tti.ID as 'ID_Transferencia',
@@ -944,6 +961,7 @@ def GET_TRANSF_ESTOQUE():
     tti.VALOR_TRANSFERENCIA as 'Valor_Transferencia',
     tti.OBSERVACAO as 'Observacao'
   FROM T_TRANSFERENCIAS_INSUMOS tti
+    LEFT JOIN T_AGRUPAMENTO_TRANSFERENCIA_MERCADORIA ttm ON (tti.FK_AGRUPAMENTO = ttm.ID)
     LEFT JOIN T_EMPRESAS te ON (tti.FK_EMRPESA_SAIDA = te.ID)
     LEFT JOIN T_EMPRESAS te2 ON tti.FK_EMPRESA_ENTRADA = te2.ID
     LEFT JOIN T_INSUMOS_NIVEL_5 tin5 ON tti.FK_INSUMO_NIVEL_5 = tin5.ID
@@ -954,6 +972,8 @@ def GET_TRANSF_ESTOQUE():
     LEFT JOIN T_UNIDADES_DE_MEDIDAS tudm ON (tin5.FK_UNIDADE_MEDIDA = tudm.ID)
     LEFT JOIN T_ITENS_PRODUCAO tip ON tti.FK_ITEM_PRODUCAO = tip.ID
     LEFT JOIN T_INSUMOS_NIVEL_1 tin1_prod ON tip.FK_INSUMO_NIVEL_1 = tin1_prod.ID
+  WHERE COALESCE(ttm.FK_STATUS_TRANSFERENCIA, 0) NOT IN (102, 103)
+    AND (tti.DATA_TRANSFERENCIA < '2026-09-01' OR ttm.FK_STATUS_TRANSFERENCIA = 101)
   ORDER BY tti.ID DESC
 ''')
 

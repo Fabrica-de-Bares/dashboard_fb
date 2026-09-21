@@ -53,7 +53,8 @@ if start_date > end_date:
     st.warning("A data de fim deve ser maior que a data de início!")
 
 else: # Seletor de casa
-    lista_retirar_casas = ['Todas as Casas', 'Bar Léo - Vila Madalena', 'The Cavern - Almoço', 'Brahminha', 'Terraço Notie']
+    # Sala 2 fora: na conciliação ela entra somada ao Blue Note - São Paulo (ver queries_conciliacao.py)
+    lista_retirar_casas = ['Todas as Casas', 'Bar Léo - Vila Madalena', 'Blue Note SP (Sala 2)', 'The Cavern - Almoço', 'Brahminha', 'Terraço Notie']
     id_casa, casa, id_zigpay = input_selecao_casas(lista_retirar_casas, key='faturamento_bruto')
     
     st.divider()
