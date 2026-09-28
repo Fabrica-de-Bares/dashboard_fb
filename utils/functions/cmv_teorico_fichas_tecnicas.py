@@ -1,11 +1,13 @@
+import html
 import pandas as pd
 import streamlit.components.v1 as components
 import streamlit as st
+from utils.functions.clipboard import dataframe_to_tsv_planilha
 
 def function_copy_dataframe_as_tsv(df):
     #Função de copiar o dataframe
-    # Converte o DataFrame para uma string TSV
-    df_tsv = df.to_csv(index=False, sep='\t')
+    # Converte o DataFrame para uma string TSV com números prontos para cálculo na planilha
+    df_tsv = html.escape(dataframe_to_tsv_planilha(df))
     
     # Gera código HTML e JavaScript para copiar o conteúdo para a área de transferência
     components.html(

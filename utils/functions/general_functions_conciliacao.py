@@ -7,6 +7,7 @@ import numpy as np
 import os
 import re
 import io
+import html
 from utils.constants.general_constants import *
 from pandas.api.types import is_numeric_dtype
 from utils.user import *
@@ -16,6 +17,7 @@ from st_aggrid import AgGrid, GridOptionsBuilder, JsCode, GridUpdateMode
 from st_aggrid.shared import StAggridTheme
 import streamlit.components.v1 as components
 from rapidfuzz import fuzz
+from utils.functions.clipboard import dataframe_to_tsv_planilha
 
 
 # Traduz dia da semana ou mês
@@ -590,24 +592,12 @@ def component_plotDataframe_aggrid(
     
 
 def function_copy_dataframe_as_tsv(df: pd.DataFrame):
-    # Cria uma cópia do DataFrame para não modificar o original
-    df_copy = df.copy()
-    
-    # Identifica colunas numéricas
-    numeric_columns = df_copy.select_dtypes(include=[np.number]).columns
-    
-    # Formata colunas numéricas substituindo "." por ","
-    for col in numeric_columns:
-        df_copy[col] = df_copy[col].astype(str).str.replace('.', ',', regex=False)
-    
-    # Gera a string TSV
-    tsv = df_copy.to_csv(index=False, sep='\t')
+    # Gera a string TSV com números prontos para cálculo na planilha (inclui colunas Decimal do MySQL)
+    tsv = html.escape(dataframe_to_tsv_planilha(df))
 
     # HTML+JS para ocultar o textarea, copiar ao clicar e avisar o usuário
     components.html(f"""
-    <textarea id="clipboard-textarea" style="position: absolute; left: -1000px;">
-{tsv}
-    </textarea>
+    <textarea id="clipboard-textarea" style="position: absolute; left: -1000px;">{tsv}</textarea>
     <button onclick="
         const ta = document.getElementById('clipboard-textarea');
         ta.select();
