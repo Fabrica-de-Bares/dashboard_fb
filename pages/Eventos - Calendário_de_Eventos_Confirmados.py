@@ -104,7 +104,7 @@ def main():
                 </div>
                 <div style="display: flex; align-items: center;">
                     <div style="width: 16px; height: 16px; background-color: #000080; border-radius: 4px; margin-right: 8px;"></div>
-                    <span>Blue Note São Paulo</span>
+                    <span>Blue Note São Paulo (inclui Sala 2)</span>
                 </div>
                 <div style="display: flex; align-items: center;">
                     <div style="width: 16px; height: 16px; background-color: #FFB5C0; border-radius: 4px; margin-right: 8px;"></div>
@@ -121,6 +121,10 @@ def main():
                 <div style="display: flex; align-items: center;">
                     <div style="width: 16px; height: 16px; background-color: #9D00FF; border-radius: 4px; margin-right: 8px;"></div>
                     <span>Love Cabaret</span>
+                </div>
+                <div style="display: flex; align-items: center;">
+                    <div style="width: 16px; height: 16px; background-color: #8E5B00; border-radius: 4px; margin-right: 8px;"></div>
+                    <span>Nuv Gastrobar</span>
                 </div>
                 <div style="display: flex; align-items: center;">
                     <div style="width: 16px; height: 16px; background-color: #898989; border-radius: 4px; margin-right: 8px;"></div>

@@ -29,6 +29,7 @@ def dataframe_to_json_calendar(df_eventos, event_color_type=None):
         148: '#84161f',  # Bar Brahma - Granja
         116: '#FF2C2C',  # Bar Leo Centro
         110: '#000080',  # Blue Note São Paulo
+        178: '#000080',  # Blue Note SP (Sala 2) - mesma cor do Blue Note
         156: '#FFB5C0',  # Girondino
         160: '#88E788',  # Girondino CCBB
         105: '#7E8C54',  # Jacaré
@@ -36,7 +37,8 @@ def dataframe_to_json_calendar(df_eventos, event_color_type=None):
         104: '#898989',  # Orfeu
         115: '#00CCC8',  # Riviera
         145: '#000000',  # Ultra Evil (Rolim)
-        173: '#12b823' # Brahma - Paulista
+        173: '#12b823', # Brahma - Paulista
+        180: '#8E5B00', # Nuv Gastrobar
     }
 
 
