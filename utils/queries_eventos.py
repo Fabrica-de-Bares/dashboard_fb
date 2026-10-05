@@ -777,11 +777,11 @@ def GET_EVENTOS_CONCIERGE():
 	SELECT 
 		CONCAT('C-', tep.ID) AS 'ID Evento',
 		CASE 
-			WHEN te.NOME_FANTASIA = 'Terraço Notie' THEN 'Priceless'
+			WHEN te.ID = 162 THEN (SELECT NOME_FANTASIA FROM T_EMPRESAS WHERE ID = 149)
 			ELSE te.NOME_FANTASIA
 		END AS `Casa`,
 		CASE 
-			WHEN te.NOME_FANTASIA = 'Terraço Notie' THEN 149
+			WHEN te.ID = 162 THEN 149
 			ELSE te.ID
 		END AS `ID Casa`,
 		tc.NOME AS 'Comercial Responsável',
@@ -838,11 +838,11 @@ def GET_PARCELAS_EVENTOS_CONCIERGE():
 			CONCAT('C-', tpep.ID) AS 'ID Parcela',
 			CONCAT('C-', tpep.FK_EVENTO_CONCIERGE) AS 'ID Evento',
 			CASE 
-				WHEN te.NOME_FANTASIA = 'Terraço Notie' THEN 'Priceless'
+				WHEN te.ID = 162 THEN (SELECT NOME_FANTASIA FROM T_EMPRESAS WHERE ID = 149)
 				ELSE te.NOME_FANTASIA
 			END AS Casa,
 			CASE 
-				WHEN te.NOME_FANTASIA = 'Terraço Notie' THEN 149
+				WHEN te.ID = 162 THEN 149
 				ELSE te.ID
 			END AS `ID Casa`,
 			tep.NOME_EVENTO AS 'Nome Evento',

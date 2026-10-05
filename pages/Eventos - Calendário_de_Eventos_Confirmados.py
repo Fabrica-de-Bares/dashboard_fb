@@ -1,4 +1,5 @@
 import streamlit as st
+from utils.functions.general_functions import nome_casa_por_id
 from streamlit_calendar import calendar as st_calendar
 from utils.components import *
 from utils.functions.date_functions import *
@@ -76,7 +77,7 @@ def main():
             <div style="display: flex; flex-wrap: wrap; gap: 12px;">
                 <div style="display: flex; align-items: center;">
                     <div style="width: 16px; height: 16px; background-color: #E35336; border-radius: 4px; margin-right: 8px;"></div>
-                    <span>Priceless</span>
+                    <span>""" + nome_casa_por_id(149) + """</span>
                 </div>
                 <div style="display: flex; align-items: center;">
                     <div style="width: 16px; height: 16px; background-color: #2323FF; border-radius: 4px; margin-right: 8px;"></div>

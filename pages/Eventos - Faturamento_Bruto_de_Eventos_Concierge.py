@@ -1,4 +1,5 @@
 import streamlit as st
+from utils.functions.general_functions import nome_casa_por_id
 import pandas as pd
 from workalendar.america import Brazil
 import warnings
@@ -37,13 +38,13 @@ def main():
 
 	# Recupera dados dos eventos e parcelas
 	df_eventos = GET_EVENTOS_CONCIERGE()
-	# Substitui nome e ID da casa Priceless
-	df_eventos['Casa'] = df_eventos['Casa'].apply(lambda x: 'Terraço Notie' if x == 'Priceless' else x)
+	# Concierge da Notie volta para o place 162 (Terraço Notie) — por ID, não pelo nome
+	df_eventos.loc[df_eventos['ID Casa'] == 149, 'Casa'] = 'Terraço Notie'
 	df_eventos['ID Casa'] = df_eventos['ID Casa'].apply(lambda x: 162 if x == 149 else x)
 
 	df_parcelas = GET_PARCELAS_EVENTOS_CONCIERGE()
+	df_parcelas.loc[df_parcelas['ID Casa'] == 149, 'Casa'] = 'Terraço Notie'
 	df_parcelas['ID Casa'] = df_parcelas['ID Casa'].apply(lambda x: 162 if x == 149 else x)
-	df_parcelas['Casa'] = df_parcelas['Casa'].apply(lambda x: 'Terraço Notie' if x == 'Priceless' else x)
 	df_orcamentos = GET_ORCAMENTOS_EVENTOS_CONCIERGE()
 
 	# Formata tipos de dados do dataframe de eventos
@@ -96,7 +97,7 @@ def main():
 	# Seletores
 	col1, col2= st.columns([1, 1], gap="large")
 	with col1:
-		lista_retirar_casas = ['Bar Léo - Vila Madalena', 'Blue Note SP (Novo)', 'Edificio Rolim', 'Escritório Fabrica de Bares', 'The Cavern - Almoço', 'Arcos', 'Bar Brahma - Centro', 'Bar Brahma - Granja', 'Bar Léo - Centro', 'Blue Note - São Paulo', 'Girondino', 'Girondino - CCBB', 'Jacaré', 'Love Cabaret', 'Orfeu', 'Priceless', 'Riviera Bar', 'Sanduiche comunicação LTDA ', 'Tempus Fugit  Ltda ', 'Ultra Evil Premium Ltda ', 'Terraço Notie Novo', 'Bar Brahma - Paulista', 'Nuv Gastrobar']
+		lista_retirar_casas = ['Bar Léo - Vila Madalena', 'Blue Note SP (Novo)', 'Edificio Rolim', 'Escritório Fabrica de Bares', 'The Cavern - Almoço', 'Arcos', 'Bar Brahma - Centro', 'Bar Brahma - Granja', 'Bar Léo - Centro', 'Blue Note - São Paulo', 'Girondino', 'Girondino - CCBB', 'Jacaré', 'Love Cabaret', 'Orfeu', nome_casa_por_id(149), 'Riviera Bar', 'Sanduiche comunicação LTDA ', 'Tempus Fugit  Ltda ', 'Ultra Evil Premium Ltda ', 'Terraço Notie Novo', 'Bar Brahma - Paulista', 'Nuv Gastrobar']
 		df_casas_selecionadas = input_multiselecao_casas(lista_retirar_casas, key='faturamento_bruto')
 		lista_ids_casa = df_casas_selecionadas['ID_Casa'].tolist()
 	with col2:

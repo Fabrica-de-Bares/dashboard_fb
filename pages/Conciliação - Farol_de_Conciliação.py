@@ -3,8 +3,7 @@ import pandas as pd
 import calendar
 from utils.components import seletor_ano
 from utils.functions.general_functions_conciliacao import *
-from utils.constants.general_constants import casas_validas
-from utils.functions.general_functions import config_sidebar
+from utils.functions.general_functions import config_sidebar, get_casas_validas
 from utils.functions.conciliacoes import *
 from utils.functions.farol_conciliacao import *
 from utils.queries_conciliacao import *
@@ -13,7 +12,7 @@ from utils.queries_conciliacao import *
 nomes_meses = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']
 # Blue Note SP (Sala 2) fica fora: na conciliação ela entra somada ao Blue Note - São Paulo
 # (ver queries_conciliacao.py). No resto do dashboard é casa própria.
-casas_validas = [casa for casa in casas_validas if casa != 'Blue Note SP (Sala 2)']
+casas_validas = [casa for casa in get_casas_validas() if casa != 'Blue Note SP (Sala 2)']
 
 st.set_page_config(
     page_title="Conciliação FB - Farol",

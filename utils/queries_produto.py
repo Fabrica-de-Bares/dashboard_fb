@@ -31,7 +31,6 @@ def GET_CASAS_VALIDAS_ANALISE_PRODUTOS():
         "Love Cabaret",
         "Notiê - Priceless",
         "Orfeu",
-        "Priceless",
         "Riviera Bar",
         "Ultra Evil Premium Ltda ",
         "Delivery Bar Leo Centro",
@@ -40,7 +39,8 @@ def GET_CASAS_VALIDAS_ANALISE_PRODUTOS():
         "Delivery Orfeu",
     ]
     df_validas = pd.DataFrame(lista_casas_validas, columns=["Casa"])
-    df = df_casas.merge(df_validas, on="Casa", how="inner")
+    # Notie SP entra por ID (149), não pelo nome
+    df = df_casas[df_casas["Casa"].isin(df_validas["Casa"]) | (df_casas["ID_Casa"] == 149)].reset_index(drop=True)
     return df
 
 
@@ -124,7 +124,6 @@ def GET_CASAS_VALIDAS_ANALISE_PRODUTOS():
         "Love Cabaret",
         "Notiê - Priceless",
         "Orfeu",
-        "Priceless",
         "Riviera Bar",
         "Ultra Evil Premium Ltda ",
         "Delivery Bar Leo Centro",
@@ -134,7 +133,8 @@ def GET_CASAS_VALIDAS_ANALISE_PRODUTOS():
         "Delivery Girondino"
     ]
     df_validas = pd.DataFrame(lista_casas_validas, columns=["Casa"])
-    df = df_casas.merge(df_validas, on="Casa", how="inner")
+    # Notie SP entra por ID (149), não pelo nome
+    df = df_casas[df_casas["Casa"].isin(df_validas["Casa"]) | (df_casas["ID_Casa"] == 149)].reset_index(drop=True)
     return df
 
 

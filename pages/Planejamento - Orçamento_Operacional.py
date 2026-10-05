@@ -1,4 +1,5 @@
 import streamlit as st
+from utils.functions.general_functions import nome_casa_por_id
 import pandas as pd
 from utils.functions.general_functions import config_sidebar
 from utils.functions.controladoria_planejamento_anual import *
@@ -45,7 +46,7 @@ with col3:
     tipo_valor = st.selectbox("Selecione a informação a visualizar:", ['Orçamento Operacional', 'Histórico Real'])
 
 with col1:
-    lista_casas_retirar = ['Blue Note SP (Novo)', 'Brahminha', 'Edificio Rolim', 'Priceless', 'Sanduiche comunicação LTDA ', 'Tempus Fugit  Ltda ', 'Terraço Notie Novo', 'The Cavern - Almoço']
+    lista_casas_retirar = ['Blue Note SP (Novo)', 'Brahminha', 'Edificio Rolim', nome_casa_por_id(149), 'Sanduiche comunicação LTDA ', 'Tempus Fugit  Ltda ', 'Terraço Notie Novo', 'The Cavern - Almoço']
     if tipo_valor == 'Histórico Real':
         # 'Todas as Casas' não é suportado no Histórico Real (depende de um arquivo Base_DRE por casa)
         lista_casas_retirar = lista_casas_retirar + ['Todas as Casas']

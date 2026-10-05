@@ -1,4 +1,5 @@
 import streamlit as st
+from utils.functions.general_functions import nome_casa_por_id
 from utils.user import *
 from utils.queries_eventos import *
 from utils.functions.general_functions import *
@@ -115,7 +116,7 @@ def main():
         casas_permitidas = df_lojas_user.to_dict("records")        
         if not casas_permitidas and cargo == "Gazit":
             casas_permitidas = [
-                {"ID Loja": 149, "Loja": "Priceless"},
+                {"ID Loja": 149, "Loja": nome_casa_por_id(149)},
             ]
         elif not casas_permitidas:
             print("Nenhuma permissão de casas encontrada")

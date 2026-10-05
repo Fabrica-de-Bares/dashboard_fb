@@ -556,6 +556,8 @@ def GET_VALORACAO_ESTOQUE(loja, data_contagem):
   # Condição dinâmica baseada no parâmetro 'loja'
   if loja == 'Girondino - Agregado':
     where_loja = "te.ID IN (156, 160)"
+  elif loja == 'Terraço Notie - Agregado':
+    where_loja = "te.ID = 149"
   else:
     where_loja = f"te.NOME_FANTASIA = '{loja}'"
   # Fix 2026-08-10 (mesma sessão/decisão do fix em brands/fabrica-de-bares/scripts/
@@ -605,6 +607,8 @@ def GET_AGRUPAMENTOS_DIVERGENTES(loja, data_contagem):
   # GET_VALORACAO_ESTOQUE pode estar deixando uma contagem agrupada de fora.
   if loja == 'Girondino - Agregado':
     where_loja = "te.ID IN (156, 160)"
+  elif loja == 'Terraço Notie - Agregado':
+    where_loja = "te.ID = 149"
   else:
     where_loja = f"te.NOME_FANTASIA = '{loja}'"
   return dataframe_query(f'''
@@ -791,8 +795,7 @@ def GET_INSUMOS_AGRUPADOS_BLUE_ME_POR_CATEG_COM_PEDIDO_PERIODO_LOJA(data_inicio,
           WHEN q.Loja = 'The Cavern - Almoço' THEN 'The Cavern - Agregado'
           WHEN q.Loja = 'Terraco Notie' THEN 'Terraco Notie - Agregado'
           WHEN q.Loja = 'Terraço Notie Novo' THEN 'Terraço Notie - Agregado'
-          WHEN q.Loja = 'Notiê - Priceless' THEN 'Terraço Notie - Agregado'
-          WHEN q.Loja = 'Priceless' THEN 'Terraço Notie - Agregado'
+          WHEN q.ID_Loja IN (149, 161) THEN 'Terraço Notie - Agregado'
           ELSE q.Loja
         END
 		) = '{loja}'
@@ -1032,8 +1035,7 @@ def GET_INSUMOS_BLUE_ME_COM_PEDIDO(data_inicio, data_fim, loja):
         WHEN te.NOME_FANTASIA = 'The Cavern - Almoço' THEN 'The Cavern - Agregado'
         WHEN te.NOME_FANTASIA = 'Terraco Notie' THEN 'Terraco Notie - Agregado'
         WHEN te.NOME_FANTASIA = 'Terraço Notie Novo' THEN 'Terraço Notie - Agregado'
-        WHEN te.NOME_FANTASIA = 'Notiê - Priceless' THEN 'Terraço Notie - Agregado'
-        WHEN te.NOME_FANTASIA = 'Priceless' THEN 'Terraço Notie - Agregado'
+        WHEN te.ID IN (149, 161) THEN 'Terraço Notie - Agregado'
       	ELSE te.NOME_FANTASIA
       END AS `Loja`,
       tf.CORPORATE_NAME AS Fornecedor,
@@ -1123,8 +1125,7 @@ def GET_INSUMOS_BLUE_ME_COM_PEDIDO(data_inicio, data_fim, loja):
           WHEN te.NOME_FANTASIA = 'The Cavern - Almoço' THEN 'The Cavern - Agregado'
           WHEN te.NOME_FANTASIA = 'Terraco Notie' THEN 'Terraco Notie - Agregado'
           WHEN te.NOME_FANTASIA = 'Terraço Notie Novo' THEN 'Terraço Notie - Agregado'
-          WHEN te.NOME_FANTASIA = 'Notiê - Priceless' THEN 'Terraço Notie - Agregado'
-          WHEN te.NOME_FANTASIA = 'Priceless' THEN 'Terraço Notie - Agregado'
+          WHEN te.ID IN (149, 161) THEN 'Terraço Notie - Agregado'
           ELSE te.NOME_FANTASIA
         END
 		  ) = '{loja}'

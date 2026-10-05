@@ -1,8 +1,7 @@
 import streamlit as st
 from utils.components import seletor_ano, input_selecao_casas
 from utils.functions.general_functions_conciliacao import *
-from utils.constants.general_constants import casas_validas
-from utils.functions.general_functions import config_sidebar
+from utils.functions.general_functions import config_sidebar, get_casas_validas
 from utils.functions.ajustes import *
 from utils.queries_conciliacao import *
 
@@ -51,6 +50,7 @@ lista_qtd_ajustes_mes = qtd_ajustes_mes(df_ajustes_filtrado)
 
 
 # Cria a lista da qtd de ajustes por mês de cada casa usando list comprehension
+casas_validas = get_casas_validas()
 lista_ajustes_casas = [lista_ajustes_casa(casa, ano) for casa in casas_validas]
 
 # Exibe gráfico de todos os meses e todas as casas

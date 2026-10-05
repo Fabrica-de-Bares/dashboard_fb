@@ -17,14 +17,14 @@ def GET_ITENS_VENDIDOS_DIA_DA_SEMANA():
     SELECT 
       CASE
         WHEN tivd.FK_CASA = 117 THEN 118 -- Delivery BBC
-        WHEN te.ID IN (149, 161, 162, 179) THEN 149 -- Priceless
+        WHEN te.ID IN (149, 161, 162, 179) THEN 149 -- Notie SP
         # WHEN te.ID = 131 THEN 110 -- Blue Note
         WHEN te.ID = 177 THEN 176 -- The Cavern                                    
         ELSE tivd.FK_CASA
       END AS 'ID_Casa',
       CASE
         WHEN te.NOME_FANTASIA = 'Hotel Maraba' THEN 'Delivery Brahma Centro'
-        WHEN te.NOME_FANTASIA IN ('Terraço Notie', 'Notiê - Priceless') THEN 'Priceless'
+        WHEN te.ID IN (149, 161, 162) THEN (SELECT NOME_FANTASIA FROM T_EMPRESAS WHERE ID = 149)
         # WHEN te.NOME_FANTASIA = 'Blue Note SP (Novo)' THEN 'Blue Note - São Paulo'
         WHEN te.NOME_FANTASIA = 'The Cavern - Almoço' THEN 'The Cavern'                                    
         ELSE te.NOME_FANTASIA
@@ -59,7 +59,7 @@ def GET_ITENS_VENDIDOS_DIA():
         WHEN tivd.FK_CASA = 139 THEN 105
         WHEN tivd.FK_CASA = 112 THEN 104
         WHEN tivd.FK_CASA = 181 THEN 156
-        WHEN te.ID IN (161, 162, 179) THEN 149 -- Priceless
+        WHEN te.ID IN (161, 162, 179) THEN 149 -- Notie SP
         WHEN te.ID = 131 THEN 110 -- Blue Note
         WHEN te.ID = 177 THEN 176 -- The Cavern                                    
         ELSE tivd.FK_CASA
@@ -71,7 +71,7 @@ def GET_ITENS_VENDIDOS_DIA():
         WHEN tivd.FK_CASA = 139 THEN 'Jacaré'
         WHEN tivd.FK_CASA = 112 THEN 'Orfeu'
         WHEN tivd.FK_CASA = 181 THEN 'Girondino'
-        WHEN te.NOME_FANTASIA IN ('Terraço Notie', 'Notiê - Priceless') THEN 'Priceless'
+        WHEN te.ID IN (149, 161, 162) THEN (SELECT NOME_FANTASIA FROM T_EMPRESAS WHERE ID = 149)
         WHEN te.NOME_FANTASIA = 'Blue Note SP (Novo)' THEN 'Blue Note - São Paulo'
         WHEN te.NOME_FANTASIA = 'The Cavern - Almoço' THEN 'The Cavern'                                    
         ELSE te.NOME_FANTASIA
@@ -339,7 +339,7 @@ def GET_EVENTOS_REBATE_FORNEC_PRICELESS():
         SELECT 
           vpa.ID AS 'ID_receita', 
           CASE
-              WHEN te.ID IN (161, 162) THEN 'Priceless'
+              WHEN te.ID IN (149, 161, 162) THEN (SELECT NOME_FANTASIA FROM T_EMPRESAS WHERE ID = 149)
               WHEN te.ID = 131 THEN 'Blue Note - São Paulo'                                                             
               ELSE te.NOME_FANTASIA
           END AS 'Casa', 
@@ -439,7 +439,7 @@ def GET_DEMAIS_RECEITAS_EXTR():
         SELECT 
           vpa.ID AS 'ID_receita',                  
           CASE
-              WHEN te.ID IN (161, 162) THEN 'Priceless'
+              WHEN te.ID IN (149, 161, 162) THEN (SELECT NOME_FANTASIA FROM T_EMPRESAS WHERE ID = 149)
               WHEN te.ID = 131 THEN 'Blue Note - São Paulo'                                                             
               ELSE te.NOME_FANTASIA
           END AS 'Casa', 
@@ -543,7 +543,7 @@ def GET_PARCELAS_RECEIT_EXTR(id_casa):
         LEFT JOIN T_RECEITAS_EXTRAORDINARIAS_CLASSIFICACAO trec2 ON (tre.FK_CLASSIFICACAO = trec2.ID)
         WHERE YEAR(tre.DATA_OCORRENCIA) > 2024 
         AND trec2.CLASSIFICACAO IN ('Coleta de Óleo', 'Lojinha', 'Aluguel')                                  
-        AND te.NOME_FANTASIA IN ({casas_str})
+        AND (te.NOME_FANTASIA IN ({casas_str}) OR te.ID = 149)
         ORDER BY te.NOME_FANTASIA ASC, tre.DATA_OCORRENCIA
         ''')
     
@@ -598,7 +598,7 @@ def GET_EVENTOS_CONCIERGE_PRICELESS():
         )
         SELECT
         149 AS 'ID_Casa',                   
-        'Priceless' AS 'Casa',
+        (SELECT NOME_FANTASIA FROM T_EMPRESAS WHERE ID = 149) AS 'Casa',
         tpep.ID AS 'ID_Parcela',
         tep.ID AS 'ID_Evento',
         tep.DATA_EVENTO AS 'Data Evento',
@@ -653,7 +653,7 @@ def GET_TODOS_FATURAMENTOS_DIA(id_casa):
     
     # Faturamento - Receitas Extraordinárias
     parc_receitas_extr = GET_PARCELAS_RECEIT_EXTR(id_casa) # 'Gifts' (Lojinha) e 'Outras Receitas' (Coleta de Óleo) e 'Aluguel' (Love Cabaret)
-    if id_casa == 149: # Priceless inclui Eventos Concierge
+    if id_casa == 149: # Notie SP inclui Eventos Concierge
         eventos_concierge = GET_EVENTOS_CONCIERGE_PRICELESS()
         eventos_concierge = eventos_concierge.groupby(['ID_Casa', 'Casa', 'Data Evento'], as_index=False)['Valor AB'].sum()
         eventos_concierge['Categoria'] = 'Outras Receitas'
@@ -709,7 +709,7 @@ def GET_DESCONTOS():
     return dataframe_query(f'''
     SELECT 
         CASE
-            WHEN te.ID = 162 THEN 'Priceless'
+            WHEN te.ID IN (149, 162) THEN (SELECT NOME_FANTASIA FROM T_EMPRESAS WHERE ID = 149)
             WHEN te.ID = 131 THEN 'Blue Note - São Paulo'                        
             ELSE te.NOME_FANTASIA                                                                           
         END AS 'Casa',
@@ -741,7 +741,7 @@ def GET_PROMOCOES():
     SELECT 
         CASE                   
             WHEN te.ID = 131 THEN 'Blue Note - São Paulo' 
-            WHEN te.ID = 162 THEN 'Priceless'
+            WHEN te.ID IN (149, 162) THEN (SELECT NOME_FANTASIA FROM T_EMPRESAS WHERE ID = 149)
             ELSE te.NOME_FANTASIA                                                     
         END AS 'Casa',
         MONTH(tpz.DATA) AS 'Mês',
@@ -1061,7 +1061,7 @@ def GET_AUT_BLUE_ME_SEM_PEDIDO():
         END AS 'ID_Casa', 
         CASE
             WHEN te.ID = 131 THEN 'Blue Note - São Paulo'
-            WHEN te.ID IN (161, 162, 179) THEN 'Priceless'               
+            WHEN te.ID IN (149, 161, 162, 179) THEN (SELECT NOME_FANTASIA FROM T_EMPRESAS WHERE ID = 149)               
             ELSE te.NOME_FANTASIA    
         END AS 'Casa', 
         STR_TO_DATE(tdr.COMPETENCIA, '%Y-%m-%d') AS 'Data_Competencia',
@@ -1117,13 +1117,13 @@ def GET_AUT_BLUE_ME_SEM_PEDIDO():
         CASE              
             WHEN tccg2.ID = 867 THEN 'Mão de Obra - Encargos e Provisões' -- Ações Trabalhistas  
             -- Endividamentos
-            WHEN te.NOME_FANTASIA NOT IN ('Priceless', 'Bar Brahma - Centro', 'Bar Brahma - Granja', 'Orfeu') AND tccg2.DESCRICAO IN ('Endividamento Geral', 'Processo Judicial', 'Processo Civil', 'Recurso Processual', 'Empréstimos Gerais') THEN 'Dividendos e Remunerações Variáveis'
-            WHEN te.NOME_FANTASIA IN ('Priceless', 'Bar Brahma - Centro', 'Bar Brahma - Granja', 'Orfeu') AND tccg2.DESCRICAO IN ('Endividamento Geral', 'Processo Civil', 'Recurso Processual', 'Empréstimos Gerais') THEN 'Dividendos e Remunerações Variáveis'
-            WHEN te.NOME_FANTASIA IN ('Priceless', 'Bar Brahma - Centro', 'Bar Brahma - Granja', 'Orfeu') AND tccg2.DESCRICAO IN ('Processo Judicial') THEN 'Mão de Obra - Encargos e Provisões'
+            WHEN te.ID <> 149 AND te.NOME_FANTASIA NOT IN ('Bar Brahma - Centro', 'Bar Brahma - Granja', 'Orfeu') AND tccg2.DESCRICAO IN ('Endividamento Geral', 'Processo Judicial', 'Processo Civil', 'Recurso Processual', 'Empréstimos Gerais') THEN 'Dividendos e Remunerações Variáveis'
+            WHEN (te.ID = 149 OR te.NOME_FANTASIA IN ('Bar Brahma - Centro', 'Bar Brahma - Granja', 'Orfeu')) AND tccg2.DESCRICAO IN ('Endividamento Geral', 'Processo Civil', 'Recurso Processual', 'Empréstimos Gerais') THEN 'Dividendos e Remunerações Variáveis'
+            WHEN (te.ID = 149 OR te.NOME_FANTASIA IN ('Bar Brahma - Centro', 'Bar Brahma - Granja', 'Orfeu')) AND tccg2.DESCRICAO IN ('Processo Judicial') THEN 'Mão de Obra - Encargos e Provisões'
             ELSE tccg.DESCRICAO
         END AS 'Classificacao_Contabil_1', 
         CASE
-            WHEN te.NOME_FANTASIA IN ('Priceless', 'Bar Brahma - Centro', 'Bar Brahma - Granja', 'Orfeu') AND tccg2.DESCRICAO = 'Processo Judicial' THEN '  -  Ações trabalhistas'  
+            WHEN (te.ID = 149 OR te.NOME_FANTASIA IN ('Bar Brahma - Centro', 'Bar Brahma - Granja', 'Orfeu')) AND tccg2.DESCRICAO = 'Processo Judicial' THEN '  -  Ações trabalhistas'  
             ELSE tccg2.DESCRICAO                                                                              
         END AS 'Classificacao_Contabil_2',              
         NULL AS 'Cargo_DRE'
@@ -1373,7 +1373,7 @@ def GET_AJUSTES_MANUAIS_DRE():
             ELSE te.ID    
         END AS 'ID_Casa', 
         CASE
-            WHEN te.ID IN (161, 162, 179) THEN 'Priceless'
+            WHEN te.ID IN (149, 161, 162, 179) THEN (SELECT NOME_FANTASIA FROM T_EMPRESAS WHERE ID = 149)
             ELSE te.NOME_FANTASIA    
         END AS 'Casa',                  
         tam.MES_COMPETENCIA AS 'Mês',
@@ -1402,7 +1402,7 @@ def GET_CONSUMO_CARTAO_BLACK():
             ELSE te.ID    
         END AS 'ID_Casa', 
         CASE
-            WHEN te.ID IN (161, 162, 179) THEN 'Priceless'
+            WHEN te.ID IN (149, 161, 162, 179) THEN (SELECT NOME_FANTASIA FROM T_EMPRESAS WHERE ID = 149)
             ELSE te.NOME_FANTASIA    
         END AS 'Casa',                  
         tccb.MES AS 'Mês',
@@ -1423,7 +1423,7 @@ def GET_PARAMETROS_IMPOSTOS():
             ELSE te.ID                 
         END AS 'ID_Casa',
         CASE
-            WHEN te.ID IN (161, 162, 179) THEN 'Priceless'     
+            WHEN te.ID IN (149, 161, 162, 179) THEN (SELECT NOME_FANTASIA FROM T_EMPRESAS WHERE ID = 149)     
             ELSE te.NOME_FANTASIA                                                 
         END AS 'Casa',                   
         DATE(tpci.DATA_INICIO_VIGENCIA) AS 'Data Inicio',
