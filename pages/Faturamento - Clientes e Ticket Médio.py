@@ -1,4 +1,5 @@
 import streamlit as st
+from utils.functions.general_functions import nome_casa_por_id
 import pandas as pd
 from utils.functions.general_functions import *
 from utils.components import *
@@ -78,7 +79,7 @@ def opcoes_grafico_linha(labels_x, valores, nome_serie, cor, nome_eixo_y):
 
 col1, col2 = st.columns([1, 2])
 with col1:
-    lista_retirar_casas = ['Bar Léo - Vila Madalena', 'Edificio Rolim', 'Priceless', 'Todas as Casas']
+    lista_retirar_casas = ['Bar Léo - Vila Madalena', 'Edificio Rolim', nome_casa_por_id(149), 'Todas as Casas']
     id_casa, casa, id_zigpay = input_selecao_casas(
         lista_retirar_casas, key='seletor_casa_clientes_ticket_medio', adicionar_delivery=True
     )

@@ -1,4 +1,5 @@
 import streamlit as st
+from utils.functions.general_functions import nome_casa_por_id
 import pandas as pd
 from utils.functions.general_functions import config_sidebar
 from utils.functions.controladoria_planejamento_anual import *
@@ -29,7 +30,7 @@ st.divider()
 col1, col2 = st.columns(2)
 
 with col1:
-    lista_casas_retirar = ['Todas as Casas', 'Bar Brahma - Paulista', 'Blue Note SP (Novo)', 'Brahminha', 'Edificio Rolim', 'Priceless', 'Sanduiche comunicação LTDA ', 'Tempus Fugit  Ltda ', 'The Cavern - Almoço']
+    lista_casas_retirar = ['Todas as Casas', 'Bar Brahma - Paulista', 'Blue Note SP (Novo)', 'Brahminha', 'Edificio Rolim', nome_casa_por_id(149), 'Sanduiche comunicação LTDA ', 'Tempus Fugit  Ltda ', 'The Cavern - Almoço']
     id_casa, casa, id_zigpay = input_selecao_casas(lista_casas_retirar, 'casa')
     
 with col2:

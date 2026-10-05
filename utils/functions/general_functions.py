@@ -76,6 +76,24 @@ def dataframe_query(query, params=None, use_eshows=False):
 	return dataframe
 
 
+@st.cache_data(ttl=600)
+def nome_casa_por_id(id_casa):
+	"""Nome de exibição da casa, lido de T_EMPRESAS. Usar no lugar de nome fixo no código."""
+	df = dataframe_query("SELECT NOME_FANTASIA FROM T_EMPRESAS WHERE ID = %s", params=(int(id_casa),))
+	return df['NOME_FANTASIA'].iloc[0] if not df.empty else None
+
+
+def get_casas_validas():
+	"""casas_validas com a Notie SP (ID 149) resolvida pelo nome atual do cadastro."""
+	from utils.constants.general_constants import casas_validas, NOTIE_ID
+	return sorted(casas_validas + [nome_casa_por_id(NOTIE_ID)])
+
+
+def get_cores_casas():
+	from utils.constants.general_constants import cores_casas, NOTIE_ID, COR_NOTIE
+	return {**cores_casas, nome_casa_por_id(NOTIE_ID): COR_NOTIE}
+
+
 # Permissões de usuário
 @st.cache_data
 def GET_PERMISSIONS(login):
@@ -452,11 +470,13 @@ def preparar_dados_lojas_user_financeiro():
         'Blue Note - São Paulo', 'Blue Note SP (Novo)', 'Delivery Bar Leo Centro', 'Delivery Fabrica de Bares',
         'Delivery Jacaré', 'Delivery Orfeu', 'Edificio Rolim', 'Escritório Fabrica de Bares',
         'Girondino', 'Girondino - CCBB', 'Hotel Maraba', 'Jacaré', 'Love Cabaret',
-        'Orfeu', 'Priceless', 'Riviera Bar', 'Sanduiche comunicação LTDA ', 'Tempus Fugit  Ltda ',
+        'Orfeu', 'Riviera Bar', 'Sanduiche comunicação LTDA ', 'Tempus Fugit  Ltda ',
         'Ultra Evil Premium Ltda ', 'Bar Brahma - Granja', 'Brahma - Ribeirão', 'The Cavern', 'Terraço Notie'
     ]
 
-    lojas = dflojas[dflojas['Loja'].isin(set(lojasReais))]['Loja'].tolist()
+    # Notie SP entra por ID (149), não pelo nome
+    from utils.constants.general_constants import NOTIE_ID
+    lojas = dflojas[dflojas['Loja'].isin(set(lojasReais)) | (dflojas['ID Loja'] == NOTIE_ID)]['Loja'].tolist()
     lojas.sort(key=str.lower)
 
     # Verificar se ambas as lojas estão na lista

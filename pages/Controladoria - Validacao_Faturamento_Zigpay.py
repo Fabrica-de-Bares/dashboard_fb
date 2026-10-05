@@ -1,4 +1,5 @@
 import streamlit as st
+from utils.functions.general_functions import nome_casa_por_id
 import pandas as pd
 import uuid
 import http.client
@@ -34,7 +35,7 @@ def main():
     # Seletores
     col_casa, col_datas = st.columns([1, 1])
     with col_casa:
-        lista_retirar_casas = ['Priceless', 'Bar Léo - Vila Madalena', 'Todas as Casas', 'Escritório Fabrica de Bares', 'Casa Teste 2', 'Brahminha', 'Tempus Fugit  Ltda ', 'Sanduiche comunicação LTDA ', 'Edificio Rolim']
+        lista_retirar_casas = [nome_casa_por_id(149), 'Bar Léo - Vila Madalena', 'Todas as Casas', 'Escritório Fabrica de Bares', 'Casa Teste 2', 'Brahminha', 'Tempus Fugit  Ltda ', 'Sanduiche comunicação LTDA ', 'Edificio Rolim']
         id_casa, casa, id_zigpay = input_selecao_casas(lista_retirar_casas, 'selecao_casa', adicionar_delivery=True)
     with col_datas:
         col1, col2 = st.columns([1, 1])

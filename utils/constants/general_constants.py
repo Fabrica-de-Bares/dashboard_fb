@@ -54,7 +54,7 @@ casas_validas = sorted([
     'Jacaré',
     'Love Cabaret',
     'Orfeu',
-    'Priceless',
+    # Notie SP (ID 149) entra por ID em get_casas_validas() — o nome vem de T_EMPRESAS
     'Riviera Bar',
     'Sanduiche comunicação LTDA ',
     'Tempus Fugit  Ltda ',
@@ -84,7 +84,6 @@ cores_casas = {
     "Love Cabaret": "#E799BB",
     "Nuv Gastrobar": "#B8860B",
     "Orfeu": "#006E77",
-    "Priceless": "#000000",
     "Riviera Bar": "#C2185B",
     "Sanduiche comunicação LTDA ": "#FF6600",
     "Tempus Fugit  Ltda ": "#9933CC",
@@ -96,6 +95,13 @@ cores_casas = {
 # Cor de fallback para casa sem entrada em cores_casas (evita IndexError/KeyError se
 # uma casa nova for adicionada em casas_validas sem cor cadastrada aqui)
 COR_CASA_FALLBACK = "#999999"
+
+
+# Casa canônica do grupo Notie (149; satélites 161, 162 e 179 só recebem venda da Zig).
+# Comparar sempre por ID — o nome de exibição vem de T_EMPRESAS (nome_casa_por_id em general_functions).
+NOTIE_ID = 149
+NOTIE_IDS = [149, 161, 162, 179]
+COR_NOTIE = "#000000"
 
 
 # Mapeamentos manuais: fornecedor da despesa:descrição do extrato

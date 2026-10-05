@@ -136,7 +136,7 @@ def main():
                 montar_tabs_geral(df_parcelas_filtradas_por_data, casa_faturamento, lista_acessos_casas, filtro_data_categoria, df_orcamentos_faturamento)
             else:
                 df_parcelas_casa = df_parcelas_filtradas_por_data[df_parcelas_filtradas_por_data['ID Casa'] == id_casa_faturamento]
-                if casa_faturamento == "Priceless":
+                if id_casa_faturamento == 149: # Notie SP (por ID, não pelo nome)
                     montar_tabs_priceless(df_parcelas_casa, id_casa_faturamento, df_eventos_faturamento, filtro_data_categoria, df_orcamentos_faturamento)
                 else:
                     montar_tabs_geral(df_parcelas_casa, casa_faturamento, [id_casa_faturamento], filtro_data_categoria, df_orcamentos_faturamento)

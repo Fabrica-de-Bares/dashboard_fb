@@ -1,4 +1,5 @@
 import streamlit as st
+from utils.functions.general_functions import nome_casa_por_id
 import pandas as pd
 import numpy as np
 from utils.queries_fluxo_de_caixa import *
@@ -28,7 +29,7 @@ def criar_seletores_previsao(data_inicio_default, data_fim_default):
 
   # Adiciona seletores
   with col1:
-    lista_retirar_casas = ['Bar Léo - Vila Madalena', 'Edificio Rolim', 'Priceless']
+    lista_retirar_casas = ['Bar Léo - Vila Madalena', 'Edificio Rolim', nome_casa_por_id(149)]
     df_casas_selecionadas = input_multiselecao_casas(lista_retirar_casas, key='calendario')
     lojas_selecionadas = df_casas_selecionadas['Casa'].tolist()
   with col2:

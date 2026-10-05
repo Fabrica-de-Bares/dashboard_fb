@@ -268,7 +268,7 @@ def montar_tabs_priceless(df_parcelas_casa, id_casa, df_eventos, tipo_data, df_o
         tipo_data = 'Data Vencimento'
     
     df_parcelas = calcular_repasses_gazit_parcelas(df_parcelas_casa, df_eventos)
-    tab_names = ['**Total de Eventos - Priceless**', '**Locação Aroo**', '**Locação Anexo**', '**Locação Notiê**', '**Locação Mirante**', '**Alimentos e Bebidas**']
+    tab_names = [f'**Total de Eventos - {nome_casa_por_id(149)}**', '**Locação Aroo**', '**Locação Anexo**', '**Locação Notiê**', '**Locação Mirante**', '**Alimentos e Bebidas**']
     tabs = st.tabs(tab_names)
 
     with tabs[0]:
@@ -278,7 +278,7 @@ def montar_tabs_priceless(df_parcelas_casa, id_casa, df_eventos, tipo_data, df_o
             df_orcamentos,
             [149],
             exibir_painel_ano,
-            titulo_mensal="#### Total de Eventos - Priceless",
+            titulo_mensal=f"#### Total de Eventos - {nome_casa_por_id(149)}",
         )
     with tabs[1]:
         st.markdown("### Locação Aroo")

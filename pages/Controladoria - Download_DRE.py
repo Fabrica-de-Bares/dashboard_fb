@@ -34,7 +34,7 @@ st.divider()
 with st.container(border=True): 
     # Seletor de casa
     df_casas = GET_CASAS()
-    casas = [casa for casa in casas_validas if casa not in ['Blue Note SP (Novo)', 'Escritório Fabrica de Bares', 'Edificio Rolim', 'Girondino', 'Girondino - CCBB', 'Priceless', 'Sanduiche comunicação LTDA ', 'Tempus Fugit  Ltda ']]
+    casas = [casa for casa in casas_validas if casa not in ['Blue Note SP (Novo)', 'Escritório Fabrica de Bares', 'Edificio Rolim', 'Girondino', 'Girondino - CCBB', 'Sanduiche comunicação LTDA ', 'Tempus Fugit  Ltda ']]
     casas.append('Girondino - Consolidado')
     casas.append('Terraço Notie')
     casas.sort()
@@ -68,7 +68,7 @@ with st.container(border=True):
     # 2026-09-09: a separação passou a valer no dashboard inteiro (GET_CASAS não mapeia
     # mais 178 -> 110), então o hardcode de id_casa que existia acima virou desnecessário.
     if casa == 'Blue Note - São Paulo': ids_casa_query = [110, 131]
-    elif casa in ['Priceless', 'Terraço Notie']: ids_casa_query = [149, 161, 162, 179]
+    elif casa == 'Terraço Notie': ids_casa_query = [149, 161, 162, 179]
     elif casa == 'Girondino - Consolidado': ids_casa_query = [156, 160]
     else: ids_casa_query = [id_casa]
 
@@ -92,7 +92,7 @@ with st.container(border=True):
         ## Faturamento
         df_aut_faturamento_zig = DRE_AUT_FATURAMENTO_ZIG(ids_casa_query)
         df_aut_receitas_extraord = DRE_AUT_RECEITAS_EXTRAORD(ids_casa_query)
-        if casa in ['Priceless', 'Terraço Notie']: df_bd_eventos_novo = DRE_BD_EVENTOS_NOVO_PRICELESS(ids_casa_query)
+        if casa == 'Terraço Notie': df_bd_eventos_novo = DRE_BD_EVENTOS_NOVO_PRICELESS(ids_casa_query)
         else: df_bd_eventos_novo = DRE_BD_EVENTOS_NOVO(ids_casa_query)
         ## Ajustes manuais
         df_aut_ajustes_manuais = DRE_AJUSTES_MANUAIS(ids_casa_query)
@@ -156,7 +156,7 @@ with st.container(border=True):
             ids_casa_delivery = ",".join(map(str, ids_casa_delivery))
             abas['Aut_Faturamento_Zig_Delivery'] = DRE_AUT_FATURAMENTO_ZIG_DELIVERY(ids_casa_delivery)
 
-        if casa in ['Priceless', 'Terraço Notie']: # Eventos Concierge
+        if casa == 'Terraço Notie': # Eventos Concierge
             abas['BD_Eventos_Concierge'] = DRE_EVENTOS_CONCIERGE(ids_casa_query)
             abas['BD_Eventos Geral'] = DRE_BD_EVENTOS_GERAL_PRICELESS()
 

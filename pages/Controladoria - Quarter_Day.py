@@ -1,4 +1,5 @@
 import streamlit as st
+from utils.functions.general_functions import nome_casa_por_id
 import pandas as pd
 from utils.functions.general_functions import config_sidebar
 from utils.functions.controladoria_quarterday import *
@@ -33,7 +34,7 @@ with col2:
     st.button(label='Atualizar dados', key='atualizar_forecast', on_click=st.cache_data.clear)
 st.divider()
 
-lista_retirar_casas = ['Todas as Casas', 'Bar Léo - Vila Madalena', 'Blue Note SP (Novo)', 'Escritório Fabrica de Bares', 'The Cavern', 'The Cavern - Almoço', 'Brahminha', 'Edificio Rolim', 'Priceless', 'Sanduiche comunicação LTDA ', 'Tempus Fugit  Ltda ', 'Terraço Notie Novo']
+lista_retirar_casas = ['Todas as Casas', 'Bar Léo - Vila Madalena', 'Blue Note SP (Novo)', 'Escritório Fabrica de Bares', 'The Cavern', 'The Cavern - Almoço', 'Brahminha', 'Edificio Rolim', nome_casa_por_id(149), 'Sanduiche comunicação LTDA ', 'Tempus Fugit  Ltda ', 'Terraço Notie Novo']
 id_casa, casa, id_zigpay = input_selecao_casas(lista_retirar_casas, key='faturamento_bruto', agregado=True)
 
 

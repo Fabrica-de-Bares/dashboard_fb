@@ -1,4 +1,5 @@
 import streamlit as st
+from utils.functions.general_functions import nome_casa_por_id
 import pandas as pd
 from utils.queries_produto import *
 from utils.functions.general_functions import *
@@ -33,7 +34,7 @@ with seletores_container:
 	col1, col2, col3 = st.columns([2, 1, 1])
 	with col1:
 		# Seleção da casa
-		lista_retirar_casas = ['Bar Léo - Vila Madalena', 'Edificio Rolim', 'Priceless', 'Todas as Casas']
+		lista_retirar_casas = ['Bar Léo - Vila Madalena', 'Edificio Rolim', nome_casa_por_id(149), 'Todas as Casas']
 		id_casa, casa, id_zigpay = input_selecao_casas(
 			lista_retirar_casas, key="seletor_casa_analise_consumo", adicionar_delivery=True
         )

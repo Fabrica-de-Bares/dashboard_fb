@@ -71,13 +71,13 @@ def GET_LOGS_DESPESAS():
 			tlogdr.LOG_DATE as 'Data Alteração',
       CASE
         WHEN te.ID = 177 THEN 176  -- The Cavern  
-        WHEN te.ID IN (161, 162, 179) THEN 149  -- Priceless
+        WHEN te.ID IN (161, 162, 179) THEN 149  -- Notie SP
         WHEN te.ID = 131 THEN 110  -- Blue Note (Sala 2 = 178 e casa propria)                  
         ELSE te.ID                                                           
 			END AS 'ID Casa',
       CASE                   
         WHEN te.ID = 177 THEN 'The Cavern'   
-        WHEN te.ID IN (161, 162, 179) THEN 'Priceless'
+        WHEN te.ID IN (149, 161, 162, 179) THEN (SELECT NOME_FANTASIA FROM T_EMPRESAS WHERE ID = 149)
         WHEN te.ID = 131 THEN 'Blue Note - São Paulo'                    
         ELSE te.NOME_FANTASIA           
 			END AS 'Casa',
@@ -408,7 +408,7 @@ def GET_HEADCOUNT_PESSOAS():
         ELSE te.ID                                    
       END AS 'ID Casa',
       CASE
-        WHEN te.NOME_FANTASIA = 'Priceless' THEN 'Terraço Notie'
+        WHEN te.ID = 149 THEN 'Terraço Notie'
         ELSE te.NOME_FANTASIA                                                                                 
       END AS 'Casa',
       thp.MES AS 'Mês',
