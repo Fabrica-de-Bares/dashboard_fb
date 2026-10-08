@@ -64,9 +64,9 @@ def GET_ORCAMENTOS_DESPESAS():
 
 @st.cache_data
 def GET_FATURAM_ZIG(data_inicial, data_final):
-  # Formatando as datas para o formato de string com aspas simples
-  data_inicial_str = f"'{data_inicial.strftime('%Y-%m-%d %H:%M:%S')}'"
-  data_final_str = f"'{data_final.strftime('%Y-%m-%d %H:%M:%S')}'"
+  # EVENT_DATE guarda o horário de abertura do evento, então o fim é exclusivo (dia seguinte)
+  data_inicial_str = f"'{pd.Timestamp(data_inicial).strftime('%Y-%m-%d')}'"
+  data_final_str = f"'{(pd.Timestamp(data_final) + pd.Timedelta(days=1)).strftime('%Y-%m-%d')}'"
     
   return dataframe_query(f'''
   SELECT tiv.ID AS 'ID_Venda_EPM',
@@ -85,7 +85,7 @@ def GET_FATURAM_ZIG(data_inicial, data_final):
     LEFT JOIN T_ITENS_VENDIDOS_CATEGORIAS tivc2 ON (tivc.FK_CATEGORIA = tivc2.ID)
     LEFT JOIN T_ITENS_VENDIDOS_TIPOS tivt ON (tivc.FK_TIPO = tivt.ID)
     LEFT JOIN T_EMPRESAS te ON (tiv.LOJA_ID = te.ID_ZIGPAY)
-  WHERE CAST(tiv.EVENT_DATE as DATETIME) >= {data_inicial_str} AND CAST(tiv.EVENT_DATE as DATETIME) <= {data_final_str}
+  WHERE tiv.EVENT_DATE >= {data_inicial_str} AND tiv.EVENT_DATE < {data_final_str}
   ''')
 
 
