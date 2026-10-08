@@ -22,7 +22,7 @@ def dataframe_to_json_calendar(df_eventos, event_color_type=None):
     }
 
     cores_casa = {
-        149: '#E35336',  # Priceless
+        149: '#E35336',  # Notie SP
         162: '#2323FF',  # Concierge Notiê
         122: '#FF13F0',  # Arcos
         114: '#FFA500',  # Bar Brahma - Centro

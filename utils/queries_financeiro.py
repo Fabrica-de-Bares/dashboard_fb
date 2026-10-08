@@ -136,7 +136,7 @@ def GET_ORCAM_FATURAM():
 		ELSE te.ID
 	END AS ID_Loja,
 	CASE
-		WHEN te.NOME_FANTASIA IN ('Priceless') THEN 'Terraço Notie'
+		WHEN te.ID = 149 THEN 'Terraço Notie'
 		ELSE te.NOME_FANTASIA
 	END AS Loja,
 	CONCAT(to2.ANO, '-', to2.MES) AS Ano_Mes,

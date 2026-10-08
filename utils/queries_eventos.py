@@ -6,20 +6,32 @@ from utils.functions.general_functions import dataframe_query, execute_query
 @st.cache_data
 def get_casas_validas():
     # Casa é considerada válida quando pertence ao grupo Fábrica de Bares
-    # (FK_GRUPO_EMPRESA = 100) e teve faturamento nas últimas 4 semanas —
-    # isso já exclui automaticamente holdings/entidades jurídicas sem
-    # faturamento e casas fechadas, sem precisar de lista de nomes fixa.
+    # (FK_GRUPO_EMPRESA = 100) e teve faturamento Zig nas últimas 4 semanas
+    # OU tem evento de 4 semanas atrás em diante (inclui eventos futuros) —
+    # isso cobre casas que só fazem eventos (Priceless, Blue Note SP (Sala 2))
+    # e já exclui holdings/entidades jurídicas e casas fechadas, sem lista de
+    # nomes fixa. 162 (Terraço Notie) segue como exceção: sem faturamento
+    # desde jun/2026 e sem evento, mas não está fechada.
     result, column_names = execute_query("""
-		SELECT DISTINCT
+		SELECT
 			te.ID AS ID_Casa,
 			te.NOME_FANTASIA AS Casa,
 			te.ID_ZIGPAY AS ID_Zigpay
 		FROM T_EMPRESAS te
-		LEFT JOIN T_ZIG_FATURAMENTO tzf ON tzf.FK_LOJA = te.ID
 		WHERE te.FK_GRUPO_EMPRESA = 100
 			AND (
-				(tzf.DATA >= DATE_SUB(CURDATE(), INTERVAL 4 WEEK) AND tzf.VALOR > 0)
-				OR te.ID IN (149, 162)
+				EXISTS (
+					SELECT 1 FROM T_ZIG_FATURAMENTO tzf
+					WHERE tzf.FK_LOJA = te.ID
+						AND tzf.DATA >= DATE_SUB(CURDATE(), INTERVAL 4 WEEK)
+						AND tzf.VALOR > 0
+				)
+				OR EXISTS (
+					SELECT 1 FROM T_EVENTOS_PRICELESS tep
+					WHERE tep.FK_EMPRESA = te.ID
+						AND tep.DATA_EVENTO >= DATE_SUB(CURDATE(), INTERVAL 4 WEEK)
+				)
+				OR te.ID = 162
 			)
 	""")
     df_casas = pd.DataFrame(result, columns=column_names)
@@ -765,11 +777,11 @@ def GET_EVENTOS_CONCIERGE():
 	SELECT 
 		CONCAT('C-', tep.ID) AS 'ID Evento',
 		CASE 
-			WHEN te.NOME_FANTASIA = 'Terraço Notie' THEN 'Priceless'
+			WHEN te.ID = 162 THEN (SELECT NOME_FANTASIA FROM T_EMPRESAS WHERE ID = 149)
 			ELSE te.NOME_FANTASIA
 		END AS `Casa`,
 		CASE 
-			WHEN te.NOME_FANTASIA = 'Terraço Notie' THEN 149
+			WHEN te.ID = 162 THEN 149
 			ELSE te.ID
 		END AS `ID Casa`,
 		tc.NOME AS 'Comercial Responsável',
@@ -826,11 +838,11 @@ def GET_PARCELAS_EVENTOS_CONCIERGE():
 			CONCAT('C-', tpep.ID) AS 'ID Parcela',
 			CONCAT('C-', tpep.FK_EVENTO_CONCIERGE) AS 'ID Evento',
 			CASE 
-				WHEN te.NOME_FANTASIA = 'Terraço Notie' THEN 'Priceless'
+				WHEN te.ID = 162 THEN (SELECT NOME_FANTASIA FROM T_EMPRESAS WHERE ID = 149)
 				ELSE te.NOME_FANTASIA
 			END AS Casa,
 			CASE 
-				WHEN te.NOME_FANTASIA = 'Terraço Notie' THEN 149
+				WHEN te.ID = 162 THEN 149
 				ELSE te.ID
 			END AS `ID Casa`,
 			tep.NOME_EVENTO AS 'Nome Evento',

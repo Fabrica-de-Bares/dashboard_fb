@@ -1,12 +1,11 @@
 import streamlit as st
 import pandas as pd
-from utils.functions.general_functions import config_sidebar, mysql_connection_fb
+from utils.functions.general_functions import config_sidebar, mysql_connection_fb, get_casas_validas
 from utils.functions.controladoria_descontos_dre import limpeza_linhas
 from utils.functions.controladoria_input_sistema import prepara_partes_headcount, prepara_colunas_real_dre
 from utils.queries_conciliacao import GET_CASAS_INPUT_SISTEMA
 from utils.queries_controladoria import GET_PLATAFORMAS_BILHETERIA
 from utils.components import button_download, seletor_ano, seletor_mes
-from utils.constants.general_constants import casas_validas
 
 pd.set_option('future.no_silent_downcasting', True)
 
@@ -55,9 +54,9 @@ with col1: # Seletor de casa
     casas = df_casas['Casa'].tolist()
 
     if tipo_formatacao == 'Bilheteria':
-        casas = [casa for casa in casas_validas if casa in ['Bar Brahma - Centro', 'Bar Brahma - Granja', 'Ultra Evil Premium Ltda ']] # Revisar
+        casas = [casa for casa in get_casas_validas() if casa in ['Bar Brahma - Centro', 'Bar Brahma - Granja', 'Ultra Evil Premium Ltda ']] # Revisar
     else:
-        casas = [casa for casa in casas_validas if casa not in ['Blue Note SP (Novo)', 'Edificio Rolim', 'Sanduiche comunicação LTDA ', 'Tempus Fugit  Ltda ']]
+        casas = [casa for casa in get_casas_validas() if casa not in ['Blue Note SP (Novo)', 'Edificio Rolim', 'Sanduiche comunicação LTDA ', 'Tempus Fugit  Ltda ']]
     
     casa = st.selectbox("Selecione a casa referente ao arquivo", casas)
 

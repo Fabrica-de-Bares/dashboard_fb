@@ -9,6 +9,8 @@ from utils.queries_cmv import *
 from utils.queries_forecast import *
 from utils.queries_dre_download import *
 import openpyxl
+from utils.functions.general_functions import nome_casa_por_id
+from utils.constants.general_constants import NOTIE_ID
 # import os
 
 
@@ -318,8 +320,8 @@ def prepara_dados_faturamento_orcamentos_mensais(id_casa, df_orcamentos, df_fatu
         df_faturamento_mes_casa = df_faturamento_mes_casa.groupby(['ID_Casa', 'Casa', 'Categoria', 'Mês', 'Ano'], as_index=False)['Valor Bruto'].sum()
         
     if id_casa in [149, 110]:
-        if id_casa == 149: # Priceless - Eventos Rebate Fornecedores
-            df_receitas_extr = df_demais_receitas_extr[(df_demais_receitas_extr['Casa'] == 'Priceless') & (df_demais_receitas_extr['Cliente'] == 'TORANJA ')].copy()
+        if id_casa == NOTIE_ID: # Notie SP - Eventos Rebate Fornecedores
+            df_receitas_extr = df_demais_receitas_extr[(df_demais_receitas_extr['Casa'] == nome_casa_por_id(NOTIE_ID)) & (df_demais_receitas_extr['Cliente'] == 'TORANJA ')].copy()
             cols_agrupa = ['Casa', 'Cliente', 'Classificacao', 'Mês', 'Ano']
             
         if id_casa == 110: # Blue Note - Itens Fechamento Financeiro que vão para Faturamento
@@ -689,7 +691,7 @@ def projecao_imposto_simples(df_gorjeta, df_salarios, df_faturamento, df_aliquot
         df_faturamento['Valor'] *= 0.25
         df_base_imposto = df_faturamento[['Data', 'Valor']]
 
-    elif casa in ['Bar Brahma - Centro', 'Bar Brahma - Granja', 'Bar Brahma - Paulista', 'Girondino', 'Jacaré', 'Orfeu', 'Priceless', 'Riviera Bar']: # Calcula imposto com base em Gorjeta + Salários
+    elif casa in ['Bar Brahma - Centro', 'Bar Brahma - Granja', 'Bar Brahma - Paulista', 'Girondino', 'Jacaré', 'Orfeu', nome_casa_por_id(NOTIE_ID), 'Riviera Bar']: # Calcula imposto com base em Gorjeta + Salários
         df_gorjeta['Valor'] = np.where(
             df_gorjeta['Data'] >= data_atual,
             df_gorjeta['Custo Projetado'],
@@ -1837,7 +1839,7 @@ def calculo_mdo_encargos_provisoes(df_despesas_mdo, df_gorjeta, df_salarios, df_
 
     # Aplica a lógica de cada casa
     # Se aplicam a todas as casas
-    if casa in ['Arcos', 'Bar Brahma - Centro', 'Bar Brahma - Granja', 'Bar Brahma - Paulista', 'Bar Léo - Centro', 'Blue Note - São Paulo', 'Jacaré', 'Love Cabaret', 'Orfeu', 'Riviera Bar', 'Priceless', 'Ultra Evil Premium Ltda ']: 
+    if casa in ['Arcos', 'Bar Brahma - Centro', 'Bar Brahma - Granja', 'Bar Brahma - Paulista', 'Bar Léo - Centro', 'Blue Note - São Paulo', 'Jacaré', 'Love Cabaret', 'Orfeu', 'Riviera Bar', nome_casa_por_id(NOTIE_ID), 'Ultra Evil Premium Ltda ']: 
         df_mdo = padroes_calculo_mdo_encargos_provisoes(df_mdo, df_gorjeta, df_salarios, '  -  13º Salário')
         df_mdo = padroes_calculo_mdo_encargos_provisoes(df_mdo, df_gorjeta, df_salarios, '  -  FGTS sobre 13º Salários')
         df_mdo = padroes_calculo_mdo_encargos_provisoes(df_mdo, df_gorjeta, df_salarios, '  -  INSS sobre 13º Salários')

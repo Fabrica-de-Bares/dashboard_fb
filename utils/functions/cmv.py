@@ -38,7 +38,6 @@ def substituicao_ids(df, colNome, colID):
     'Notiê - Priceless': 'Terraço Notie - Agregado',
     'Terraço Notie': 'Terraço Notie - Agregado',
     'Terraço Notie Novo': 'Terraço Notie - Agregado',
-    'Priceless': 'Terraço Notie - Agregado',
     'Blue Note - São Paulo': 'Blue Note - Agregado',
     'Blue Note SP (Novo)': 'Blue Note - Agregado',
     'Girondino - CCBB': 'Girondino - Agregado',
@@ -50,6 +49,8 @@ def substituicao_ids(df, colNome, colID):
 
   df.loc[:, colNome] = df[colNome].replace(substituicoesNomes)
   df.loc[:, colID] = df[colID].replace(substituicoesIds)
+  # Notie SP (149) entra por ID, não pelo nome do cadastro
+  df.loc[df[colID] == 149, colNome] = 'Terraço Notie - Agregado'
   return df
 
 
@@ -333,8 +334,6 @@ def config_valoracao_estoque(data_inicio, data_fim, loja):
     loja = 'Blue Note - São Paulo'
   elif loja == 'The Cavern - Agregado':
     loja = 'The Cavern'
-  elif loja == 'Terraço Notie - Agregado':
-    loja = 'Priceless'
 
   df_valoracao_estoque = GET_VALORACAO_ESTOQUE(loja, data_inicio_nova)
 

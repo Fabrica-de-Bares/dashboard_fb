@@ -1,4 +1,5 @@
 import pandas as pd
+from utils.functions.general_functions import nome_casa_por_id
 import streamlit as st
 import io
 import re
@@ -122,7 +123,7 @@ def input_selecao_casas_agregadas(lista_casas_retirar, key):
     if any(num in terraco_notie_ids for num in lista_ids_casas_validas):
         if 'Terraço Notie - Agregado' not in lista_casas_retirar:
             lista_casas_validas.insert(0, "Terraço Notie - Agregado")
-            _remover_se_presente(lista_casas_validas, "Terraço Notie", "Terraço Notie Novo", "Priceless")
+            _remover_se_presente(lista_casas_validas, "Terraço Notie", "Terraço Notie Novo", nome_casa_por_id(149))
 
     lista_casas_validas.sort()
 

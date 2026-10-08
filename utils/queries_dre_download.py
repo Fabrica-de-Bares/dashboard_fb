@@ -167,7 +167,7 @@ def DRE_AUT_RECEITAS_EXTRAORD(ids_casa):
   SELECT
           vpa.ID AS 'ID_receita',
           CASE
-              WHEN te.ID IN (149, 161, 162, 179) THEN 'Priceless'
+              WHEN te.ID IN (149, 161, 162, 179) THEN (SELECT NOME_FANTASIA FROM T_EMPRESAS WHERE ID = 149)
               ELSE te.NOME_FANTASIA
           END AS 'Casa',
           trec.NOME AS 'Cliente',
