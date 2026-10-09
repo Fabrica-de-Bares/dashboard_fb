@@ -34,14 +34,16 @@ st.divider()
 with st.container(border=True): 
     # Seletor de casa
     df_casas = GET_CASAS()
-    casas = [casa for casa in casas_validas if casa not in ['Blue Note SP (Novo)', 'Escritório Fabrica de Bares', 'Edificio Rolim', 'Girondino', 'Girondino - CCBB', 'Sanduiche comunicação LTDA ', 'Tempus Fugit  Ltda ']]
+    casas = [casa for casa in casas_validas if casa not in ['Blue Note - São Paulo', 'Blue Note SP (Novo)', 'Blue Note SP (Sala 2)', 'Escritório Fabrica de Bares', 'Edificio Rolim', 'Girondino', 'Girondino - CCBB', 'Sanduiche comunicação LTDA ', 'Tempus Fugit  Ltda ']]
     casas.append('Girondino - Consolidado')
+    casas.append('Blue Note - Consolidado')
     casas.append('Terraço Notie')
     casas.sort()
     casa = st.selectbox("Selecione uma casa", casas)
     mapeamento_casas = dict(zip(df_casas["Casa"], df_casas["ID_Casa"])) # Recupera id da casa
 
     if casa == 'Girondino - Consolidado': id_casa = 156
+    elif casa == 'Blue Note - Consolidado': id_casa = 110
     elif casa == 'Terraço Notie': id_casa = 149
     else: id_casa = mapeamento_casas[casa]
 
@@ -51,7 +53,10 @@ with st.container(border=True):
     # st.divider()
     st.write("")
     # st.subheader(f'Fazer download - Excel DRE: {casa}')
-    excel_filename = f'assets/sheets/Base_DRE - {id_casa}.xlsx'
+    # Blue Note - Consolidado tem template próprio: Base_DRE - 110/178 continuam sendo lidos pelo
+    # Orçamento Operacional (lista de categorias da aba DRE), então não podem ser sobrescritos.
+    if casa == 'Blue Note - Consolidado': excel_filename = 'assets/sheets/Base_DRE - 110_178.xlsx'
+    else: excel_filename = f'assets/sheets/Base_DRE - {id_casa}.xlsx'
 
     # st.write("Arquivo:", excel_filename) # Verificação do arquivo
     # st.write("Existe:", os.path.exists(excel_filename))
@@ -67,7 +72,10 @@ with st.container(border=True):
     # para ter DRE próprio — antes as 3 empresas brutas eram agregadas num único download.
     # 2026-09-09: a separação passou a valer no dashboard inteiro (GET_CASAS não mapeia
     # mais 178 -> 110), então o hardcode de id_casa que existia acima virou desnecessário.
-    if casa == 'Blue Note - São Paulo': ids_casa_query = [110, 131]
+    # 2026-09-25: download voltou a ser único, no mesmo modelo do Girondino - Consolidado:
+    # aba DRE consolidada + 'DRE Blue Note SP' (110+131) + 'DRE Blue Note Sala 2' (178),
+    # cada uma filtrando pela coluna Casa das abas Aut_*.
+    if casa == 'Blue Note - Consolidado': ids_casa_query = [110, 131, 178]
     elif casa == 'Terraço Notie': ids_casa_query = [149, 161, 162, 179]
     elif casa == 'Girondino - Consolidado': ids_casa_query = [156, 160]
     else: ids_casa_query = [id_casa]
@@ -160,7 +168,7 @@ with st.container(border=True):
             abas['BD_Eventos_Concierge'] = DRE_EVENTOS_CONCIERGE(ids_casa_query)
             abas['BD_Eventos Geral'] = DRE_BD_EVENTOS_GERAL_PRICELESS()
 
-        if casa not in ['Arcos', 'Blue Note - São Paulo', 'Blue Note SP (Sala 2)', 'Love Cabaret']: # Cartão Black - Adicionar 'Ultra Evil Premium Ltda '
+        if casa not in ['Arcos', 'Blue Note - Consolidado', 'Love Cabaret']: # Cartão Black - Adicionar 'Ultra Evil Premium Ltda '
             abas['Aut_Consumo_Cartao_Black'] = DRE_CONSUMO_CARTAO_BLACK(ids_casa_query)
 
         if casa in ['Love Cabaret', 'Ultra Evil Premium Ltda ']: # Bilheteria Automatizada - Adicionar casas restantes
@@ -177,6 +185,8 @@ with st.container(border=True):
                 'DRE',
                 'DRE CCBB',
                 'DRE GIRONDINO',
+                'DRE Blue Note SP',
+                'DRE Blue Note Sala 2',
                 'Aut_BlueMe_Sem_Pedido',
                 'Aut_BlueMe_Com_Pedido',
                 'Aut_Ajustes_Manuais',
