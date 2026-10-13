@@ -1188,7 +1188,7 @@ def GET_AUT_BLUE_ME_COM_PEDIDO(): # Nova versão - considerando data de recebime
                 SUM(CASE WHEN tin1.DESCRICAO = 'DESCARTAVEIS/HIGIENE E LIMPEZA' THEN tdri.VALOR ELSE 0 END) AS Valor_Descartaveis,
                 SUM(CASE WHEN tin1.DESCRICAO = 'GELO / GAS / CARVAO / VELAS' THEN tdri.VALOR ELSE 0 END) AS Valor_Gelo_Gas,
                 SUM(CASE WHEN tin1.DESCRICAO = 'UTENSILIOS' THEN tdri.VALOR ELSE 0 END) AS Valor_Utensilios,
-                SUM(CASE WHEN tin1.DESCRICAO NOT IN ('ALIMENTOS', 'BEBIDAS', 'DESCARTAVEIS/HIGIENE E LIMPEZA', 'GELO / GAS / CARVAO / VELAS', 'UTENSILIOS') THEN tdri.VALOR ELSE 0 END) AS Valor_Outros,
+                SUM(CASE WHEN COALESCE(tin1.DESCRICAO, '') NOT IN ('ALIMENTOS', 'BEBIDAS', 'DESCARTAVEIS/HIGIENE E LIMPEZA', 'GELO / GAS / CARVAO / VELAS', 'UTENSILIOS') THEN tdri.VALOR ELSE 0 END) AS Valor_Outros,
                 tf.CORPORATE_NAME
             FROM T_DESPESA_RAPIDA tdr
             LEFT JOIN T_FORNECEDOR tf ON tdr.FK_FORNECEDOR = tf.ID
@@ -1292,7 +1292,7 @@ def GET_INSUMOS_AGRUPADOS_BLUE_ME_POR_CATEG_COM_PEDIDO_PERIODO_LOJA():
         ROUND(
           tdr.VALOR_LIQUIDO * (
             SUM(CASE
-              WHEN tin1.DESCRICAO NOT IN (
+              WHEN COALESCE(tin1.DESCRICAO, '') NOT IN (
                 'ALIMENTOS',
                 'BEBIDAS',
                 'DESCARTAVEIS/HIGIENE E LIMPEZA',

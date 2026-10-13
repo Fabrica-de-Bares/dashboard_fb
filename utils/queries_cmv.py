@@ -741,7 +741,7 @@ def GET_INSUMOS_AGRUPADOS_BLUE_ME_POR_CATEG_COM_PEDIDO_PERIODO_LOJA(data_inicio,
         ROUND(
           tdr.VALOR_LIQUIDO * (
             SUM(CASE
-              WHEN tin1.DESCRICAO NOT IN (
+              WHEN COALESCE(tin1.DESCRICAO, '') NOT IN (
                 'ALIMENTOS',
                 'BEBIDAS',
                 'DESCARTAVEIS/HIGIENE E LIMPEZA',
@@ -866,7 +866,7 @@ def GET_INSUMOS_AGRUPADOS_BLUE_ME_POR_CATEG_COM_PEDIDO():
         ROUND(
           tdr.VALOR_LIQUIDO * (
             SUM(CASE
-              WHEN tin1.DESCRICAO NOT IN (
+              WHEN COALESCE(tin1.DESCRICAO, '') NOT IN (
                 'ALIMENTOS',
                 'BEBIDAS',
                 'DESCARTAVEIS/HIGIENE E LIMPEZA',
@@ -1082,7 +1082,7 @@ def GET_INSUMOS_BLUE_ME_COM_PEDIDO(data_inicio, data_fim, loja):
         ROUND(
           tdr.VALOR_LIQUIDO * (
             SUM(CASE
-              WHEN tin1.DESCRICAO NOT IN (
+              WHEN COALESCE(tin1.DESCRICAO, '') NOT IN (
                 'ALIMENTOS',
                 'BEBIDAS',
                 'DESCARTAVEIS/HIGIENE E LIMPEZA',
