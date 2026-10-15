@@ -138,8 +138,11 @@ def main():
 
         # Verifica a primeira permissão do usuário
         if not abas_permitidas:
-            redirect_page = "Login.py" # Gazit
-            st.switch_page(redirect_page)
+            # Redirecionar para o próprio Login.py gera loop infinito
+            st.warning("Seu cargo não tem abas disponíveis no Dashboard FB. Acesse pelo Dash BlueMe.")
+            if st.button("Sair"):
+                logout()
+            st.stop()
         else:
             abas_permitidas = sorted(abas_permitidas, key=lambda x: x["ID Aba"])
             id_aba = abas_permitidas[0]["ID Aba"]
