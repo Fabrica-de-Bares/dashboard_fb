@@ -472,7 +472,8 @@ def preparar_dados_lojas_user_financeiro():
         'Delivery Jacaré', 'Delivery Orfeu', 'Edificio Rolim', 'Escritório Fabrica de Bares',
         'Girondino', 'Girondino - CCBB', 'Hotel Maraba', 'Jacaré', 'Love Cabaret',
         'Orfeu', 'Riviera Bar', 'Sanduiche comunicação LTDA ', 'Tempus Fugit  Ltda ',
-        'Ultra Evil Premium Ltda ', 'Bar Brahma - Granja', 'Brahma - Ribeirão', 'The Cavern', 'Terraço Notie'
+        'Ultra Evil Premium Ltda ', 'Bar Brahma - Granja', 'Brahma - Ribeirão', 'The Cavern', 'Terraço Notie',
+        'Nuv Gastrobar'
     ]
 
     # Notie SP entra por ID (149), não pelo nome
