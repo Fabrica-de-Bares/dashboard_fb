@@ -53,7 +53,6 @@ ABAS = {
     134: {'nome_aba': '📝 Promoções e Cartão Black - Input no Sistema', 'page_link': 'pages/Auditoria - Promoções.py'},
     135: {'nome_aba': '⬆️ Conversão de Arquivos - Input no Sistema', 'page_link': 'pages/Controladoria - Input_Sistema.py'},
     136: {'nome_aba': '🏷️ Descontos - DRE', 'page_link': 'pages/Controladoria - Descontos_DRE.py'},
-    137: {'nome_aba': '🪙 Cálculo de Gorjeta', 'page_link': 'pages/Operacional - Cálculo_Gorjeta.py'},
     138: {'nome_aba': '🔎 Auditoria - Alteração de Despesas em Sistema', 'page_link': 'pages/Controladoria - Alteração de Despesas.py'},
     139: {'nome_aba': '✅ Validação de Faturamento Zigpay', 'page_link': 'pages/Controladoria - Validacao_Faturamento_Zigpay.py'},
     143: {'nome_aba': '👥 Acessos Usuários - Dashboard', 'page_link': 'pages/Controladoria - Acessos_Dashboard.py'},
@@ -130,10 +129,11 @@ def main():
 
         if cargo in ['Dev', 'Diretor de Sistemas e Inovação', 'Gerente de Controladoria']:
             abas_permitidas = [{"ID Aba": aba_id, "Aba": ABAS[aba_id]["nome_aba"]} for aba_id in ABAS.keys()]  # Permite todas as abas para o cargo específico
+        # Ignora abas do cargo que não existem neste dashboard (ex.: só existem no Dash BlueMe)
+        abas_permitidas = [aba for aba in abas_permitidas if aba["ID Aba"] in ABAS]
         for aba in abas_permitidas:
-            if aba["ID Aba"] in ABAS.keys():
-                aba["page_link"] = ABAS[aba["ID Aba"]]["page_link"]
-                aba["Aba"] = ABAS[aba["ID Aba"]]["nome_aba"]
+            aba["page_link"] = ABAS[aba["ID Aba"]]["page_link"]
+            aba["Aba"] = ABAS[aba["ID Aba"]]["nome_aba"]
         st.session_state["abas_permitidas"] = abas_permitidas
 
         # Verifica a primeira permissão do usuário
