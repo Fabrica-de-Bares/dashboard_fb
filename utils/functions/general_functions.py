@@ -124,8 +124,9 @@ def GET_USERNAME(email):
 def config_permissoes_user():
     login = st.session_state.get("user_login", "Usuário desconhecido")
     dfpermissao = GET_PERMISSIONS(login)
-    if dfpermissao.empty: # Não está no EPM
-        permissao = ["Gazit"]
+    if dfpermissao.empty: # Sem cargo no Dash
+        # Só é Gazit quem logou com usuário de gazit_users; login EPM sem cargo fica sem acesso
+        permissao = ["Gazit"] if st.session_state.get("is_gazit") else []
         nomeUser = ""
     else: # Está no EPM
         permissao = dfpermissao["Permissao"].tolist()

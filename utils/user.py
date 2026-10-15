@@ -51,6 +51,7 @@ def handle_login():
   if user_data := login(user_login, password):
     st.session_state['loggedIn'] = True
     st.session_state['user_login'] = user_login
+    st.session_state['is_gazit'] = user_login in st.secrets["gazit_users"]
   else:
     st.session_state['loggedIn'] = False
     st.error("Email ou senha inválidos!!")

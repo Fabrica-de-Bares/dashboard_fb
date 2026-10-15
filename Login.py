@@ -103,12 +103,11 @@ def main():
                 )
     else:
         cargo, Nomeuser, login = config_permissoes_user()
+        if not cargo:
+            bloquear_acesso("Você não tem acesso ao Dashboard FB. Solicite a liberação à Controladoria.")
         cargo = cargo[0]
         st.session_state["cargo_usuario"] = cargo
         st.session_state["nome_usuario"] = Nomeuser
-
-        st.write("Você está logado!")
-        st.markdown("Redirecionando...")
 
         # Recupera a permissao de casas
         df_lojas_user = GET_LOJAS_USER(login)
@@ -119,8 +118,7 @@ def main():
             ]
         elif not casas_permitidas:
             print("Nenhuma permissão de casas encontrada")
-            st.error("Nenhuma permissão de casas encontrada")
-            st.stop()
+            bloquear_acesso("Nenhuma permissão de casas encontrada.")
         st.session_state["casas_permitidas"] = casas_permitidas
 
         # Permissão de abas em relação aos cargos
@@ -139,15 +137,21 @@ def main():
         # Verifica a primeira permissão do usuário
         if not abas_permitidas:
             # Redirecionar para o próprio Login.py gera loop infinito
-            st.warning("Seu cargo não tem abas disponíveis no Dashboard FB. Acesse pelo Dash BlueMe.")
-            if st.button("Sair"):
-                logout()
-            st.stop()
-        else:
-            abas_permitidas = sorted(abas_permitidas, key=lambda x: x["ID Aba"])
-            id_aba = abas_permitidas[0]["ID Aba"]
-            redirect_page = ABAS[id_aba]["page_link"]
-            st.switch_page(redirect_page)
+            bloquear_acesso("Seu cargo não tem abas disponíveis no Dashboard FB. Acesse pelo Dash BlueMe.")
+
+        st.write("Você está logado!")
+        st.markdown("Redirecionando...")
+        abas_permitidas = sorted(abas_permitidas, key=lambda x: x["ID Aba"])
+        id_aba = abas_permitidas[0]["ID Aba"]
+        redirect_page = ABAS[id_aba]["page_link"]
+        st.switch_page(redirect_page)
+
+
+def bloquear_acesso(mensagem):
+    st.warning(mensagem)
+    if st.button("Sair"):
+        logout()
+    st.stop()
 
 if __name__ == "__main__":
     main()
