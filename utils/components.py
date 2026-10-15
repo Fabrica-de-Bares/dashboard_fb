@@ -365,7 +365,8 @@ def seletor_vendedor_logado(label, df_vendedores, lista_vendedores_logado, key):
 
     # Verifica se o usuário tem acesso a todos os vendedores
     if user_login in st.secrets["comissions_total_access"]["users"]:
-        lista_vendedores = df_vendedores['ID - Responsavel'].tolist()
+        # Uma executiva tem uma linha por casa; no seletor aparece uma vez só
+        lista_vendedores = df_vendedores['ID - Responsavel'].drop_duplicates().tolist()
         lista_vendedores.insert(0, "Todos os vendedores")
     else:
         # Filtra somente o vendedor logado

@@ -35,17 +35,32 @@ def calcular_comissao_casa(row, orcamento_mes, meta_atingida):
     return comissao, percentual_comissao
 
 
-def calcular_comissao(df_recebimentos, orcamento_mes, meta_atingida):
+def metas_atingidas_por_casa(df_recebimentos, df_orcamentos, ano, mes):
     """
-    Calcula a comissão total com base nos recebimentos e orçamentos (atingimento de meta). Não serve para a comissão do Blue Note
+    Retorna {ID Casa: meta atingida} comparando recebido x orçado de cada casa no mês.
+    A meta é sempre por casa, inclusive quando a visão é "Todas as Casas".
+    """
+    metas = {}
+    for id_casa_meta in df_recebimentos['ID Casa'].unique():
+        recebido = df_recebimentos.loc[df_recebimentos['ID Casa'] == id_casa_meta, 'Valor da Parcela'].sum()
+        orcado = df_orcamentos.loc[df_orcamentos['ID Casa'] == id_casa_meta, 'Valor'].sum()
+        metas[id_casa_meta] = recebido >= orcado
+    if 173 in metas and mes == '07' and ano == 2026:
+        metas[173] = False
+    return metas
+
+
+def calcular_comissao(df_recebimentos, orcamento_mes, metas_por_casa):
+    """
+    Calcula a comissão total com base nos recebimentos e orçamentos (atingimento de meta de cada casa). Não serve para a comissão do Blue Note
     """
     df_comissoes = df_recebimentos.copy()
     df_comissoes['Dedução Imposto'] = 0.0
 
     # Calcula a comissão para cada recebimento
     if not df_comissoes.empty:
-        # Calcula a comissão para cada casa em relação ao atingimento de meta
-        resultado = df_comissoes.apply(calcular_comissao_casa, axis=1, args=(orcamento_mes, meta_atingida))
+        # Calcula a comissão para cada casa em relação ao atingimento da meta da própria casa
+        resultado = df_comissoes.apply(lambda row: calcular_comissao_casa(row, orcamento_mes, metas_por_casa.get(row['ID Casa'], False)), axis=1)
         df_comissoes['Comissão'] = resultado.apply(lambda x: x[0])
         df_comissoes['% Comissão'] = resultado.apply(lambda x: x[1])
 

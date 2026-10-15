@@ -226,7 +226,9 @@ def main():
                 meta_atingida = False
 
             # Calcula a comissão total para o mês, casa e vendedor(es) selecionados (menos para o Blue Note, pois possui o cálculo de comissão diferente) - considera apenas comissões por atingimento de meta/orçamento
-            df_comissoes_por_meta = calcular_comissao(df_recebimentos, orcamento_mes, meta_atingida)
+            # Meta por casa: cada casa tem sua regra, inclusive em "Todas as Casas"
+            metas_por_casa = metas_atingidas_por_casa(df_recebimentos, df_orcamentos, ano, mes)
+            df_comissoes_por_meta = calcular_comissao(df_recebimentos, orcamento_mes, metas_por_casa)
             comissao = 0
 
             # Map de vendedores e cargos
@@ -262,7 +264,7 @@ def main():
                     
                     if 149 in ids_casas_vendedor and cargo_vendedor == 'Gerente de Eventos do Squad':
                         df_recebimentos_total_mes_outros_vendedores = df_recebimentos_total_mes[(df_recebimentos_total_mes['ID - Responsavel'] != vendedor) & (df_recebimentos_total_mes['ID Casa'] == 149)].copy()
-                        df_recebimentos_gerente_priceless = calcular_comissao_gerente_priceless(df_recebimentos_total_mes_outros_vendedores, vendedor, id_casa, meta_atingida)
+                        df_recebimentos_gerente_priceless = calcular_comissao_gerente_priceless(df_recebimentos_total_mes_outros_vendedores, vendedor, id_casa, metas_por_casa.get(149, False))
                         df_vendedor = pd.concat([df_vendedor, df_recebimentos_gerente_priceless], ignore_index=True)
 
                     for id_casa_regra_blue_note in IDS_REGRA_COMISSAO_BLUE_NOTE:
