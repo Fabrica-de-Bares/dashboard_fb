@@ -223,9 +223,6 @@ def calcular_comissao_fixa_claudia(df_recebimentos_total_mes, ids_casas_vendedor
             df_recebimentos_total_mes['Dedução Imposto'] = 0.0
             df_recebimentos_total_mes['Valor Líquido'] = df_recebimentos_total_mes['Valor da Parcela'] - df_recebimentos_total_mes['Dedução Imposto']
 
-            # Identifica visualmente as linhas de comissão fixa
-            df_recebimentos_total_mes['Nome Evento'] = '[Comissão Fixa] ' + df_recebimentos_total_mes['Nome Evento'].astype(str)
-
             # Ordem das colunas
             df_comissao_fixa = df_recebimentos_total_mes[COLUNAS_COMISSAO_BLUE_NOTE]
 
