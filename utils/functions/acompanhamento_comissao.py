@@ -197,6 +197,40 @@ def calcular_comissao_gerente_blue_note(df_recebimentos_total_mes, vendedor, id_
 
     return df_bonus_gerente
 
+
+ID_CLAUDIA_WHITAKER = 116
+PERCENTUAL_COMISSAO_FIXA_CLAUDIA = 0.5
+
+
+def calcular_comissao_fixa_claudia(df_recebimentos_total_mes, ids_casas_vendedor, ano, mes):
+    """
+    A partir de setembro/2026, a Claudia Whitaker recebe comissão fixa de 0,5% sobre os
+    recebimentos dos eventos das casas às quais está associada em que ela não é a
+    comercial responsável (nos eventos dela já recebe a comissão normal).
+    """
+    regra_vigente = (int(ano) > 2026) or (int(ano) == 2026 and int(mes) >= 9)
+    df_comissao_fixa = pd.DataFrame(columns=COLUNAS_COMISSAO_BLUE_NOTE)
+
+    if regra_vigente:
+        df_recebimentos_total_mes = df_recebimentos_total_mes[
+            (df_recebimentos_total_mes['ID Casa'].isin(ids_casas_vendedor)) &
+            (df_recebimentos_total_mes['ID Responsavel'] != ID_CLAUDIA_WHITAKER)
+        ].copy()
+
+        if not df_recebimentos_total_mes.empty:
+            df_recebimentos_total_mes['% Comissão'] = PERCENTUAL_COMISSAO_FIXA_CLAUDIA
+            df_recebimentos_total_mes['Comissão'] = df_recebimentos_total_mes['Valor da Parcela'] * PERCENTUAL_COMISSAO_FIXA_CLAUDIA / 100
+            df_recebimentos_total_mes['Dedução Imposto'] = 0.0
+            df_recebimentos_total_mes['Valor Líquido'] = df_recebimentos_total_mes['Valor da Parcela'] - df_recebimentos_total_mes['Dedução Imposto']
+
+            # Identifica visualmente as linhas de comissão fixa
+            df_recebimentos_total_mes['Nome Evento'] = '[Comissão Fixa] ' + df_recebimentos_total_mes['Nome Evento'].astype(str)
+
+            # Ordem das colunas
+            df_comissao_fixa = df_recebimentos_total_mes[COLUNAS_COMISSAO_BLUE_NOTE]
+
+    return df_comissao_fixa
+
 def highlight_total_row(row):
     if row['Casa'] == 'Total':
         return ['background-color: #f0f2f6; color: black;'] * len(row)

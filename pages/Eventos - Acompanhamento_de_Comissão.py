@@ -277,6 +277,12 @@ def main():
                                 if not df_bonus_gerente_blue_note.empty:
                                     df_vendedor = pd.concat([df_vendedor, df_bonus_gerente_blue_note], ignore_index=True)
 
+                    # Comissão fixa da Claudia Whitaker sobre eventos de outras comerciais (a partir de set/2026)
+                    if vendedor.startswith(f'{ID_CLAUDIA_WHITAKER} - '):
+                        df_comissao_fixa_claudia = calcular_comissao_fixa_claudia(df_recebimentos_total_mes, ids_casas_vendedor, ano, mes)
+                        if not df_comissao_fixa_claudia.empty:
+                            df_vendedor = pd.concat([df_vendedor, df_comissao_fixa_claudia], ignore_index=True)
+
                     df_vendedor['Valor Líquido'] = df_vendedor['Valor da Parcela'] - df_vendedor['Dedução Imposto']
                         
                     if not df_vendedor.empty:
