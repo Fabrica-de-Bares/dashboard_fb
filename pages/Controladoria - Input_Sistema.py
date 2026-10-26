@@ -234,6 +234,9 @@ elif tipo_formatacao == 'Real DRE':
         # Lê o arquivo adicionado
         if casa == 'Girondino': aba_dre = 'DRE GIRONDINO'
         elif casa == 'Girondino - CCBB': aba_dre = 'DRE CCBB'
+        # Arquivo do Blue Note - Consolidado (Download DRE): aba 'DRE' é a consolidada, cada casa lê a sua
+        elif casa == 'Blue Note - São Paulo': aba_dre = 'DRE Blue Note SP'
+        elif casa == 'Blue Note SP (Sala 2)': aba_dre = 'DRE Blue Note Sala 2'
         else: aba_dre = 'DRE'
 
         df = pd.read_excel(uploaded_file, sheet_name=aba_dre, skiprows=3)
@@ -253,6 +256,17 @@ elif tipo_formatacao == 'Real DRE':
         # Remove linha 'Eventos A&B' inclusa no CMV para não conflitar com a do Faturamento Bruto
         mask = df_transformado['Unnamed: 0'] == 'Eventos A&B'
         df_transformado = df_transformado[~(mask & mask.cumsum().gt(1))]
+
+        # Arquivo baixado do Download DRE e não salvo no Excel só tem as fórmulas, sem valor calculado,
+        # e o pandas lê essas células como vazias (vira tudo zero)
+        valores = df_transformado[colunas_meses].apply(pd.to_numeric, errors='coerce')
+        qtd_preenchidas = (valores.notna() & (valores != 0)).sum().sum()
+        if qtd_preenchidas < 0.1 * valores.size:
+            st.warning(
+                f'A aba {aba_dre} veio com quase todos os valores vazios ({qtd_preenchidas} de {valores.size} células preenchidas). '
+                'Se o arquivo foi baixado direto do Download DRE, abra no Excel, espere calcular, salve e suba de novo. '
+                'Se o arquivo já foi salvo, confira se o mês selecionado tem dados.'
+            )
 
         # Aplica tratamentos numéricos
         df_transformado = df_transformado.fillna(0)
