@@ -1,7 +1,9 @@
 import streamlit as st
 import requests
 import pandas as pd
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
+from concurrent.futures import ThreadPoolExecutor
+import time
 import calendar
 import http
 import json
@@ -58,48 +60,6 @@ def df_compradores_zigpay_mes(mes, ano, id_zigpay):
         df = pd.DataFrame(columns=["userDocument", "userName", "transactionId"])
 
     return df
-
-def login_zigpay():
-    conn = http.client.HTTPSConnection('api.zigcore.com.br')
-    deviceId = st.secrets["zigpay_api_scrapping"]["deviceInfoId"]
-
-    organization = st.secrets["zigpay_api_scrapping"]["organization"]
-    username = st.secrets["zigpay_api_scrapping"]["username"]
-    password = st.secrets["zigpay_api_scrapping"]["password"]
-    
-    payload = json.dumps({
-        "args": {
-            "username": username,
-            "password": password,
-            "organizationUsername": organization
-        },
-        "deviceInfo": {
-            "id": deviceId,
-            "language": "pt-BR",
-            "platform": {"browserUserAgent": "Mozilla/5.0"},
-            "timezone": "America/Sao_Paulo",
-            "type": "web",
-            "version": ""
-        },
-        "extra": {"tz": "America/Sao_Paulo", "lng": "pt-BR"},
-        "name": "logIn",
-        "requestId": uuid.uuid4().hex,
-        "version": 3
-    })
-
-    headers = {
-        'accept': '*/*',
-        'content-type': 'application/sdkgen',
-        'origin': 'https://dashboard.zigpay.com.br',
-        'referer': 'https://dashboard.zigpay.com.br/',
-        'user-agent': 'Mozilla/5.0',
-    }
-
-    conn.request('POST', '/enterprise-postgres/logIn', payload, headers)
-    response = conn.getresponse()
-    data = json.loads(response.read().decode('utf-8'))
-    return data
-
 
 # Relatório Zigpay - Ranking de vendas 
 def request_getSellerReportForPlace_zigpay(id_zigpay, data_inicio, data_fim):
@@ -209,194 +169,60 @@ def id_casa_para_ids_zigpay(id_casa, id_zigpay):
     lista_ids_zigpay = st.secrets['ids_zigpay'][f"{id_casa}"] if f"{id_casa}" in st.secrets['ids_zigpay'] else [id_zigpay]
     return lista_ids_zigpay
 
+
+# API oficial de integração (ERP) — substitui a API do painel (enterprise-postgres), que passou a
+# bloquear requisições simulando navegador.
+# Com dtinicio = dtfim = dia, a saida-produtos traz os itens do evento aberto naquele dia (o mesmo
+# dia de abertura do evento no painel). Valores em centavos. A API recusa mais de 5 eventos por chamada, por isso um
+# dia por requisição.
+def request_saida_produtos_dia_zigpay_erp(id_zigpay, dia, token):
+    url = "https://api.zigcore.com.br/integration/erp/saida-produtos"
+    headers = {'Authorization': token, 'Accept': 'application/json'}
+    params = {"dtinicio": dia, "dtfim": dia, "loja": f"{id_zigpay}"}
+
+    for tentativa in range(1, 6):
+        response = requests.get(url, headers=headers, params=params, timeout=120)
+        if response.status_code == 429 or response.status_code >= 500:
+            time.sleep(3 * tentativa)
+            continue
+        if response.status_code != 200:
+            raise RuntimeError(f"Zigpay saida-produtos {dia}: HTTP {response.status_code} — {response.text[:200]}")
+        return response.json()
+
+    raise RuntimeError(f"Zigpay saida-produtos {dia}: HTTP {response.status_code} após 5 tentativas")
+
+
 @st.cache_data
-def request_getProductsSoldAtEventInPeriodV2_zigpay(
-    event_id,
-    place_id=None,
-    since=None,
-    until=None,
-    sources=None
-):
-    """
-    Faz requisição para obter produtos vendidos em um evento em um período específico.
-    
-    Args:
-        event_id (str): ID do evento (obrigatório)
-        device_id (str): ID do dispositivo (obrigatório)
-        place_id (str, optional): ID do local
-        since (str, optional): Data inicial (formato: YYYY-MM-DD ou timestamp)
-        until (str, optional): Data final (formato: YYYY-MM-DD ou timestamp)
-        sources (list, optional): Lista de fontes de dados
-    
-    Returns:
-        pd.DataFrame: DataFrame com os produtos vendidos
-    """
-    device_id = st.secrets["zigpay_api_scrapping"]["deviceInfoId"]
-    conn = http.client.HTTPSConnection('api.zigcore.com.br')
-    
-    headers = {
-        'accept': '*/*',
-        'accept-language': 'pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7',
-        'content-type': 'application/sdkgen',
-        'origin': 'https://dashboard.zigpay.com.br',
-        'priority': 'u=1, i',
-        'referer': 'https://dashboard.zigpay.com.br/',
-        'sec-ch-ua': '"Not:A-Brand";v="99", "Google Chrome";v="146", "Chromium";v="146"',
-        'sec-ch-ua-mobile': '?0',
-        'sec-ch-ua-platform': '"Windows"',
-        'sec-fetch-dest': 'empty',
-        'sec-fetch-mode': 'cors',
-        'sec-fetch-site': 'cross-site',
-        'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36',
-    }
-    
-    # Construir o payload com os argumentos
-    payload = {
-        "args": {
-            "eventId": event_id,
-            "placeId": place_id,
-            "since": since,
-            "until": until,
-            "sources": sources
-        },
-        "deviceInfo": {
-            "id": device_id,
-            "language": "pt-BR",
-            "platform": {
-                "browserUserAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
-            },
-            "timezone": "America/Sao_Paulo",
-            "type": "web",
-            "version": "/prod.chunk.2c3325a42d601ea2b4b5.js"
-        },
-        "extra": {
-            "tz": "America/Sao_Paulo",
-            "lng": "pt-BR"
-        },
-        "name": "getProductsSoldAtEventInPeriodV2",
-        "requestId": uuid.uuid4().hex,
-        "version": 3
-    }
-    
-    # Fazer a requisição
-    conn.request(
-        'POST',
-        '/enterprise-postgres/getProductsSoldAtEventInPeriodV2',
-        json.dumps(payload),
-        headers
-    )
-    
-    response = conn.getresponse()
-    raw = response.read()
-    
-    # Verificar se a resposta está vazia
-    if not raw or raw.strip() == b'':
-        print("Erro: Resposta vazia da API")
+def request_faturamento_dia_zigpay_erp(id_zigpay, month, year, produtos_fora=()):
+    """Faturamento bruto, desconto e líquido por dia de evento no mês, em reais. Sem gorjeta (Tip),
+    sem ingresso (Entrance) — que o relatório de produtos do painel não contava — e sem os produtos
+    de produtos_fora. Dia sem venda não entra."""
+    primeiro_dia = date(year, month, 1)
+    ultimo_dia = min(date(year, month, calendar.monthrange(year, month)[1]), datetime.now().date())
+    if ultimo_dia < primeiro_dia:
         return pd.DataFrame()
-    
-    try:
-        data = json.loads(raw.decode('utf-8'))
-    except json.JSONDecodeError as e:
-        print(f"Erro ao decodificar JSON: {e}")
-        print(f"Conteúdo da resposta: {raw.decode('utf-8', errors='replace')}")
-        return pd.DataFrame()
-    
-    # Verificar se houve erro na resposta
-    if data.get('error') is not None:
-        print(f"Erro na requisição: {data['error']}")
-        return pd.DataFrame()
-    
-    # A resposta é uma lista direta de produtos (não dentro de 'result')
-    products = data.get('result', [])
-    
-    # Se não há produtos, retorna DataFrame vazio
-    if not products or len(products) == 0:
-        print("Nenhum produto encontrado")
-        return pd.DataFrame()
-    
-    # Extrair apenas os campos necessários
-    products_simplified = []
-    for product in products:
-        products_simplified.append({
-            'evento': event_id,
-            'id_produto': product.get('id'),
-            'nome': product.get('name'),
-            'categoria': product.get('category'),
-            'quantidade': product.get('count'),
-            'valor_unitario': product.get('unitValue'),
-            'valor_total': product.get('totalValue'),
-            'desconto': product.get('totalDiscount'),
-            'operacao': product.get('operationType'),
-            'tipo_produto': product.get('kind', {}).get('name'),
-            'categoria_mestre': product.get('kind', {}).get('masterKind'),
+
+    token = st.secrets["api_zigpay"]["token"]
+    dias = [d.date().isoformat() for d in pd.date_range(primeiro_dia, ultimo_dia)]
+    with ThreadPoolExecutor(max_workers=4) as executor:
+        respostas = list(executor.map(lambda dia: request_saida_produtos_dia_zigpay_erp(id_zigpay, dia, token), dias))
+
+    produtos_fora = {str(p) for p in produtos_fora}
+    linhas = []
+    for dia, itens in zip(dias, respostas):
+        if not itens:
+            continue
+        bruto = desconto = 0
+        for item in itens:
+            if item.get('productType') in ('Tip', 'Entrance') or str(item.get('productId')) in produtos_fora:
+                continue
+            bruto += round((item.get('unitValue') or 0) * (item.get('count') or 0))
+            desconto += item.get('discountValue') or 0
+        linhas.append({
+            'Data Evento': date.fromisoformat(dia),
+            'valor_total': round(bruto / 100, 2),
+            'desconto': round(desconto / 100, 2),
+            'valor_liquido': round((bruto - desconto) / 100, 2),
         })
-    
-    # Converter para DataFrame
-    df = pd.DataFrame(products_simplified)
-    
-    # Converter valores de centavos para reais
-    for column in ['valor_unitario', 'valor_total', 'desconto']:
-        if column in df.columns:
-            df[column] = (df[column] / 100).round(2)
-    
-    # Calcular valor líquido (total - desconto)
-    df['valor_liquido'] = (df['valor_total'] - df['desconto']).round(2)
-    
-    return df
 
-
-@st.cache_data
-def request_getEvents_zigpay(id_zigpay, month, year):
-    import http.client
-    import json
-    import uuid
-
-    deviceId = st.secrets["zigpay_api_scrapping"]["deviceInfoId"]
-
-    conn = http.client.HTTPSConnection('api.zigcore.com.br')
-    headers = {
-        'accept': '*/*',
-        'accept-language': 'pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7',
-        'content-type': 'application/sdkgen',
-        'origin': 'https://dashboard.zigpay.com.br',
-        'priority': 'u=1, i',
-        'referer': 'https://dashboard.zigpay.com.br/',
-        'sec-ch-ua': '"Not:A-Brand";v="99", "Google Chrome";v="145", "Chromium";v="145"',
-        'sec-ch-ua-mobile': '?0',
-        'sec-ch-ua-platform': '"Windows"',
-        'sec-fetch-dest': 'empty',
-        'sec-fetch-mode': 'cors',
-        'sec-fetch-site': 'cross-site',
-        'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36',
-    }
-
-    conn.request(
-        'POST',
-        '/enterprise-postgres/getEvents',
-        f'{{"args":{{"placeId":"{id_zigpay}","month":{month - 1},"year":{year}}},"deviceInfo":{{"id":"{deviceId}","language":"pt-BR","platform":{{"browserUserAgent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36"}},"timezone":"America/Sao_Paulo","type":"web","version":""}},"extra":{{"tz":"America/Sao_Paulo","lng":"pt-BR"}},"requestId": "{uuid.uuid4().hex}","name":"getEvents","version":3}}',
-        headers
-    )
-
-    response = conn.getresponse()
-    raw = response.read()
-    data = json.loads(raw.decode('utf-8'))
-
-    # Extrair apenas os eventos
-    events = data['result']['events']
-    
-    # Se não há eventos, retorna DataFrame vazio
-    if not events or len(events) == 0:
-        return pd.DataFrame()
-    
-    # Converter para DataFrame
-    df = pd.DataFrame(events)
-    
-    # Converter valores em centavos para reais (se a coluna existir)
-    if 'income' in df.columns:
-        df['income'] = df['income'] / 100
-    
-    if 'averageTicket' in df.columns:
-        df['averageTicket'] = df['averageTicket'] / 100
-
-    return df
-
+    return pd.DataFrame(linhas)

@@ -1,14 +1,11 @@
 import streamlit as st
 from utils.functions.general_functions import nome_casa_por_id
 import pandas as pd
-import uuid
-import http.client
-import json
 from utils.components import *
 from utils.functions.date_functions import *
 from utils.functions.general_functions import *
-from utils.functions.api_zigpay import login_zigpay, request_getEvents_zigpay, request_getProductsSoldAtEventInPeriodV2_zigpay
-from utils.queries_controladoria import GET_FATURAMENTO_ZIGPAY_VALIDACAO, GET_ITENS_SEM_CADASTRO, GET_ITENS_COM_CADASTRO_DUPLICADO
+from utils.functions.api_zigpay import request_faturamento_dia_zigpay_erp
+from utils.queries_controladoria import GET_FATURAMENTO_ZIGPAY_VALIDACAO, GET_CADASTROS_COUVERT_ZIGPAY, GET_ITENS_SEM_CADASTRO, GET_ITENS_COM_CADASTRO_DUPLICADO
 
 st.set_page_config(
 	page_icon="✅",
@@ -47,63 +44,21 @@ def main():
     st.divider()
 
     # ZIGPAY #
-    # Realiza login na Zigpay
-    login_zigpay()
+    # Faturamento por dia de evento pela API oficial de integração (ERP)
+    # Se a casa selecionada for o Arcos, Love Cabaret ou Ultra Evil tira o Couvert também do lado da Zigpay
+    produtos_couvert = ()
+    if id_casa == 122 or id_casa == 128 or id_casa == 145:
+        produtos_couvert = tuple(GET_CADASTROS_COUVERT_ZIGPAY()['ID Zigpay'].astype(str))
 
-    # Obtém Serviço Zigpay da casa agregada
-    df_eventos_zigpay = request_getEvents_zigpay(id_zigpay, mes_numero, ano)
+    try:
+        df_eventos_zigpay = request_faturamento_dia_zigpay_erp(id_zigpay, mes_numero, ano, produtos_couvert)
+    except Exception as e:
+        st.error(f'Erro ao consultar a API da Zigpay: {e}')
+        return
 
     if df_eventos_zigpay.empty:
         st.warning(f'Ainda não há dados da Zigpay para {casa} em {mes_nome}/{ano}.')
         return
-
-    # Tratamento de dados
-    df_eventos_zigpay['Casa'] = casa
-    df_eventos_zigpay['begin'] = pd.to_datetime(df_eventos_zigpay['begin']).dt.date
-    df_eventos_zigpay.sort_values(by='begin', inplace=True)
-    df_eventos_zigpay.drop(columns=['end', 'name', 'openedBy', 'openedAt', 'checkedAt', 'checkedBy', 'sales', 'tags', 'image', 'hasOpenedTables', 'lastSyncAfterClosed', 'closingConferenceStatus'], inplace=True)
-    df_eventos_zigpay.dropna(subset=['income', 'totalPublic', 'averageTicket'], inplace=True)
-
-    # Renomeia colunas
-    df_eventos_zigpay.rename(columns={
-        'begin': 'Data Evento',
-        'income': 'Faturamento',
-    }, inplace=True)
-
-    # Requisição para getProductsSoldAtEventInPeriodV2: obtem da API os produtos vendidos de cada evento
-    df_produtos_eventos_zig = pd.DataFrame()
-    for evento in df_eventos_zigpay['id'].unique().tolist():
-        df_produtos_evento_zig = request_getProductsSoldAtEventInPeriodV2_zigpay(
-            evento, 
-            place_id=None,
-            since=None,
-            until=None,
-            sources=None
-        )
-        df_produtos_eventos_zig = pd.concat([df_produtos_eventos_zig, df_produtos_evento_zig])
-
-    if df_produtos_eventos_zig.empty or 'evento' not in df_produtos_eventos_zig.columns:
-        st.warning(f'Ainda não há dados da Zigpay para {casa} em {mes_nome}/{ano}.')
-        return
-
-    # Agrupa faturamento por evento zig
-    df_produtos_eventos_zig = df_produtos_eventos_zig.groupby(['evento']).agg({
-        'valor_total': 'sum',
-        'valor_liquido': 'sum',
-        'desconto': 'sum'
-    }).reset_index()
-    
-    # Merge faturamentos bruto e liquido dos eventos com os eventos do mês
-    df_eventos_zigpay = df_eventos_zigpay.merge(df_produtos_eventos_zig, how='left', left_on='id', right_on='evento')
-
-    # Agrupa por dia de evento se houver mais de um evento no mesmo dia
-    df_eventos_zigpay = df_eventos_zigpay.groupby(['Data Evento']).agg({
-        'Data Evento': 'first',
-        'totalPublic': 'sum',        
-        'valor_total': 'sum',
-        'valor_liquido': 'sum',
-        'desconto': 'sum'
-    })
 
     # Faturamento T_ITENS_VENDIDOS  
     df_itens_vendidos = GET_FATURAMENTO_ZIGPAY_VALIDACAO(id_zigpay, mes_numero, ano)
@@ -150,7 +105,6 @@ def main():
         "Desconto": "Desconto T_ITENS_VENDIDOS",
         "Faturamento Itens Líquido": "Faturamento Líquido T_ITENS_VENDIDOS"
     }, inplace=True)
-    df_merged_zig_bd.drop(columns=['totalPublic'], inplace=True)
 
     # Formatação
     df_merged_zig_bd.dropna(inplace=True)
