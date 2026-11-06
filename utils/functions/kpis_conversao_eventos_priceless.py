@@ -203,7 +203,7 @@ def grafico_barras_num_propostas(df_eventos_ano, filtro_data):
     df_lancados = df_eventos_ano.groupby(['Mes']).size().reset_index(name='Número de Eventos')
     df_confirmados = df_eventos_agrupado[df_eventos_agrupado['Status do Evento'] == 'Confirmado']
     df_declinados = df_eventos_agrupado[df_eventos_agrupado['Status do Evento'] == 'Declinado']
-    df_em_negociacao = df_eventos_agrupado[df_eventos_agrupado['Status do Evento'] == 'Em negociacão']
+    df_em_negociacao = df_eventos_agrupado[df_eventos_agrupado['Status do Evento'] == 'Em negociação']
 
     # Cria series de valores
     serie_propostas_lancadas = [0] * 12

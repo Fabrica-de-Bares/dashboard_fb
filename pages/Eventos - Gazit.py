@@ -135,7 +135,7 @@ def main():
 			df_eventos_vencimento = format_columns_brazilian(df_eventos, ['Total Gazit Aroos', 'Total Gazit Anexo', 'Valor Locacao Total Aroos'])
 
 			df_eventos_vencimento = df_eventos[df_eventos['ID Evento'].isin(df_parcelas_vencimento['ID Evento'])]
-			df_eventos_vencimento = df_eventos_vencimento[df_eventos_vencimento['Status Evento'] != 'Declinado']
+			df_eventos_vencimento = df_eventos_vencimento[df_eventos_vencimento['Status Evento'].isin(['Em negociação', 'Confirmado'])]
 
 			df_parcelas_vencimento = df_parcelas_vencimento[df_parcelas_vencimento['ID Evento'].isin(df_eventos_vencimento['ID Evento'])]
 
