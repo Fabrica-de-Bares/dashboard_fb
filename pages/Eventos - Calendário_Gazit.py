@@ -85,7 +85,11 @@ def main():
             </div>
             <div style="display: flex; align-items: center;">
                 <div style="width: 16px; height: 16px; background-color: #EF4444; border-radius: 4px; margin-right: 8px;"></div>
-                <span>Declinados</span>
+                <span>Declinados e cancelados</span>
+            </div>
+            <div style="display: flex; align-items: center;">
+                <div style="width: 16px; height: 16px; background-color: #9CA3AF; border-radius: 4px; margin-right: 8px;"></div>
+                <span>Rascunho</span>
             </div>
         </div>
     </div>
