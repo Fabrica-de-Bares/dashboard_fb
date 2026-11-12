@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-from utils.functions.general_functions import dataframe_query
+from utils.functions.general_functions import dataframe_query, converter_datas
 from utils.constants.general_constants import casas_validas
 from utils.functions.general_functions_conciliacao import remove_antecipacoes_duplicadas
 
@@ -266,9 +266,13 @@ def GET_PARCELAS_RECEIT_EXTR():
       AND tsp.DESCRICAO NOT IN ('Permuta', 'Encontro de Contas')                                        
       ORDER BY te.NOME_FANTASIA ASC, vpa.DATA_RECEBIMENTO DESC
     ''')
-    df_parc_receit_extr['Data_Ocorrencia'] = pd.to_datetime(df_parc_receit_extr['Data_Ocorrencia']) 
-    df_parc_receit_extr['Vencimento_Parcela'] = pd.to_datetime(df_parc_receit_extr['Vencimento_Parcela'])
-    df_parc_receit_extr['Recebimento_Parcela'] = pd.to_datetime(df_parc_receit_extr['Recebimento_Parcela'])
+    # Datas digitadas erradas no EPM (ex.: ano 0002) viram NaT e são avisadas na página
+    df_parc_receit_extr = converter_datas(
+        df_parc_receit_extr,
+        ['Data_Ocorrencia', 'Vencimento_Parcela', 'Recebimento_Parcela'],
+        col_id='ID_Receita',
+        origem='Receitas Extraordinárias',
+    )
     return df_parc_receit_extr
 
 

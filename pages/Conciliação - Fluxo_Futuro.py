@@ -3,7 +3,7 @@ import pandas as pd
 from st_aggrid import ColumnsAutoSizeMode
 from utils.functions.general_functions_conciliacao import *
 from utils.functions.fluxo_futuro import *
-from utils.functions.general_functions import config_sidebar
+from utils.functions.general_functions import config_sidebar, avisar_datas_invalidas
 from utils.components import dataframe_aggrid, input_multiselecao_casas
 from utils.queries_conciliacao import *
 
@@ -34,6 +34,7 @@ df_casas = GET_CASAS()
 df_orcamentos = GET_ORCAMENTOS()
 df_faturamento_agregado = GET_FATURAMENTO_AGREGADO()
 df_parc_receit_extr = GET_PARCELAS_RECEIT_EXTR()
+avisar_datas_invalidas(df_parc_receit_extr)
 df_eventos_faturam_agregado = GET_EVENTOS_FATURAM_AGREGADO()
 df_despesas_sem_parcelamento = GET_CUSTOS_BLUEME_SEM_PARC()
 df_despesas_com_parcelamento = GET_CUSTOS_BLUEME_COM_PARC()

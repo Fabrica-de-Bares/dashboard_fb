@@ -3,7 +3,7 @@ import pandas as pd
 import datetime
 from utils.components import input_selecao_casas
 from utils.functions.general_functions_conciliacao import *
-from utils.functions.general_functions import config_sidebar
+from utils.functions.general_functions import config_sidebar, avisar_datas_invalidas
 from utils.functions.conciliacoes import *
 from utils.queries_conciliacao import *
 
@@ -31,6 +31,7 @@ st.divider()
 
 # Recuperando dados
 df_casas = GET_CASAS()
+avisar_datas_invalidas(GET_PARCELAS_RECEIT_EXTR())
 
 # Calculando Datas
 datas = calcular_datas()

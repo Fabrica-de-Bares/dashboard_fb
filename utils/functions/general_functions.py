@@ -76,6 +76,45 @@ def dataframe_query(query, params=None, use_eshows=False):
 	return dataframe
 
 
+def converter_datas(df, colunas, col_id, origem):
+	"""Converte colunas para datetime sem quebrar com datas impossíveis (ex.: ano 0002 digitado no EPM).
+	Datas inválidas viram NaT e ficam registradas em df.attrs['datas_invalidas'] (sobrevive ao
+	st.cache_data), para a página exibir com avisar_datas_invalidas()."""
+	invalidas = []
+	for col in colunas:
+		convertida = pd.to_datetime(df[col], errors='coerce')
+		mask = df[col].notna() & convertida.isna()
+		for _, linha in df.loc[mask].iterrows():
+			valor = linha[col]
+			if hasattr(valor, 'year'):
+				valor = f"{valor.day:02d}/{valor.month:02d}/{valor.year:04d}"
+			invalidas.append({
+				'Origem': origem,
+				'ID': linha[col_id],
+				'Casa': linha.get('Casa'),
+				'Campo': col,
+				'Valor gravado': str(valor),
+			})
+		df[col] = convertida
+	df.attrs['datas_invalidas'] = df.attrs.get('datas_invalidas', []) + invalidas
+	return df
+
+
+def avisar_datas_invalidas(*dfs):
+	"""Mostra um aviso com os registros que têm data inválida no EPM (ver converter_datas)."""
+	invalidas = [item for df in dfs for item in df.attrs.get('datas_invalidas', [])]
+	if not invalidas:
+		return
+	df_invalidas = pd.DataFrame(invalidas).drop_duplicates()
+	st.warning(
+		f"{len(df_invalidas)} registro(s) com data inválida no EPM (ex.: ano digitado errado). "
+		"Essas datas ficaram em branco e os valores podem faltar nesta página até a correção no EPM.",
+		icon=":material/warning:",
+	)
+	with st.expander("Ver registros com data inválida"):
+		st.dataframe(df_invalidas, hide_index=True)
+
+
 @st.cache_data(ttl=600)
 def nome_casa_por_id(id_casa):
 	"""Nome de exibição da casa, lido de T_EMPRESAS. Usar no lugar de nome fixo no código."""

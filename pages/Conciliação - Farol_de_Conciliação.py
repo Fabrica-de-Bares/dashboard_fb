@@ -3,7 +3,7 @@ import pandas as pd
 import calendar
 from utils.components import seletor_ano
 from utils.functions.general_functions_conciliacao import *
-from utils.functions.general_functions import config_sidebar, get_casas_validas
+from utils.functions.general_functions import config_sidebar, avisar_datas_invalidas, get_casas_validas
 from utils.functions.conciliacoes import *
 from utils.functions.farol_conciliacao import *
 from utils.queries_conciliacao import *
@@ -37,6 +37,7 @@ st.divider()
 
 # Recuperando dados
 df_casas = GET_CASAS()
+avisar_datas_invalidas(GET_PARCELAS_RECEIT_EXTR())
 
 # Filtrando Datas
 datas = calcular_datas()

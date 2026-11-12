@@ -4,7 +4,7 @@ import plotly.graph_objects as go
 from st_aggrid import ColumnsAutoSizeMode
 from utils.functions.general_functions_conciliacao import *
 from utils.constants.general_constants import mapeamento_class_cont
-from utils.functions.general_functions import config_sidebar
+from utils.functions.general_functions import config_sidebar, avisar_datas_invalidas
 from utils.functions.fluxo_realizado import *
 from utils.queries_conciliacao import *
 from utils.components import dataframe_aggrid, input_multiselecao_casas
@@ -35,6 +35,7 @@ st.divider()
 df_casas = GET_CASAS()
 df_extrato_zig = GET_EXTRATO_ZIG()
 df_parc_receit_extr = GET_PARCELAS_RECEIT_EXTR()
+avisar_datas_invalidas(df_parc_receit_extr)
 df_eventos = GET_EVENTOS()
 df_mutuos = GET_MUTUOS()
 df_bloqueios = GET_BLOQUEIOS_JUDICIAIS()
