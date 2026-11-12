@@ -815,7 +815,7 @@ def GET_EVENTOS():
       LEFT JOIN T_CONTAS_BANCARIAS tcb ON (tpep.FK_CONTA_BANCARIA = tcb.ID)
       WHERE tpep.DATA_VENCIMENTO_PARCELA IS NOT NULL 
       AND tpep.DATA_RECEBIMENTO_PARCELA >= '2025-09-01 00:00:00'
-      AND tep.FK_STATUS_EVENTO <> 102                           
+      AND tep.FK_STATUS_EVENTO IN (100, 101)
       AND tsp.DESCRICAO NOT IN ('Desconto', 'Permuta')                         
       ORDER BY te.NOME_FANTASIA ASC, tpep.DATA_RECEBIMENTO_PARCELA DESC
       ''')

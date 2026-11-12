@@ -19,6 +19,7 @@ def dataframe_to_json_calendar(df_eventos, event_color_type=None):
     cores_status = {
         'Confirmado': '#22C55E',
         'Em negociação': '#EAB308',
+        'Rascunho': '#9CA3AF',
     }
 
     cores_casa = {
@@ -185,7 +186,7 @@ def infos_evento(id_evento, df_eventos_aditivos_agrupados, df_eventos):
         st.markdown(f"<b>Número de Pessoas:</b> {evento['Num Pessoas'].values[0]}", unsafe_allow_html=True)
         st.markdown(f"<b>Valor Total do Evento:</b> R$ {format_brazilian(evento['Valor Total Evento'].values[0])}", unsafe_allow_html=True)
         st.markdown(f"<b>Status:</b> {evento['Status Evento'].values[0]}", unsafe_allow_html=True)
-        if evento['Status Evento'].values[0] == 'Declinado':
+        if evento['Status Evento'].values[0] in ('Declinado', 'Cancelado'):
             st.markdown(f"<b>Motivo do Declinio:</b> {evento['Motivo Declínio'].values[0]}", unsafe_allow_html=True)
         
         texto_observacoes = escape_dolar(evento['Observações'].values[0])
