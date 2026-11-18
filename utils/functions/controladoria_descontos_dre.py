@@ -254,6 +254,23 @@ def limpeza_linhas(df, casa):
     if casa == 'Blue Note - São Paulo':
         excluir_exatos.discard('Viagens e Estadias')  # não exclui
 
+    # Regra especial para o Escritório: ignora do CMV até antes da Margem Bruta (seções que não se aplicam, sempre zeradas)
+    if casa == 'Escritório Fabrica de Bares':
+        inicio = df_transformado.index[col == '(-) Custo Mercadoria Vendida']
+        fim = df_transformado.index[col == 'MARGEM BRUTA DE CONTRIBUIÇÃO']
+        if not inicio.empty and not fim.empty:
+            manter = (df_transformado.index < inicio[0]) | (df_transformado.index >= fim[0])
+            df_transformado = df_transformado[manter]
+            col = df_transformado['Unnamed: 0']
+
+        # PJ aberto por centro de custo: no EPM entra só o total (linha 'PJ' -> 'MDO PJ Fixo'); o detalhe vai para o warehouse
+        inicio = df_transformado.index[col == 'PJ']
+        fim = df_transformado.index[col == 'Salários']
+        if not inicio.empty and not fim.empty:
+            manter = (df_transformado.index <= inicio[0]) | (df_transformado.index >= fim[0])
+            df_transformado = df_transformado[manter]
+            col = df_transformado['Unnamed: 0']
+
     df_transformado = df_transformado[
         (~col.isin(excluir_exatos)) &    # remove títulos
         (~contem_parenteses_negativo) &  # remove (-)
@@ -284,8 +301,9 @@ def limpeza_linhas(df, casa):
     df_transformado.loc[condicao, 'Unnamed: 0'] = 'Custas Cartório / Operação'
 
     idx = df_transformado[df_transformado['Unnamed: 0'] == 'Eventos A&B'].index # Caso de dois 'Eventos A&B' (Faturamento Bruto e Custo Mercadoria Vendida)
-    df_transformado.loc[idx[1], 'Unnamed: 0'] = 'Insumos - Eventos A&B'
-    df_transformado.loc[idx[1], 'Classificacao 1'] = 'Custo Mercadoria Vendida'
+    if len(idx) > 1: # Escritório não tem as duas linhas
+        df_transformado.loc[idx[1], 'Unnamed: 0'] = 'Insumos - Eventos A&B'
+        df_transformado.loc[idx[1], 'Classificacao 1'] = 'Custo Mercadoria Vendida'
 
     if casa == 'Blue Note - São Paulo':
         condicao = df_transformado['Unnamed: 0'] == 'Viagens e Estadias' # Não excluí: Renomeia para mapear para a class. cont. 1
