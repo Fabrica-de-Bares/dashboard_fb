@@ -1,6 +1,18 @@
 import pandas as pd
 
 
+# Tira o log igual ao imediatamente anterior da mesma chave (save sem alteração). Diferente do
+# drop_duplicates, mantém a volta a um estado que já existiu, como a reconfirmação de um evento
+# que o Financeiro liberou para edição. O df precisa vir ordenado pela chave e pela Data/Hora Log.
+def remove_logs_repetidos_em_sequencia(df, chave, colunas):
+	df = df.copy()
+	valores = df[colunas].astype(str)
+	anteriores = valores.shift()
+	mesma_chave = df[chave].eq(df[chave].shift())
+	repetido = mesma_chave & (valores == anteriores).all(axis=1)
+	return df[~repetido]
+
+
 # Remove logs de eventos com apenas o primeiro log (de confirmação)
 def remove_logs_eventos_sem_alteração(df):
 	df = df.copy()

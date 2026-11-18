@@ -47,6 +47,16 @@ def main():
 
 	df_datetime_confirmacao_eventos = GET_DATETIME_CONFIRMACAO_EVENTOS()
 
+	# Primeira confirmação de cada evento: tudo o que muda depois dela aparece, inclusive quando o
+	# Financeiro libera o evento para edição (volta para Em negociação) e ele é confirmado de novo.
+	df_primeira_confirmacao = df_datetime_confirmacao_eventos.groupby('ID Evento', as_index=False)['Data Confirmação'].min()
+
+	# Evento liberado para edição (Em negociação depois de já ter sido confirmado) continua na auditoria.
+	ids_ja_confirmados = set(df_primeira_confirmacao['ID Evento'])
+	df_eventos_confirmados = df_eventos_confirmados[
+		(df_eventos_confirmados['Status Evento'] == 'Confirmado') | df_eventos_confirmados['ID Evento'].isin(ids_ja_confirmados)
+	]
+
 	# Seletores
 	col1, col2, col3 = st.columns(3)
 	with col1:
@@ -93,8 +103,8 @@ def main():
 		)
 		df_logs_eventos_confirmados['Confirmação'] = df_logs_eventos_confirmados.apply(lambda x: 1 if (x['ID Evento'], x['Data/Hora Log']) in confirmacoes else 0, axis=1)
 
-	# Mantém apenas Data/Hora maiores que o a do log de confirmação
-	df_logs_eventos_confirmados = df_logs_eventos_confirmados.merge(df_datetime_confirmacao_eventos, how='left', on='ID Evento')
+	# Data da primeira confirmação (uma linha por evento, mesmo com reconfirmação)
+	df_logs_eventos_confirmados = df_logs_eventos_confirmados.merge(df_primeira_confirmacao, how='left', on='ID Evento')
 
 	# Ordena pela Data/Hora Log
 	df_logs_eventos_confirmados.sort_values(by=['ID Evento','Data/Hora Log'], inplace=True)
@@ -116,7 +126,7 @@ def main():
 		'Observações', 'Motivo Declínio', 'Observações Motivo Declínio'
 	]
 	# Remove logs em que não houve alteração (saves sem alterações)
-	df_logs_eventos_confirmados = df_logs_eventos_confirmados.drop_duplicates(subset=colunas_verificar_eventos, keep='first')
+	df_logs_eventos_confirmados = remove_logs_repetidos_em_sequencia(df_logs_eventos_confirmados, 'ID Evento', colunas_verificar_eventos)
 	df_logs_eventos_confirmados = remove_logs_eventos_sem_alteração(df_logs_eventos_confirmados)
 
 	# Formatação das colunas
@@ -155,16 +165,17 @@ def main():
 		df_logs_parcelas_confirmados = df_logs_parcelas_confirmados[(df_logs_parcelas_confirmados['Data/Hora Log'] >= data_inicio) & (df_logs_parcelas_confirmados['Data/Hora Log'] <= data_fim)]
 
 	# Associa com o momento de confirmação do evento
-	df_logs_parcelas_confirmados = df_logs_parcelas_confirmados.merge(df_datetime_confirmacao_eventos, how='left', on='ID Evento')
+	df_logs_parcelas_confirmados = df_logs_parcelas_confirmados.merge(df_primeira_confirmacao, how='left', on='ID Evento')
 
-	df_logs_parcelas_confirmados = df_logs_parcelas_confirmados[(df_logs_parcelas_confirmados['Data Log'] >= df_logs_parcelas_confirmados['Data Confirmação'])]
+	# Desde a primeira confirmação, pela data e hora: entra também o que muda no mesmo dia e durante a liberação para edição
+	df_logs_parcelas_confirmados = df_logs_parcelas_confirmados[(df_logs_parcelas_confirmados['Data/Hora Log'] >= df_logs_parcelas_confirmados['Data Confirmação'])]
 	
 	df_logs_parcelas_confirmados.sort_values(by=['ID Evento', 'ID Parcela', 'Data/Hora Log'], inplace=True)
 
 	colunas_verificar_parcelas = [
 				'ID Evento', 'Nome Usuário', 'Email Usuário', 'Nome do Evento', 'Categoria Parcela', 'Valor Parcela', 'Data Vencimento', 'Conta Bancária', 'Forma de Pagamento'
 			]
-	df_logs_parcelas_confirmados = df_logs_parcelas_confirmados.drop_duplicates(subset=colunas_verificar_parcelas, keep='first')
+	df_logs_parcelas_confirmados = remove_logs_repetidos_em_sequencia(df_logs_parcelas_confirmados, 'ID Parcela', colunas_verificar_parcelas)
 	df_logs_parcelas_confirmados = remove_logs_parcelas_sem_alteração(df_logs_parcelas_confirmados)
 	df_logs_parcelas_confirmados = format_columns_brazilian(df_logs_parcelas_confirmados, ['Valor Parcela'])
 	df_logs_parcelas_confirmados = df_format_date_columns_brazilian(df_logs_parcelas_confirmados, ['Data Recebimento', 'Data Vencimento'])
