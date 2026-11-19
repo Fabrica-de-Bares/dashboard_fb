@@ -63,8 +63,17 @@ def get_casas_delivery():
 
 
 # Dados de Eventos
+# Eventos do Concierge (Notiê) vivem em T_EVENTOS_PRICELESS com FK_CONCIERGE preenchido,
+# na casa 149. Os relatórios comerciais leem só FK_CONCIERGE IS NULL (como antes da
+# migração, quando o Concierge ficava em tabelas próprias); o Concierge tem as queries
+# GET_*_CONCIERGE. Fluxo de caixa e conciliação (queries_fluxo_de_caixa/queries_conciliacao)
+# leem todos.
+def _filtro_concierge(alias, incluir_concierge=False):
+	return '1 = 1' if incluir_concierge else f'{alias}.FK_CONCIERGE IS NULL'
+
+
 @st.cache_data
-def GET_EVENTOS_E_ADITIVOS_PRICELESS():
+def GET_EVENTOS_E_ADITIVOS_PRICELESS(incluir_concierge=False):
    	return dataframe_query(f'''
 	SELECT 
 		tep.ID AS 'ID Evento',
@@ -116,6 +125,7 @@ def GET_EVENTOS_E_ADITIVOS_PRICELESS():
 		LEFT JOIN T_MODELO_EVENTO tme ON (tep.FK_MODELO_EVENTO = tme.ID)
 		LEFT JOIN T_SEGMENTOS_EVENTOS tse ON (tep.FK_SEGMENTO = tse.ID)
 		LEFT JOIN T_EXECUTIVAS_EVENTOS tee ON (tep.FK_EXECUTIVA_EVENTOS = tee.ID)
+	WHERE {_filtro_concierge('tep', incluir_concierge)}
 	''')
 
 
@@ -172,6 +182,7 @@ def GET_EVENTOS():
 		LEFT JOIN T_SEGMENTOS_EVENTOS tse ON (tep.FK_SEGMENTO = tse.ID)
 		LEFT JOIN T_EXECUTIVAS_EVENTOS tee ON (tep.FK_EXECUTIVA_EVENTOS = tee.ID)
 	WHERE tep.IS_ADITIVO = 0
+		AND tep.FK_CONCIERGE IS NULL
 	''')
 
 @st.cache_data
@@ -229,11 +240,12 @@ def GET_ADITIVOS():
 		LEFT JOIN T_SEGMENTOS_EVENTOS tse ON (tep.FK_SEGMENTO = tse.ID)
 		LEFT JOIN T_EXECUTIVAS_EVENTOS tee ON (tep.FK_EXECUTIVA_EVENTOS = tee.ID)
 	WHERE tep.IS_ADITIVO = 1
-	''')	
+		AND tep.FK_CONCIERGE IS NULL
+	''')
 
 
 @st.cache_data
-def GET_PARCELAS_EVENTOS_PRICELESS():
+def GET_PARCELAS_EVENTOS_PRICELESS(incluir_concierge=False):
    	return dataframe_query(f'''
 		SELECT
 			tpep.ID AS 'ID Parcela',
@@ -253,6 +265,7 @@ def GET_PARCELAS_EVENTOS_PRICELESS():
 			LEFT JOIN T_CATEGORIA_EVENTO_PRICELESS tcep ON (tpep.FK_CATEGORIA_PARCELA = tcep.ID)
 			LEFT JOIN T_EMPRESAS te ON te.ID = tep.FK_EMPRESA
 			LEFT JOIN T_STATUS_EVENTO_PRE tsep ON tsep.ID = tep.FK_STATUS_EVENTO
+		WHERE {_filtro_concierge('tep', incluir_concierge)}
 		ORDER BY tep.ID DESC, tpep.ID DESC
 	''')
 
@@ -304,6 +317,8 @@ def GET_EVENTOS_ADITIVOS_AGRUPADOS_CALENDARIO():
 			LEFT JOIN T_EVENTOS_MOTIVOS_DECLINIO temd ON (tep2.FK_MOTIVO_DECLINIO = temd.ID)
 			LEFT JOIN T_STATUS_EVENTO_PRE tsep ON (tep2.FK_STATUS_EVENTO = tsep.ID)
 			LEFT JOIN T_EXECUTIVAS_EVENTOS tee ON (tep2.FK_EXECUTIVA_EVENTOS = tee.ID)
+		WHERE tep.FK_CONCIERGE IS NULL
+			AND tep2.FK_CONCIERGE IS NULL
 		GROUP BY COALESCE(tep.FK_EVENTO_DO_ADITIVO, tep.ID)
 	''')
 
@@ -357,6 +372,8 @@ def GET_EVENTOS_ADITIVOS_AGRUPADOS():
 			LEFT JOIN T_EVENTOS_MOTIVOS_DECLINIO temd ON (tep2.FK_MOTIVO_DECLINIO = temd.ID)
 			LEFT JOIN T_STATUS_EVENTO_PRE tsep ON (tep2.FK_STATUS_EVENTO = tsep.ID)
 			LEFT JOIN T_EXECUTIVAS_EVENTOS tee ON (tep2.FK_EXECUTIVA_EVENTOS = tee.ID)
+		WHERE tep.FK_CONCIERGE IS NULL
+			AND tep2.FK_CONCIERGE IS NULL
 		GROUP BY COALESCE(tep.FK_EVENTO_DO_ADITIVO, tep.ID)
 	''')
 
@@ -438,6 +455,7 @@ def GET_RECEBIMENTOS_EVENTOS():
 			INNER JOIN T_EXECUTIVAS_EVENTOS tee ON tee.ID = tep.FK_EXECUTIVA_EVENTOS
 			INNER JOIN T_PARCELAS_EVENTOS_PRICELESS tpep ON tpep.FK_EVENTO_PRICELESS = tep.ID
 			LEFT JOIN T_CATEGORIA_EVENTO_PRICELESS tcep ON (tpep.FK_CATEGORIA_PARCELA = tcep.ID)
+		WHERE tep.FK_CONCIERGE IS NULL
 		GROUP BY tpep.ID, CONCAT(tee.ID, ' - ', tee.NOME_COMPLETO), te.ID, DATE_FORMAT(tpep.DATA_RECEBIMENTO_PARCELA, '%Y'), DATE_FORMAT(tpep.DATA_RECEBIMENTO_PARCELA, '%m'), tcep.DESCRICAO
 		ORDER BY YEAR(tpep.DATA_RECEBIMENTO_PARCELA), MONTH(tpep.DATA_RECEBIMENTO_PARCELA)
 ''')
@@ -468,6 +486,7 @@ def GET_EVENTOS_COMISSOES():
 			LEFT JOIN T_TIPO_EVENTO tte ON (tep.FK_TIPO_EVENTO = tte.ID)
 			LEFT JOIN T_MODELO_EVENTO tme ON (tep.FK_MODELO_EVENTO = tme.ID)
 			LEFT JOIN T_EXECUTIVAS_EVENTOS tee ON (tep.FK_EXECUTIVA_EVENTOS = tee.ID)
+		WHERE tep.FK_CONCIERGE IS NULL
 ''')
 
 
@@ -531,6 +550,7 @@ def GET_EVENTOS_AUDITORIA():
 			LEFT JOIN T_STATUS_EVENTO_PRE tsep ON tsep.ID = tep.FK_STATUS_EVENTO
 			LEFT JOIN T_EVENTOS_MOTIVOS_DECLINIO temd ON temd.ID = tep.FK_MOTIVO_DECLINIO
 			LEFT JOIN T_RECEITAS_EXTRAORDINARIAS_CLIENTE trec ON (tep.FK_CLIENTE = trec.ID)
+		WHERE tep.FK_CONCIERGE IS NULL
 	''')
 
 
@@ -554,6 +574,7 @@ def GET_PARCELAS_EVENTOS_AUDITORIA():
 			LEFT JOIN T_CATEGORIA_EVENTO_PRICELESS tcep ON (tpep.FK_CATEGORIA_PARCELA = tcep.ID)
 			LEFT JOIN T_EMPRESAS te ON te.ID = tep.FK_EMPRESA
 			LEFT JOIN T_STATUS_EVENTO_PRE tsep ON tsep.ID = tep.FK_STATUS_EVENTO
+		WHERE tep.FK_CONCIERGE IS NULL
 	''')
 
 
@@ -565,9 +586,10 @@ def GET_CLIENTES_EVENTOS():
 			trec.RAZAO_SOCIAL AS 'Razão Social',
 			tsece.DESCRICAO_SETOR AS 'Setor Empresa',
 			trec.DOCUMENTO AS 'Documento',
-			trec.EMAIL AS 'Email',
-			trec.TELEFONE AS 'Telefone',
-			trec.PESSOA_DE_CONTATO AS 'Pessoa de Contato',
+			-- Contato do evento (pai do grupo) na frente; o do cliente fica de reserva
+			COALESCE(NULLIF(TRIM(tep2.EMAIL_ORIGEM_LEAD), ''), trec.EMAIL) AS 'Email',
+			COALESCE(NULLIF(TRIM(tep2.WHATSAPP_ORIGEM_LEAD), ''), trec.TELEFONE) AS 'Telefone',
+			COALESCE(NULLIF(TRIM(tep2.NOME_CONTATO_EVENTO), ''), trec.PESSOA_DE_CONTATO) AS 'Pessoa de Contato',
 			trec.ENDERECO_COMPLETO AS 'Endereço',
 			trec.CEP AS 'CEP',	
 			COALESCE(tep.FK_EVENTO_DO_ADITIVO, tep.ID) AS 'ID Evento',
@@ -600,6 +622,8 @@ def GET_CLIENTES_EVENTOS():
 			LEFT JOIN T_SETOR_EMPRESA_CLIENTES_EVENTOS tsece ON tsece.ID = trec.FK_SETOR_CLIENTE 
 			LEFT JOIN T_STATUS_EVENTO_PRE tsep ON tsep.ID = tep2.FK_STATUS_EVENTO
 		WHERE tsep.DESCRICAO = 'Confirmado' AND trec.ID IS NOT NULL
+			AND tep.FK_CONCIERGE IS NULL
+			AND tep2.FK_CONCIERGE IS NULL
 		GROUP BY COALESCE(tep.FK_EVENTO_DO_ADITIVO, tep.ID)
 	''')
 
@@ -717,6 +741,7 @@ def GET_EVENTOS_CONFIRMADOS():
 			LEFT JOIN T_MODELO_EVENTO tme ON (tep.FK_MODELO_EVENTO = tme.ID)
 			LEFT JOIN T_EXECUTIVAS_EVENTOS tee ON (tep.FK_EXECUTIVA_EVENTOS = tee.ID)
 		WHERE tsep.DESCRICAO = 'Confirmado'
+			AND tep.FK_CONCIERGE IS NULL
 	''')
 
 
@@ -771,19 +796,15 @@ def GET_DATETIME_CONFIRMACAO_EVENTOS():
 		ORDER BY t.ID_Evento, t.LOG_DATE
 	''')
 
+# Concierge: eventos de T_EVENTOS_PRICELESS com FK_CONCIERGE preenchido (já na casa 149).
+# O prefixo 'C-' no ID identifica o evento Concierge nas páginas (calendários, faturamento).
 @st.cache_data
 def GET_EVENTOS_CONCIERGE():
    	return dataframe_query(f'''
-	SELECT 
+	SELECT
 		CONCAT('C-', tep.ID) AS 'ID Evento',
-		CASE 
-			WHEN te.ID = 162 THEN (SELECT NOME_FANTASIA FROM T_EMPRESAS WHERE ID = 149)
-			ELSE te.NOME_FANTASIA
-		END AS `Casa`,
-		CASE 
-			WHEN te.ID = 162 THEN 149
-			ELSE te.ID
-		END AS `ID Casa`,
+		te.NOME_FANTASIA AS `Casa`,
+		te.ID AS `ID Casa`,
 		tc.NOME AS 'Comercial Responsável',
 		tep.NOME_EVENTO AS 'Nome Evento',
 		trec.NOME AS 'Cliente',
@@ -813,14 +834,14 @@ def GET_EVENTOS_CONCIERGE():
 		tep.VALOR_EXTRAS_GERAIS AS 'Valor Extras Gerais',
 		tep.VALOR_CONTRATACAO_ARTISTICO AS 'Valor Contratação Artístico',
 		tep.VALOR_CONTRATACAO_TECNICO_SOM AS 'Valor Contratação Técnico de Som',
-		tep.VALOR_COUVERT_ARTISTICO AS 'Valor Contratação Bilheteria/Couvert Artístico',
+		tep.VALOR_CONTRATACAO_COUVERT_ARTISTICO AS 'Valor Contratação Bilheteria/Couvert Artístico',
 		tep.VALOR_ACRESCIMO_FORMA_PAGAMENTO AS 'Valor Acréscimo Forma de Pagamento',
 		tep.VALOR_IMPOSTO AS 'Valor Imposto',
 		tsep.DESCRICAO AS 'Status Evento',
 		tep.OBSERVACOES AS 'Observações',
 		temd.DESCRICAO AS 'Motivo Declínio',
 		tep.OBSERVACAO_MOTIVO_DECLINIO AS 'Observações Motivo Declínio'
-	FROM T_EVENTOS_CONCIERGE tep
+	FROM T_EVENTOS_PRICELESS tep
 		LEFT JOIN T_EMPRESAS te ON (tep.FK_EMPRESA = te.ID)
 		LEFT JOIN T_RECEITAS_EXTRAORDINARIAS_CLIENTE trec ON (tep.FK_CLIENTE = trec.ID)
 		LEFT JOIN T_STATUS_EVENTO_PRE tsep ON (tep.FK_STATUS_EVENTO = tsep.ID)
@@ -829,6 +850,7 @@ def GET_EVENTOS_CONCIERGE():
 		LEFT JOIN T_MODELO_EVENTO tme ON (tep.FK_MODELO_EVENTO = tme.ID)
 		LEFT JOIN T_SEGMENTOS_EVENTOS tse ON (tep.FK_SEGMENTO = tse.ID)
 		LEFT JOIN T_CONCIERGES tc ON (tc.ID = tep.FK_CONCIERGE)
+	WHERE tep.FK_CONCIERGE IS NOT NULL
 	''')
 
 @st.cache_data
@@ -836,15 +858,9 @@ def GET_PARCELAS_EVENTOS_CONCIERGE():
    	return dataframe_query(f'''
 		SELECT
 			CONCAT('C-', tpep.ID) AS 'ID Parcela',
-			CONCAT('C-', tpep.FK_EVENTO_CONCIERGE) AS 'ID Evento',
-			CASE 
-				WHEN te.ID = 162 THEN (SELECT NOME_FANTASIA FROM T_EMPRESAS WHERE ID = 149)
-				ELSE te.NOME_FANTASIA
-			END AS Casa,
-			CASE 
-				WHEN te.ID = 162 THEN 149
-				ELSE te.ID
-			END AS `ID Casa`,
+			CONCAT('C-', tpep.FK_EVENTO_PRICELESS) AS 'ID Evento',
+			te.NOME_FANTASIA AS Casa,
+			te.ID AS `ID Casa`,
 			tep.NOME_EVENTO AS 'Nome Evento',
 			tsep.DESCRICAO AS 'Status Evento',
 			tcep.DESCRICAO AS 'Categoria Parcela',
@@ -852,12 +868,13 @@ def GET_PARCELAS_EVENTOS_CONCIERGE():
 			tpep.DATA_VENCIMENTO_PARCELA AS 'Data Vencimento',
 			tsp.DESCRICAO AS 'Status Pagamento',
 			tpep.DATA_RECEBIMENTO_PARCELA AS 'Data Recebimento' 
-		FROM T_PARCELAS_EVENTOS_CONCIERGE tpep 
-			LEFT JOIN T_EVENTOS_CONCIERGE tep ON (tpep.FK_EVENTO_CONCIERGE = tep.ID)
+		FROM T_PARCELAS_EVENTOS_PRICELESS tpep
+			INNER JOIN T_EVENTOS_PRICELESS tep ON (tpep.FK_EVENTO_PRICELESS = tep.ID)
 			LEFT JOIN T_STATUS_PAGAMENTO tsp ON (tpep.FK_STATUS_PAGAMENTO = tsp.ID)
 			LEFT JOIN T_CATEGORIA_EVENTO_PRICELESS tcep ON (tpep.FK_CATEGORIA_PARCELA = tcep.ID)
 			LEFT JOIN T_EMPRESAS te ON te.ID = tep.FK_EMPRESA
 			LEFT JOIN T_STATUS_EVENTO_PRE tsep ON tsep.ID = tep.FK_STATUS_EVENTO
+		WHERE tep.FK_CONCIERGE IS NOT NULL
 		ORDER BY `ID Casa` DESC, tpep.ID DESC
 	''')
 

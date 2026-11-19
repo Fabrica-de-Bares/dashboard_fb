@@ -148,6 +148,7 @@ def GET_FATURAMENTO_EVENTOS():
     LEFT JOIN T_MODELO_EVENTO tme ON (tep.FK_MODELO_EVENTO = tme.ID)
     LEFT JOIN T_EMPRESAS te ON (tep.FK_EMPRESA = te.ID)
     WHERE tep.FK_STATUS_EVENTO = 101
+    AND tep.FK_CONCIERGE IS NULL
     GROUP BY
         te.ID,
         te.NOME_FANTASIA,
@@ -293,6 +294,7 @@ def GET_FATURAMENTO_EVENTOS_PRICELESS():
         LEFT JOIN T_CATEGORIA_EVENTO_PRICELESS tcep ON tpep.FK_CATEGORIA_PARCELA = tcep.ID
         WHERE te.ID = 149
         AND tep.FK_STATUS_EVENTO = 101
+        AND tep.FK_CONCIERGE IS NULL # Concierge entra por GET_EVENTOS_CONCIERGE_PRICELESS
         GROUP BY
 	        te.ID,
 	        te.NOME_FANTASIA,
@@ -594,11 +596,12 @@ def GET_EVENTOS_CONCIERGE_PRICELESS():
                 COALESCE(VALOR_EXTRAS_GERAIS,0)+
                 COALESCE(VALOR_IMPOSTO,0)+
                 COALESCE(VALOR_ACRESCIMO_FORMA_PAGAMENTO,0),2) AS Valor_Outros_Total
-        FROM T_EVENTOS_CONCIERGE
+        FROM T_EVENTOS_PRICELESS
+        WHERE FK_CONCIERGE IS NOT NULL
         )
         SELECT
-        149 AS 'ID_Casa',                   
-        (SELECT NOME_FANTASIA FROM T_EMPRESAS WHERE ID = 149) AS 'Casa',
+        te.ID AS 'ID_Casa',
+        te.NOME_FANTASIA AS 'Casa',
         tpep.ID AS 'ID_Parcela',
         tep.ID AS 'ID_Evento',
         tep.DATA_EVENTO AS 'Data Evento',
@@ -628,14 +631,15 @@ def GET_EVENTOS_CONCIERGE_PRICELESS():
         tpep.DATA_VENCIMENTO_PARCELA AS 'Data_Vencimento',
         tsp.DESCRICAO AS 'Status_Pagamento',
         tpep.DATA_RECEBIMENTO_PARCELA AS 'Data_Recebimento'
-        FROM T_PARCELAS_EVENTOS_CONCIERGE tpep
-        JOIN T_EVENTOS_CONCIERGE tep ON tpep.FK_EVENTO_CONCIERGE = tep.ID
+        FROM T_PARCELAS_EVENTOS_PRICELESS tpep
+        JOIN T_EVENTOS_PRICELESS tep ON tpep.FK_EVENTO_PRICELESS = tep.ID
         LEFT JOIN TOTALS t ON t.ID = tep.ID
         LEFT JOIN T_EMPRESAS te ON tep.FK_EMPRESA = te.ID
         LEFT JOIN T_STATUS_PAGAMENTO tsp ON tpep.FK_STATUS_PAGAMENTO = tsp.ID
         LEFT JOIN T_CATEGORIA_EVENTO_PRICELESS tcep ON tpep.FK_CATEGORIA_PARCELA = tcep.ID
-        WHERE te.ID IN (149, 161, 162, 179)
+        WHERE te.ID = 149
         AND tep.FK_STATUS_EVENTO = 101
+        AND tep.FK_CONCIERGE IS NOT NULL
         ORDER BY tep.DATA_EVENTO DESC;
     ''')
 

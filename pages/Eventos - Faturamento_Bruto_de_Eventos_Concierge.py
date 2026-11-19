@@ -37,14 +37,18 @@ def main():
 	st.divider()
 
 	# Recupera dados dos eventos e parcelas
+	# O seletor desta página oferece o Concierge como 'Terraço Notie' (162). O evento
+	# Concierge é reconhecido pelo dado (ID com prefixo 'C-'), não pela casa: no banco
+	# ele está na 149, junto dos eventos comerciais.
 	df_eventos = GET_EVENTOS_CONCIERGE()
-	# Concierge da Notie volta para o place 162 (Terraço Notie) — por ID, não pelo nome
-	df_eventos.loc[df_eventos['ID Casa'] == 149, 'Casa'] = 'Terraço Notie'
-	df_eventos['ID Casa'] = df_eventos['ID Casa'].apply(lambda x: 162 if x == 149 else x)
+	eh_concierge = df_eventos['ID Evento'].astype(str).str.startswith('C-')
+	df_eventos.loc[eh_concierge, 'Casa'] = 'Terraço Notie'
+	df_eventos.loc[eh_concierge, 'ID Casa'] = 162
 
 	df_parcelas = GET_PARCELAS_EVENTOS_CONCIERGE()
-	df_parcelas.loc[df_parcelas['ID Casa'] == 149, 'Casa'] = 'Terraço Notie'
-	df_parcelas['ID Casa'] = df_parcelas['ID Casa'].apply(lambda x: 162 if x == 149 else x)
+	eh_concierge = df_parcelas['ID Evento'].astype(str).str.startswith('C-')
+	df_parcelas.loc[eh_concierge, 'Casa'] = 'Terraço Notie'
+	df_parcelas.loc[eh_concierge, 'ID Casa'] = 162
 	df_orcamentos = GET_ORCAMENTOS_EVENTOS_CONCIERGE()
 
 	# Formata tipos de dados do dataframe de eventos
