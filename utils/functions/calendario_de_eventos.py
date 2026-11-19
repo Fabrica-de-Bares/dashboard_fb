@@ -6,6 +6,27 @@ from utils.functions.general_functions import *
 from utils.functions.parcelas import *
 
 
+def _valor_json(valor):
+    """Valor pronto para o JSON do calendário.
+
+    Campo vazio no banco chega como NaN/NaT, e NaN não é JSON válido: um único evento
+    sem número de pessoas derrubava o calendário da casa inteira ("Unexpected token 'N'").
+    Vazio vira None (null no JSON); tipo numpy vira tipo Python; 50.0 vira 50.
+    """
+    if valor is None:
+        return None
+    try:
+        if pd.isna(valor):
+            return None
+    except (TypeError, ValueError):
+        pass
+    if hasattr(valor, 'item'):
+        valor = valor.item()
+    if isinstance(valor, float) and valor.is_integer():
+        return int(valor)
+    return valor
+
+
 def dataframe_to_json_calendar(df_eventos, event_color_type=None):
     """
     Converte um DataFrame de eventos em um formato JSON adequado para o calendário.
@@ -70,7 +91,7 @@ def dataframe_to_json_calendar(df_eventos, event_color_type=None):
             "comercial_responsavel": row['Comercial Responsável'],
             "observacoes": row['Observações']
         }
-        eventos_json.append(evento)
+        eventos_json.append({chave: _valor_json(valor) for chave, valor in evento.items()})
     return eventos_json
 
 
@@ -183,7 +204,8 @@ def infos_evento(id_evento, df_eventos_aditivos_agrupados, df_eventos):
         st.markdown(f"<b>Data de Contratação:</b> {formata_data_sem_horario(evento['Data Contratação'].values[0])}", unsafe_allow_html=True)
         st.markdown(f"<b>Tipo de Evento:</b> {evento['Tipo Evento'].values[0]}", unsafe_allow_html=True)
     with col2:
-        st.markdown(f"<b>Número de Pessoas:</b> {evento['Num Pessoas'].values[0]}", unsafe_allow_html=True)
+        num_pessoas = _valor_json(evento['Num Pessoas'].values[0])
+        st.markdown(f"<b>Número de Pessoas:</b> {num_pessoas if num_pessoas is not None else 'Não informado'}", unsafe_allow_html=True)
         st.markdown(f"<b>Valor Total do Evento:</b> R$ {format_brazilian(evento['Valor Total Evento'].values[0])}", unsafe_allow_html=True)
         st.markdown(f"<b>Status:</b> {evento['Status Evento'].values[0]}", unsafe_allow_html=True)
         if evento['Status Evento'].values[0] in ('Declinado', 'Cancelado'):
