@@ -1,4 +1,5 @@
 import streamlit as st
+from utils.concierge_corte import CORTE_CONCIERGE, juntar_concierge
 from utils.functions.general_functions import dataframe_query
 
 
@@ -332,6 +333,7 @@ def DRE_BD_EVENTOS_NOVO(ids_casa):
   LEFT JOIN T_EXECUTIVAS_EVENTOS tee ON (tee.ID = tep.FK_EXECUTIVA_EVENTOS)
   WHERE te.ID IN ({ids_casa})
   AND tep.FK_STATUS_EVENTO = 101
+  AND tep.FK_CONCIERGE IS NULL # Concierge tem aba própria (DRE_EVENTOS_CONCIERGE)
   ORDER BY tep.DATA_EVENTO DESC;
   ''')
 
@@ -406,6 +408,7 @@ LEFT JOIN T_STATUS_PAGAMENTO tsp ON tpep.FK_STATUS_PAGAMENTO = tsp.ID
 LEFT JOIN T_CATEGORIA_EVENTO_PRICELESS tcep ON tpep.FK_CATEGORIA_PARCELA = tcep.ID
 WHERE te.ID IN ({ids_casa})
 AND tep.FK_STATUS_EVENTO = 101
+AND tep.FK_CONCIERGE IS NULL # Concierge tem aba própria (DRE_EVENTOS_CONCIERGE)
 ORDER BY tep.DATA_EVENTO DESC;
 ''')
 
@@ -419,8 +422,8 @@ def DRE_BD_EVENTOS_GERAL_PRICELESS():
   tee.NOME_COMPLETO AS 'Comercial Responsável',
   tep.NOME_EVENTO AS 'Nome do Evento',
   trec.NOME AS 'Cliente',
-  trec.PESSOA_DE_CONTATO AS 'Pessoa de Contato',
-  trec.TELEFONE AS 'Telefone',
+  COALESCE(NULLIF(TRIM(tep.NOME_CONTATO_EVENTO), ''), trec.PESSOA_DE_CONTATO) AS 'Pessoa de Contato',
+  COALESCE(NULLIF(TRIM(tep.WHATSAPP_ORIGEM_LEAD), ''), trec.TELEFONE) AS 'Telefone',
   tep.DATA_RECEBIMENTO_LEAD AS 'Data Recebimento Lead',
   tep.DATA_CONTRATACAO AS 'Data Assinatura Contrato',
   tep.DATA_ENVIO_PROPOSTA AS 'Data Envio Proposta',
@@ -465,6 +468,7 @@ LEFT JOIN T_TIPO_EVENTO tte ON (tep.FK_TIPO_EVENTO = tte.ID)
 LEFT JOIN T_MODELO_EVENTO tme ON (tep.FK_MODELO_EVENTO = tme.ID)
 LEFT JOIN T_EXECUTIVAS_EVENTOS tee ON (tep.FK_EXECUTIVA_EVENTOS = tee.ID)
 WHERE te.ID in (149)
+AND tep.FK_CONCIERGE IS NULL
   ''')
 
 
@@ -1075,8 +1079,86 @@ def DRE_AUT_INSUMOS_PRODUCAO(ids_casa):
   ''')
 
 
+# Concierge (Gabriel, 19/11/2026): até o corte, a tabela antiga (consulta igual à de antes);
+# do corte em diante, T_EVENTOS_PRICELESS com FK_CONCIERGE. Ver utils/concierge_corte.py.
 @st.cache_data
 def DRE_EVENTOS_CONCIERGE(ids_casa):
+    return juntar_concierge(_DRE_EVENTOS_CONCIERGE_novo(ids_casa), _DRE_EVENTOS_CONCIERGE_antigo(ids_casa))
+
+
+def _DRE_EVENTOS_CONCIERGE_novo(ids_casa):
+  return dataframe_query(f'''
+  WITH TOTALS AS (
+  SELECT
+    ID,
+    ROUND(
+    	COALESCE(VALOR_LOCACAO_AROO_1,0)+
+    	COALESCE(VALOR_LOCACAO_AROO_2,0)+
+    	COALESCE(VALOR_LOCACAO_AROO_3,0)+
+    	COALESCE(VALOR_LOCACAO_ANEXO,0)+
+    	COALESCE(VALOR_LOCACAO_NOTIE,0)+
+    	COALESCE(VALOR_LOCACAO_MIRANTE,0)+
+    	COALESCE(VALOR_LOCACAO_BAR,0),2) AS Valor_Locacao_Total,
+    ROUND(
+    	COALESCE(VALOR_TAXA_SERVICO,0)+
+    	COALESCE(VALOR_LOCACAO_DECORACAO_MOBILIARIO,0)+
+    	COALESCE(VALOR_LOCACAO_GERADOR,0)+
+    	COALESCE(VALOR_LOCACAO_UTENSILIOS,0)+
+    	COALESCE(VALOR_MAO_DE_OBRA_EXTRA,0)+
+    	COALESCE(VALOR_TAXA_ADMINISTRATIVA,0)+
+    	COALESCE(VALOR_EXTRAS_GERAIS,0)+
+    	COALESCE(VALOR_IMPOSTO,0)+
+    	COALESCE(VALOR_ACRESCIMO_FORMA_PAGAMENTO,0),2) AS Valor_Outros_Total
+  FROM T_EVENTOS_PRICELESS
+  WHERE FK_CONCIERGE IS NOT NULL
+)
+SELECT
+  CASE WHEN te.ID = 149 THEN (SELECT NOME_FANTASIA FROM T_EMPRESAS WHERE ID = 162) ELSE te.NOME_FANTASIA END AS 'Casa',
+  tpep.ID AS 'ID_Parcela',
+  tep.ID AS 'ID_Evento',
+  tep.DATA_EVENTO AS 'Data_Evento',
+  tep.NOME_EVENTO AS 'Nome_do_Evento',
+  tcep.DESCRICAO AS 'Categoria Parcela',
+  ROUND(COALESCE(tpep.VALOR_PARCELA,0),2) AS 'Valor_Parcela',
+  ROUND(COALESCE(tep.VALOR_TOTAL_EVENTO,0),2) AS 'Valor Total',
+  CASE WHEN tcep.DESCRICAO='A&B' THEN ROUND(COALESCE(tep.VALOR_AB,0) * COALESCE(tpep.VALOR_PARCELA / NULLIF(tep.VALOR_AB,0),0),2) ELSE 0 END AS 'Valor AB',
+  CASE WHEN tcep.DESCRICAO='Outros' THEN ROUND(COALESCE(tep.VALOR_TAXA_SERVICO,0) * (tpep.VALOR_PARCELA / NULLIF(t.Valor_Outros_Total,0)),2) ELSE 0 END AS 'Valor Taxa Serviço',
+  CASE WHEN tcep.DESCRICAO='Outros' THEN ROUND(COALESCE(tep.VALOR_CONTRATACAO_ARTISTICO,0) * (tpep.VALOR_PARCELA / NULLIF(t.Valor_Outros_Total,0)),2) ELSE 0 END AS 'Valor Contratação Artístico',
+  CASE WHEN tcep.DESCRICAO='Outros' THEN ROUND(COALESCE(tep.VALOR_CONTRATACAO_TECNICO_SOM,0) * (tpep.VALOR_PARCELA / NULLIF(t.Valor_Outros_Total,0)),2) ELSE 0 END AS 'Valor Contratação Técnico de Som',
+  CASE WHEN tcep.DESCRICAO='Outros' THEN ROUND(COALESCE(tep.VALOR_LOCACAO_GERADOR,0) * (tpep.VALOR_PARCELA / NULLIF(t.Valor_Outros_Total,0)),2) ELSE 0 END AS 'Valor Locação Gerador',
+  CASE WHEN tcep.DESCRICAO='Outros' THEN ROUND(COALESCE(tep.VALOR_LOCACAO_DECORACAO_MOBILIARIO,0) * (tpep.VALOR_PARCELA / NULLIF(t.Valor_Outros_Total,0)),2) ELSE 0 END AS 'Valor Locação Decoração/Mobiliário',
+  CASE WHEN tcep.DESCRICAO='Outros' THEN ROUND(COALESCE(tep.VALOR_LOCACAO_UTENSILIOS,0) * (tpep.VALOR_PARCELA / NULLIF(t.Valor_Outros_Total,0)),2) ELSE 0 END AS 'Valor Locação Utensílios',
+  CASE WHEN tcep.DESCRICAO='Outros' THEN ROUND(COALESCE(tep.VALOR_MAO_DE_OBRA_EXTRA,0) * (tpep.VALOR_PARCELA / NULLIF(t.Valor_Outros_Total,0)),2) ELSE 0 END AS 'Valor Mão de Obra Extra',
+  CASE WHEN tcep.DESCRICAO='Outros' THEN ROUND(COALESCE(tep.VALOR_TAXA_ADMINISTRATIVA,0) * (tpep.VALOR_PARCELA / NULLIF(t.Valor_Outros_Total,0)),2) ELSE 0 END AS 'Valor Taxa Administrativa',
+  CASE WHEN tcep.DESCRICAO='Outros' THEN ROUND(COALESCE(tep.VALOR_EXTRAS_GERAIS,0) * (tpep.VALOR_PARCELA / NULLIF(t.Valor_Outros_Total,0)),2) ELSE 0 END AS 'Valor Extras Gerais',
+  CASE WHEN tcep.DESCRICAO='Outros' THEN ROUND(COALESCE(tep.VALOR_IMPOSTO,0) * (tpep.VALOR_PARCELA / NULLIF(t.Valor_Outros_Total,0)),2) ELSE 0 END AS 'Valor_Imposto',
+  CASE WHEN tcep.DESCRICAO='Outros' THEN ROUND(COALESCE(tep.VALOR_ACRESCIMO_FORMA_PAGAMENTO,0) * (tpep.VALOR_PARCELA / NULLIF(t.Valor_Outros_Total,0)),2) ELSE 0 END AS 'Valor Acréscimo Forma de Pagamento',
+  CASE WHEN tcep.DESCRICAO='Locação' THEN ROUND(COALESCE(tep.VALOR_LOCACAO_AROO_1,0) * (tpep.VALOR_PARCELA / NULLIF(t.Valor_Locacao_Total,0)),2) ELSE 0 END AS 'Valor Locação Aroo 1',
+  CASE WHEN tcep.DESCRICAO='Locação' THEN ROUND(COALESCE(tep.VALOR_LOCACAO_AROO_2,0) * (tpep.VALOR_PARCELA / NULLIF(t.Valor_Locacao_Total,0)),2) ELSE 0 END AS 'Valor Locação Aroo 2',
+  CASE WHEN tcep.DESCRICAO='Locação' THEN ROUND(COALESCE(tep.VALOR_LOCACAO_AROO_3,0) * (tpep.VALOR_PARCELA / NULLIF(t.Valor_Locacao_Total,0)),2) ELSE 0 END AS 'Valor Locação Aroo 3',
+  CASE WHEN tcep.DESCRICAO='Locação' THEN ROUND(COALESCE(tep.VALOR_LOCACAO_ANEXO,0) * (tpep.VALOR_PARCELA / NULLIF(t.Valor_Locacao_Total,0)),2) ELSE 0 END AS 'Valor Locação Anexo',
+  CASE WHEN tcep.DESCRICAO='Locação' THEN ROUND(COALESCE(tep.VALOR_LOCACAO_NOTIE,0) * (tpep.VALOR_PARCELA / NULLIF(t.Valor_Locacao_Total,0)),2) ELSE 0 END AS 'Valor Locação Notie',
+  CASE WHEN tcep.DESCRICAO='Locação' THEN ROUND(COALESCE(tep.VALOR_LOCACAO_MIRANTE,0) * (tpep.VALOR_PARCELA / NULLIF(t.Valor_Locacao_Total,0)),2) ELSE 0 END AS 'Valor Locação Mirante',
+  CASE WHEN tcep.DESCRICAO='Locação' THEN ROUND(COALESCE(tep.VALOR_LOCACAO_BAR,0) * (tpep.VALOR_PARCELA / NULLIF(t.Valor_Locacao_Total,0)),2) ELSE 0 END AS 'Valor Locação Bar',
+  tpep.DATA_VENCIMENTO_PARCELA AS 'Data_Vencimento',
+  tsp.DESCRICAO AS 'Status_Pagamento',
+  tpep.DATA_RECEBIMENTO_PARCELA AS 'Data_Recebimento',
+  DATE_FORMAT(tep.DATA_EVENTO,'%m/%Y') AS 'Mes_Texto_Evento',
+  DATE_FORMAT(tpep.DATA_RECEBIMENTO_PARCELA,'%m/%Y') AS 'Mes_Texto_Recebimento'
+FROM T_PARCELAS_EVENTOS_PRICELESS tpep
+JOIN T_EVENTOS_PRICELESS tep ON tpep.FK_EVENTO_PRICELESS = tep.ID
+LEFT JOIN TOTALS t ON t.ID = tep.ID
+LEFT JOIN T_EMPRESAS te ON tep.FK_EMPRESA = te.ID
+LEFT JOIN T_STATUS_PAGAMENTO tsp ON tpep.FK_STATUS_PAGAMENTO = tsp.ID
+LEFT JOIN T_CATEGORIA_EVENTO_PRICELESS tcep ON tpep.FK_CATEGORIA_PARCELA = tcep.ID
+WHERE te.ID IN ({ids_casa})
+AND tep.FK_STATUS_EVENTO = 101
+AND tep.FK_CONCIERGE IS NOT NULL
+ORDER BY tep.DATA_EVENTO DESC;  
+''')
+
+
+def _DRE_EVENTOS_CONCIERGE_antigo(ids_casa):
   return dataframe_query(f'''
   WITH TOTALS AS (
   SELECT
@@ -1142,6 +1224,7 @@ LEFT JOIN T_STATUS_PAGAMENTO tsp ON tpep.FK_STATUS_PAGAMENTO = tsp.ID
 LEFT JOIN T_CATEGORIA_EVENTO_PRICELESS tcep ON tpep.FK_CATEGORIA_PARCELA = tcep.ID
 WHERE te.ID IN ({ids_casa})
 AND tep.FK_STATUS_EVENTO = 101
+AND tep.DATA_EVENTO < '{CORTE_CONCIERGE}'
 ORDER BY tep.DATA_EVENTO DESC;  
 ''')
 
