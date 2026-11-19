@@ -37,8 +37,9 @@ def main():
 	st.divider()
 
 	# Recupera dados dos eventos e parcelas
-	df_eventos = GET_EVENTOS_E_ADITIVOS_PRICELESS()
-	df_parcelas = GET_PARCELAS_EVENTOS_PRICELESS()
+	# Conciliação inclui os eventos do Concierge (decisão de 19/11/2026: o dinheiro deles também entra no banco)
+	df_eventos = GET_EVENTOS_E_ADITIVOS_PRICELESS(incluir_concierge=True)
+	df_parcelas = GET_PARCELAS_EVENTOS_PRICELESS(incluir_concierge=True)
 	
     # Formata tipos de dados do dataframe de eventos
 	tipos_de_dados_eventos = {
