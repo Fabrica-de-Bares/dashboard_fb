@@ -51,7 +51,9 @@ def main():
     st.divider()
 
     # Filtro de casa:
-    lista_retirar_casas = ['Bar Léo - Vila Madalena', 'Blue Note SP (Novo)', 'Edificio Rolim', 'Todas as Casas', 'Escritório Fabrica de Bares', 'The Cavern - Almoço', 'Terraço Notie Novo']
+    # 162 (Terraço Notie) sai: os eventos Concierge dela já entram em Notie SP (149),
+    # remapeados em GET_EVENTOS_CONCIERGE; no seletor ela aparecia sempre vazia.
+    lista_retirar_casas = ['Bar Léo - Vila Madalena', 'Blue Note SP (Novo)', 'Edificio Rolim', 'Todas as Casas', 'Escritório Fabrica de Bares', 'The Cavern - Almoço', 'Terraço Notie Novo', nome_casa_por_id(162)]
     id_casa, casa, id_zigpay = input_selecao_casas(lista_retirar_casas, key='calendario')
 
     if casa != 'Todas as Casas':
