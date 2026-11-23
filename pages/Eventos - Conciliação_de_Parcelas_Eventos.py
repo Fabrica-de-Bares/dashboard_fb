@@ -39,7 +39,8 @@ def main():
 	# Recupera dados dos eventos e parcelas
 	# Conciliação inclui os eventos do Concierge (decisão de 19/11/2026: o dinheiro deles também entra no banco)
 	df_eventos = GET_EVENTOS_E_ADITIVOS_PRICELESS(incluir_concierge=True)
-	df_parcelas = GET_PARCELAS_EVENTOS_PRICELESS(incluir_concierge=True)
+	# Parcela estornada ou cancelada não conta em nada (mesma regra da tela de Eventos da BlueMe)
+	df_parcelas = GET_PARCELAS_EVENTOS_PRICELESS(incluir_concierge=True, so_parcelas_validas=True)
 	
     # Formata tipos de dados do dataframe de eventos
 	tipos_de_dados_eventos = {
