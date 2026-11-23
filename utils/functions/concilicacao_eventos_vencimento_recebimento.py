@@ -9,8 +9,15 @@ from streamlit_echarts import st_echarts
 from utils.functions.faturamento import *
 
 def filtra_parcelas_atrasadas(df_parcelas):
+    # Atrasada = em aberto (sem recebimento e sem status, ou Pendente) e vencida antes de hoje.
+    # Mesma regra do card "Atrasado" da tela de Eventos da BlueMe: estornada fica fora e
+    # Parcial/Retenção/Desconto do EPM antigo contam como fechadas.
     df_parcelas = df_parcelas.copy()
-    df_parcelas = df_parcelas[df_parcelas['Data Recebimento'].isna() & (df_parcelas['Data Vencimento'] < pd.Timestamp.now().normalize())]
+    em_aberto = df_parcelas['Data Recebimento'].isna() & (
+        df_parcelas['Status Pagamento'].isna() | (df_parcelas['Status Pagamento'] == 'Pendente')
+    )
+    vencida = df_parcelas['Data Vencimento'] < pd.Timestamp.now().normalize()
+    df_parcelas = df_parcelas[em_aberto & vencida]
     return df_parcelas
 
 def colorir_parcelas_recebidas(row):

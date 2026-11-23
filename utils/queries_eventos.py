@@ -246,7 +246,10 @@ def GET_ADITIVOS():
 
 
 @st.cache_data
-def GET_PARCELAS_EVENTOS_PRICELESS(incluir_concierge=False):
+def GET_PARCELAS_EVENTOS_PRICELESS(incluir_concierge=False, so_parcelas_validas=False):
+   	# so_parcelas_validas: tira parcela estornada (status 106) e cancelada, como a tela de Eventos da BlueMe.
+   	# O estorno feito na BlueMe reabre o valor numa parcela nova (FK_PARCELA_ORIGEM); a estornada contaria em dobro.
+   	filtro_validas = 'AND COALESCE(tpep.FK_STATUS_PAGAMENTO, 0) <> 106 AND COALESCE(tpep.BIT_CANCELADA, 0) = 0' if so_parcelas_validas else ''
    	return dataframe_query(f'''
 		SELECT
 			tpep.ID AS 'ID Parcela',
@@ -267,6 +270,7 @@ def GET_PARCELAS_EVENTOS_PRICELESS(incluir_concierge=False):
 			LEFT JOIN T_EMPRESAS te ON te.ID = tep.FK_EMPRESA
 			LEFT JOIN T_STATUS_EVENTO_PRE tsep ON tsep.ID = tep.FK_STATUS_EVENTO
 		WHERE {_filtro_concierge('tep', incluir_concierge)}
+			{filtro_validas}
 		ORDER BY tep.ID DESC, tpep.ID DESC
 	''')
 
