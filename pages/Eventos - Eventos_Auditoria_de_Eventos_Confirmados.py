@@ -37,7 +37,8 @@ def main():
 		st.button(label='Atualizar', key='atualizar', on_click=st.cache_data.clear)
 	st.divider()
 
-	st.warning(':warning: Eventos e parcelas de eventos não devem ser alterados após a confirmação do evento.')
+	st.warning(':warning: Desde 24/11/2026 o Comercial pode editar um evento Confirmado até o dia do evento, inclusive, '
+		'menos as parcelas que já receberam baixa. Depois do dia do evento, só por aditivo ou pela liberação do Financeiro.')
 	st.info(':information_source: Para obter o histórico de alterações, certifique-se que o Período selecionado está vazio.')
 
 	# Recupera logs de eventos, logs de parcelas e eventos confirmados
